@@ -53,13 +53,13 @@ src/lib/state-manager.ts      → State CRUD + Cleanup
 
 ## State Tree
 
-Ordnername = Cloud-Gerätename (z.B. `wohnzimmer_led_strip`), ohne Cloud = SKU (z.B. `h6160`).
+Ordnername = Cloud-Gerätename (z.B. `wohnzimmer_led_strip`), ohne Cloud = SKU + Short-ID (z.B. `h6160_5a07`).
 
 ```
 govee-smart.0.
 ├── info.connection
 └── devices.
-    └── wohnzimmer_led_strip.
+    └── wohnzimmer_led_strip.        (oder h6160_5a07. ohne Cloud)
         ├── info.name / .model / .serial / .online
         ├── control.power / .brightness / .colorRgb / .colorTemperature / .scene
         └── segments.count / .0.color / .0.brightness
@@ -144,11 +144,11 @@ Single Page, drei Sektionen:
 6. **Nahtlos** — User merkt nicht welcher Kanal
 7. **Kein BLE** — ptReal/BLE-Passthrough nicht nutzen
 
-## Tests (77)
+## Tests (78)
 
 ```
 test/testCapabilityMapper.ts → Capability Mapping (on_off, range, color, scenes, property, toggle, LAN defaults) (11 Tests)
-test/testDeviceManager.ts    → Device Manager (LAN discovery, IP update, MQTT status, filtering) (5 Tests)
+test/testDeviceManager.ts    → Device Manager (LAN discovery, IP update, MQTT status, filtering, SKU collision) (6 Tests)
 test/testRateLimiter.ts      → Rate Limiter (per-minute, per-day, queueing) (4 Tests)
 test/testPackageFiles.ts     → @iobroker/testing (57 Tests)
 ```

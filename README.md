@@ -77,7 +77,7 @@ The adapter works with different levels of configuration. Each level unlocks add
 
 ## State Tree
 
-Device folders are named after the device name from the Govee Cloud API (e.g., `wohnzimmer_led_strip`). Without an API key, the SKU is used as the folder name (e.g., `h6160`).
+Device folders are named after the device name from the Govee Cloud API (e.g., `wohnzimmer_led_strip`). Without an API key, the SKU with a short device ID suffix is used (e.g., `h6160_5a07`).
 
 ```
 govee-smart.0.
