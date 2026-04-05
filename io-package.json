@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "govee-smart",
-        "version": "0.1.1",
+        "version": "0.1.2",
         "news": {
+            "0.1.2": {
+                "en": "Fix LAN discovery race condition: listen socket ready before first scan",
+                "de": "Fix LAN-Discovery Race Condition: Listen-Socket bereit vor erstem Scan",
+                "ru": "Исправление гонки при обнаружении LAN: сокет прослушивания готов перед сканированием",
+                "pt": "Correção de condição de corrida na descoberta LAN",
+                "nl": "Fix LAN-ontdekking race-conditie",
+                "fr": "Correction de la condition de course dans la découverte LAN",
+                "it": "Correzione race condition nella scoperta LAN",
+                "es": "Corrección de condición de carrera en descubrimiento LAN",
+                "pl": "Naprawa wyścigu w wykrywaniu LAN",
+                "uk": "Виправлення перегонів при LAN-виявленні",
+                "zh-cn": "修复LAN发现竞争条件"
+            },
             "0.1.1": {
                 "en": "Fix LAN-only devices missing control states, fix status matching by source IP",
                 "de": "Fix LAN-only Geräte ohne Steuer-States, Fix Status-Zuordnung per Source-IP",
