@@ -1,0 +1,96 @@
+{
+    "common": {
+        "name": "govee",
+        "version": "0.1.0",
+        "news": {
+            "0.1.0": {
+                "en": "Initial release",
+                "de": "Erstveröffentlichung",
+                "ru": "Первоначальный выпуск",
+                "pt": "Lançamento inicial",
+                "nl": "Eerste uitgave",
+                "fr": "Version initiale",
+                "it": "Rilascio iniziale",
+                "es": "Lanzamiento inicial",
+                "pl": "Pierwsze wydanie",
+                "uk": "Початковий випуск",
+                "zh-cn": "初始版本"
+            }
+        },
+        "titleLang": {
+            "en": "Govee Smart Lights",
+            "de": "Govee Smart Lights",
+            "ru": "Govee Smart Lights",
+            "pt": "Govee Smart Lights",
+            "nl": "Govee Smart Lights",
+            "fr": "Govee Smart Lights",
+            "it": "Govee Smart Lights",
+            "es": "Govee Smart Lights",
+            "pl": "Govee Smart Lights",
+            "uk": "Govee Smart Lights",
+            "zh-cn": "Govee Smart Lights"
+        },
+        "desc": {
+            "en": "Control Govee smart lights via LAN, MQTT and Cloud API",
+            "de": "Govee Smart Lights über LAN, MQTT und Cloud API steuern",
+            "ru": "Управление умными светильниками Govee через LAN, MQTT и Cloud API",
+            "pt": "Controle luzes inteligentes Govee via LAN, MQTT e Cloud API",
+            "nl": "Bedien Govee slimme verlichting via LAN, MQTT en Cloud API",
+            "fr": "Contrôlez les lumières intelligentes Govee via LAN, MQTT et Cloud API",
+            "it": "Controlla le luci intelligenti Govee tramite LAN, MQTT e Cloud API",
+            "es": "Controla las luces inteligentes Govee a través de LAN, MQTT y Cloud API",
+            "pl": "Steruj inteligentnymi lampami Govee przez LAN, MQTT i Cloud API",
+            "uk": "Керуйте розумними світильниками Govee через LAN, MQTT та Cloud API",
+            "zh-cn": "通过LAN、MQTT和Cloud API控制Govee智能灯"
+        },
+        "authors": [
+            "krobi <krobi@power-dreams.com>"
+        ],
+        "licenseInformation": {
+            "license": "MIT",
+            "type": "free"
+        },
+        "platform": "Javascript/Node.js",
+        "icon": "govee.svg",
+        "extIcon": "https://raw.githubusercontent.com/krobipd/ioBroker.govee/main/admin/govee.svg",
+        "readme": "https://github.com/krobipd/ioBroker.govee/blob/main/README.md",
+        "enabled": true,
+        "tier": 3,
+        "loglevel": "info",
+        "mode": "daemon",
+        "type": "lighting",
+        "compact": true,
+        "connectionType": "local",
+        "dataSource": "push",
+        "adminUI": {
+            "config": "json"
+        },
+        "supportedMessages": {
+            "stopInstance": true
+        },
+        "dependencies": [
+            {
+                "js-controller": ">=7.0.0"
+            }
+        ],
+        "globalDependencies": [
+            {
+                "admin": ">=7.6.20"
+            }
+        ]
+    },
+    "encryptedNative": [
+        "apiKey",
+        "goveePassword"
+    ],
+    "protectedNative": [
+        "apiKey",
+        "goveePassword"
+    ],
+    "native": {
+        "apiKey": "",
+        "goveeEmail": "",
+        "goveePassword": "",
+        "pollInterval": 60
+    }
+}

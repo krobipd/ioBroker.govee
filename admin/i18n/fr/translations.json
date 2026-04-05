@@ -1,0 +1,17 @@
+{
+    "aboutInfo": "Cet adaptateur est gratuit et open source. Si vous le trouvez utile, pensez à soutenir le développement.",
+    "apiKeyLabel": "Clé API",
+    "cloudHeader": "API Cloud (facultatif)",
+    "cloudInfo": "Entrez votre clé API Govee pour activer les noms d'appareils, les scènes et le contrôle des segments. Obtenez votre clé dans l'application Govee Home sous Compte > Paramètres > À propos de nous > Demander une clé API.",
+    "donateKofi": "Assistance sur Ko-fi",
+    "donatePaypal": "Faites un don via PayPal",
+    "emailLabel": "E-mail",
+    "lanHeader": "Contrôle LAN (toujours actif)",
+    "lanInfo": "Les appareils dont le mode LAN est activé dans l'application Govee Home sont découverts automatiquement. Cela fournit le contrôle le plus rapide (~ 100 ms).",
+    "mqttHeader": "Compte Govee (facultatif)",
+    "mqttInfo": "Entrez les informations d'identification de votre compte Govee pour activer les mises à jour de statut en temps réel via MQTT. Sans cela, le statut n'est mis à jour que sur demande.",
+    "passwordLabel": "Mot de passe",
+    "pollIntervalLabel": "Intervalle d'actualisation du cloud (secondes)",
+    "settingsHeader": "Paramètres",
+    "supportHeader": "Soutien"
+}

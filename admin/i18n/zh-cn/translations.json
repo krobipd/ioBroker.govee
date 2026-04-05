@@ -1,0 +1,17 @@
+{
+    "aboutInfo": "该适配器是免费且开源的。如果您觉得有用，请考虑支持开发。",
+    "apiKeyLabel": "API密钥",
+    "cloudHeader": "云API（可选）",
+    "cloudInfo": "输入您的 Govee API 密钥以启用设备名称、场景和分段控制。在 Govee Home 应用程序中的帐户 > 设置 > 关于我们 > 申请 API 密钥下获取密钥。",
+    "donateKofi": "支持 Ko-fi",
+    "donatePaypal": "通过 PayPal 捐赠",
+    "emailLabel": "电子邮件",
+    "lanHeader": "LAN 控制（始终有效）",
+    "lanInfo": "会自动发现在 Govee Home 应用程序中启用 LAN 模式的设备。这提供了最快的控制（~100ms）。",
+    "mqttHeader": "Govee 帐户（可选）",
+    "mqttInfo": "输入您的 Govee 帐户凭据以通过 MQTT 启用实时状态更新。如果没有这个，状态只会根据请求更新。",
+    "passwordLabel": "密码",
+    "pollIntervalLabel": "云刷新间隔（秒）",
+    "settingsHeader": "设置",
+    "supportHeader": "支持"
+}

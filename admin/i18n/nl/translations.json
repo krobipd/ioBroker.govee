@@ -1,0 +1,17 @@
+{
+    "aboutInfo": "Deze adapter is gratis en open source. Als u het nuttig vindt, overweeg dan om de ontwikkeling te ondersteunen.",
+    "apiKeyLabel": "API-sleutel",
+    "cloudHeader": "Cloud-API (optioneel)",
+    "cloudInfo": "Voer uw Govee API-sleutel in om apparaatnamen, scènes en segmentcontrole in te schakelen. Haal uw sleutel op in de Govee Home-app onder Account > Instellingen > Over ons > API-sleutel aanvragen.",
+    "donateKofi": "Ondersteuning op Ko-fi",
+    "donatePaypal": "Doneer via PayPal",
+    "emailLabel": "E-mail",
+    "lanHeader": "LAN-controle (altijd actief)",
+    "lanInfo": "Apparaten waarvoor de LAN-modus is ingeschakeld in de Govee Home-app worden automatisch gedetecteerd. Dit biedt de snelste controle (~100 ms).",
+    "mqttHeader": "Govee-account (optioneel)",
+    "mqttInfo": "Voer de inloggegevens van uw Govee-account in om realtime statusupdates via MQTT in te schakelen. Zonder dit wordt de status alleen op verzoek bijgewerkt.",
+    "passwordLabel": "Wachtwoord",
+    "pollIntervalLabel": "Cloudvernieuwingsinterval (seconden)",
+    "settingsHeader": "Instellingen",
+    "supportHeader": "Steun"
+}

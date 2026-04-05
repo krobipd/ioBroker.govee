@@ -1,0 +1,7 @@
+node_modules/
+build/
+.dev-server/
+.DS_Store
+*.tgz
+.idea/
+CLAUDE.md

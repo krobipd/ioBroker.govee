@@ -1,0 +1,17 @@
+{
+    "lanHeader": "LAN Control (always active)",
+    "lanInfo": "Devices with LAN mode enabled in the Govee Home app are discovered automatically. This provides the fastest control (~100ms).",
+    "cloudHeader": "Cloud API (optional)",
+    "cloudInfo": "Enter your Govee API key to enable device names, scenes and segment control. Get your key in the Govee Home app under Account > Settings > About Us > Apply for API Key.",
+    "apiKeyLabel": "API Key",
+    "mqttHeader": "Govee Account (optional)",
+    "mqttInfo": "Enter your Govee account credentials to enable real-time status updates via MQTT. Without this, status is only updated on request.",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "settingsHeader": "Settings",
+    "pollIntervalLabel": "Cloud refresh interval (seconds)",
+    "supportHeader": "Support",
+    "aboutInfo": "This adapter is free and open source. If you find it useful, consider supporting the development.",
+    "donateKofi": "Support on Ko-fi",
+    "donatePaypal": "Donate via PayPal"
+}
