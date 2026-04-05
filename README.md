@@ -32,7 +32,7 @@ Control [Govee](https://www.govee.com/) smart lights (H6xxx/H7xxx series) via th
 - **Node.js >= 20**
 - **ioBroker js-controller >= 7.0.0**
 - **ioBroker Admin >= 7.6.20**
-- **Govee lights with LAN API support** (H6xxx/H7xxx series with Wi-Fi) — [Supported devices list](https://app-h5.govee.com/user-manual/wlan-guide)
+- **Govee lights with LAN API support** — [Supported devices list](https://app-h5.govee.com/user-manual/wlan-guide)
 
 ---
 
