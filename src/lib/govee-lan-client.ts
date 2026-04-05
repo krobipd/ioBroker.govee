@@ -55,7 +55,7 @@ export class GoveeLanClient {
     this.onDiscovery = onDiscovery;
     this.onStatus = onStatus;
 
-    // Listen socket for responses (port 4002)
+    // Listen socket for responses (port 4002) — must be ready before first scan
     this.listenSocket = dgram.createSocket({ type: "udp4", reuseAddr: true });
     this.listenSocket.on("message", (msg, rinfo) => {
       this.handleMessage(msg, rinfo.address);
@@ -65,29 +65,29 @@ export class GoveeLanClient {
     });
     this.listenSocket.bind(LISTEN_PORT, () => {
       this.log.debug(`LAN listening on port ${LISTEN_PORT}`);
-    });
 
-    // Scan socket for multicast discovery (port 4001)
-    this.scanSocket = dgram.createSocket({ type: "udp4", reuseAddr: true });
-    this.scanSocket.on("error", (err) => {
-      this.log.debug(`LAN scan socket error: ${err.message}`);
-    });
-    this.scanSocket.bind(() => {
-      this.scanSocket?.setBroadcast(true);
-      try {
-        this.scanSocket?.addMembership(MULTICAST_ADDR);
-      } catch {
-        this.log.debug(
-          "Could not join multicast group — using broadcast fallback",
-        );
-      }
-      this.sendScan();
-    });
+      // Scan socket for multicast discovery (port 4001) — started after listen is ready
+      this.scanSocket = dgram.createSocket({ type: "udp4", reuseAddr: true });
+      this.scanSocket.on("error", (err) => {
+        this.log.debug(`LAN scan socket error: ${err.message}`);
+      });
+      this.scanSocket.bind(() => {
+        this.scanSocket?.setBroadcast(true);
+        try {
+          this.scanSocket?.addMembership(MULTICAST_ADDR);
+        } catch {
+          this.log.debug(
+            "Could not join multicast group — using broadcast fallback",
+          );
+        }
+        this.sendScan();
+      });
 
-    // Periodic scan
-    this.scanTimer = this.timers.setInterval(() => {
-      this.sendScan();
-    }, scanIntervalMs);
+      // Periodic scan
+      this.scanTimer = this.timers.setInterval(() => {
+        this.sendScan();
+      }, scanIntervalMs);
+    });
   }
 
   /** Stop all sockets and timers */
