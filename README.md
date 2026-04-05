@@ -1,15 +1,15 @@
-# ioBroker.govee
+# ioBroker.govee-smart
 
-[![npm version](https://img.shields.io/npm/v/iobroker.govee)](https://www.npmjs.com/package/iobroker.govee)
+[![npm version](https://img.shields.io/npm/v/iobroker.govee-smart)](https://www.npmjs.com/package/iobroker.govee-smart)
 ![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![npm downloads](https://img.shields.io/npm/dt/iobroker.govee)](https://www.npmjs.com/package/iobroker.govee)
-![Installations](https://iobroker.live/badges/govee-installed.svg)
+[![npm downloads](https://img.shields.io/npm/dt/iobroker.govee-smart)](https://www.npmjs.com/package/iobroker.govee-smart)
+![Installations](https://iobroker.live/badges/govee-smart-installed.svg)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?logo=ko-fi)](https://ko-fi.com/krobipd)
 [![PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://paypal.me/krobipd)
 
-<img src="https://raw.githubusercontent.com/krobipd/ioBroker.govee/main/admin/govee.svg" width="100" />
+<img src="https://raw.githubusercontent.com/krobipd/ioBroker.govee-smart-smart/main/admin/govee-smart.svg" width="100" />
 
 Control [Govee](https://www.govee.com/) smart lights (H6xxx/H7xxx series) via three seamless channels: **LAN** (fastest, primary), **AWS IoT MQTT** (real-time status push), and **Cloud API v2** (scenes, segments, capabilities).
 
@@ -78,7 +78,7 @@ The adapter works with different levels of configuration. Each level unlocks add
 ## State Tree
 
 ```
-govee.0.
+govee-smart.0.
 ├── info/
 │   └── connection              — Overall connection status (boolean)
 └── devices/
@@ -142,7 +142,7 @@ govee.0.
 ## Support
 
 - [ioBroker Forum](https://forum.iobroker.net/)
-- [GitHub Issues](https://github.com/krobipd/ioBroker.govee/issues)
+- [GitHub Issues](https://github.com/krobipd/ioBroker.govee-smart/issues)
 
 ### Support Development
 

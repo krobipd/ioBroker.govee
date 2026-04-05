@@ -1,6 +1,6 @@
 {
     "common": {
-        "name": "govee",
+        "name": "govee-smart",
         "version": "0.1.0",
         "news": {
             "0.1.0": {
@@ -51,9 +51,9 @@
             "type": "free"
         },
         "platform": "Javascript/Node.js",
-        "icon": "govee.svg",
-        "extIcon": "https://raw.githubusercontent.com/krobipd/ioBroker.govee/main/admin/govee.svg",
-        "readme": "https://github.com/krobipd/ioBroker.govee/blob/main/README.md",
+        "icon": "govee-smart.svg",
+        "extIcon": "https://raw.githubusercontent.com/krobipd/ioBroker.govee-smart/main/admin/govee-smart.svg",
+        "readme": "https://github.com/krobipd/ioBroker.govee-smart/blob/main/README.md",
         "enabled": true,
         "tier": 3,
         "loglevel": "info",

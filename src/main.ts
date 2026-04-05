@@ -19,7 +19,7 @@ class GoveeAdapter extends utils.Adapter {
 
   /** @param options Adapter options */
   public constructor(options: Partial<utils.AdapterOptions> = {}) {
-    super({ ...options, name: "govee" });
+    super({ ...options, name: "govee-smart" });
     this.on("ready", () => this.onReady());
     this.on("stateChange", (id, state) => this.onStateChange(id, state));
     this.on("unload", (callback) => this.onUnload(callback));

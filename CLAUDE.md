@@ -1,14 +1,14 @@
-# CLAUDE.md — ioBroker.govee
+# CLAUDE.md — ioBroker.govee-smart
 
 > Gemeinsame ioBroker-Wissensbasis: `../CLAUDE.md` (lokal, nicht im Git). Standards dort, Projekt-Spezifisches hier.
 > Vollständige API-Recherche: Memory `research_govee.md`
 
 ## Projekt
 
-**ioBroker Govee Adapter** — Steuert Govee Smart-Home-Geräte. LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig.
+**ioBroker Govee Smart Adapter** — Steuert Govee Smart-Home-Geräte. LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig.
 
 - **Version:** 0.1.0 (April 2026)
-- **GitHub:** https://github.com/krobipd/ioBroker.govee
+- **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** (noch nicht published)
 - **Runtime-Deps:** `@iobroker/adapter-core`, `mqtt`, `node-forge`
 
@@ -54,7 +54,7 @@ src/lib/state-manager.ts      → State CRUD + Cleanup
 ## State Tree
 
 ```
-govee.0.
+govee-smart.0.
 ├── info.connection
 └── devices.
     ├── h6160_1f80c532.
