@@ -1,0 +1,285 @@
+"use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var utils = __toESM(require("@iobroker/adapter-core"));
+var import_capability_mapper = require("./lib/capability-mapper.js");
+var import_device_manager = require("./lib/device-manager.js");
+var import_govee_cloud_client = require("./lib/govee-cloud-client.js");
+var import_govee_lan_client = require("./lib/govee-lan-client.js");
+var import_govee_mqtt_client = require("./lib/govee-mqtt-client.js");
+var import_rate_limiter = require("./lib/rate-limiter.js");
+var import_state_manager = require("./lib/state-manager.js");
+class GoveeAdapter extends utils.Adapter {
+  deviceManager = null;
+  stateManager = null;
+  lanClient = null;
+  mqttClient = null;
+  cloudClient = null;
+  rateLimiter = null;
+  cloudPollTimer = void 0;
+  /** @param options Adapter options */
+  constructor(options = {}) {
+    super({ ...options, name: "govee-smart" });
+    this.on("ready", () => this.onReady());
+    this.on("stateChange", (id, state) => this.onStateChange(id, state));
+    this.on("unload", (callback) => this.onUnload(callback));
+  }
+  /** Adapter started — initialize all channels */
+  async onReady() {
+    var _a;
+    const config = this.config;
+    await this.setObjectNotExistsAsync("info", {
+      type: "channel",
+      common: { name: "Information" },
+      native: {}
+    });
+    await this.setObjectNotExistsAsync("info.connection", {
+      type: "state",
+      common: {
+        name: "Connection status",
+        type: "boolean",
+        role: "indicator.connected",
+        read: true,
+        write: false,
+        def: false
+      },
+      native: {}
+    });
+    await this.setStateAsync("info.connection", { val: false, ack: true });
+    this.stateManager = new import_state_manager.StateManager(this);
+    this.deviceManager = new import_device_manager.DeviceManager(this.log);
+    this.deviceManager.setCallbacks(
+      (device, state) => this.onDeviceStateUpdate(device, state),
+      (devices) => this.onDeviceListChanged(devices)
+    );
+    this.lanClient = new import_govee_lan_client.GoveeLanClient(this.log, this);
+    this.deviceManager.setLanClient(this.lanClient);
+    this.lanClient.start(
+      (lanDevice) => {
+        this.deviceManager.handleLanDiscovery(lanDevice);
+        this.lanClient.requestStatus(lanDevice.ip);
+      },
+      (sourceIp, status) => {
+        this.deviceManager.handleLanStatus(sourceIp, status);
+      }
+    );
+    if (config.apiKey) {
+      this.cloudClient = new import_govee_cloud_client.GoveeCloudClient(config.apiKey, this.log);
+      this.deviceManager.setCloudClient(this.cloudClient);
+      this.rateLimiter = new import_rate_limiter.RateLimiter(this.log, this);
+      this.rateLimiter.start();
+      this.deviceManager.setRateLimiter(this.rateLimiter);
+      await this.deviceManager.loadFromCloud();
+      const intervalMs = Math.max(30, (_a = config.pollInterval) != null ? _a : 60) * 1e3;
+      this.cloudPollTimer = this.setInterval(() => {
+        void this.deviceManager.loadFromCloud();
+      }, intervalMs);
+    }
+    if (config.goveeEmail && config.goveePassword) {
+      this.mqttClient = new import_govee_mqtt_client.GoveeMqttClient(
+        config.goveeEmail,
+        config.goveePassword,
+        this.log,
+        this
+      );
+      this.deviceManager.setMqttClient(this.mqttClient);
+      await this.mqttClient.connect(
+        (update) => this.deviceManager.handleMqttStatus(update),
+        (connected) => {
+          if (connected) {
+            this.log.debug("MQTT connected \u2014 real-time status active");
+            for (const dev of this.deviceManager.getDevices()) {
+              if (dev.mqttTopic) {
+                this.mqttClient.registerDeviceTopic(
+                  dev.deviceId,
+                  dev.mqttTopic
+                );
+              }
+            }
+          }
+          this.updateConnectionState();
+        }
+      );
+    }
+    await this.subscribeStatesAsync("devices.*");
+    this.setTimeout(() => {
+      if (this.stateManager && this.deviceManager) {
+        void this.stateManager.cleanupDevices(this.deviceManager.getDevices());
+      }
+    }, 3e4);
+    this.updateConnectionState();
+    const channels = ["LAN"];
+    if (config.apiKey) {
+      channels.push("Cloud");
+    }
+    if (config.goveeEmail) {
+      channels.push("MQTT");
+    }
+    this.log.info(`Govee adapter started \u2014 channels: ${channels.join(", ")}`);
+  }
+  /**
+   * Adapter stopping — MUST be synchronous.
+   *
+   * @param callback Completion callback
+   */
+  onUnload(callback) {
+    var _a, _b, _c;
+    try {
+      if (this.cloudPollTimer) {
+        this.clearInterval(this.cloudPollTimer);
+        this.cloudPollTimer = void 0;
+      }
+      (_a = this.lanClient) == null ? void 0 : _a.stop();
+      (_b = this.mqttClient) == null ? void 0 : _b.disconnect();
+      (_c = this.rateLimiter) == null ? void 0 : _c.stop();
+      void this.setState("info.connection", { val: false, ack: true });
+    } catch {
+    }
+    callback();
+  }
+  /**
+   * Handle state changes from user (write operations).
+   *
+   * @param id State ID
+   * @param state New state value
+   */
+  async onStateChange(id, state) {
+    if (!state || state.ack || !this.deviceManager || !this.stateManager) {
+      return;
+    }
+    const localId = id.replace(`${this.namespace}.`, "");
+    if (!localId.startsWith("devices.")) {
+      return;
+    }
+    const device = this.findDeviceForState(localId);
+    if (!device) {
+      return;
+    }
+    const prefix = this.stateManager.devicePrefix(device);
+    const stateSuffix = localId.slice(prefix.length + 1);
+    const command = this.stateToCommand(stateSuffix);
+    if (!command) {
+      this.log.debug(`Unknown writable state: ${stateSuffix}`);
+      return;
+    }
+    try {
+      await this.deviceManager.sendCommand(device, command, state.val);
+      await this.setStateAsync(id, { val: state.val, ack: true });
+    } catch (err) {
+      this.log.warn(
+        `Command failed for ${device.name}: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+  /**
+   * Called by device-manager when a device state changes
+   *
+   * @param device Updated device
+   * @param state Changed state values
+   */
+  onDeviceStateUpdate(device, state) {
+    if (this.stateManager) {
+      void this.stateManager.updateDeviceState(device, state);
+    }
+    this.updateConnectionState();
+  }
+  /**
+   * Called by device-manager when the device list changes
+   *
+   * @param devices Current list of all devices
+   */
+  onDeviceListChanged(devices) {
+    if (!this.stateManager) {
+      return;
+    }
+    for (const device of devices) {
+      let stateDefs = (0, import_capability_mapper.mapCapabilities)(device.capabilities);
+      if (stateDefs.length === 0 && device.lanIp) {
+        stateDefs = (0, import_capability_mapper.getDefaultLanStates)();
+      }
+      void this.stateManager.createDeviceStates(device, stateDefs);
+    }
+    this.updateConnectionState();
+  }
+  /** Update global info.connection */
+  updateConnectionState() {
+    var _a, _b, _c, _d;
+    const hasDevices = ((_b = (_a = this.deviceManager) == null ? void 0 : _a.getDevices().length) != null ? _b : 0) > 0;
+    const anyOnline = (_d = (_c = this.deviceManager) == null ? void 0 : _c.getDevices().some((d) => d.state.online)) != null ? _d : false;
+    const lanRunning = this.lanClient !== null;
+    const connected = hasDevices ? anyOnline : lanRunning;
+    void this.setStateAsync("info.connection", { val: connected, ack: true });
+  }
+  /**
+   * Find device for a state ID
+   *
+   * @param localId Local state ID without namespace prefix
+   */
+  findDeviceForState(localId) {
+    if (!this.deviceManager || !this.stateManager) {
+      return void 0;
+    }
+    for (const device of this.deviceManager.getDevices()) {
+      const prefix = this.stateManager.devicePrefix(device);
+      if (localId.startsWith(`${prefix}.`)) {
+        return device;
+      }
+    }
+    return void 0;
+  }
+  /**
+   * Map state suffix to command name
+   *
+   * @param suffix State ID suffix (e.g. "power", "brightness")
+   */
+  stateToCommand(suffix) {
+    if (suffix === "control.power") {
+      return "power";
+    }
+    if (suffix === "control.brightness") {
+      return "brightness";
+    }
+    if (suffix === "control.colorRgb") {
+      return "colorRgb";
+    }
+    if (suffix === "control.colorTemperature") {
+      return "colorTemperature";
+    }
+    if (suffix === "control.scene") {
+      return "scene";
+    }
+    if (suffix.startsWith("segments.") && suffix.endsWith(".color")) {
+      return "segmentColor";
+    }
+    if (suffix.startsWith("segments.") && suffix.endsWith(".brightness")) {
+      return "segmentBrightness";
+    }
+    return null;
+  }
+}
+if (require.main !== module) {
+  module.exports = (options) => new GoveeAdapter(options);
+} else {
+  (() => new GoveeAdapter())();
+}
+//# sourceMappingURL=main.js.map

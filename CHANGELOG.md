@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.2.1 (2026-04-05)
 - Fix duplicate SKU collision: LAN-only devices now use SKU with short device ID suffix for unique folder names
 - Fix deploy workflow: add build step before npm publish
 

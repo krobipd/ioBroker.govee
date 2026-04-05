@@ -1,135 +1,148 @@
 {
-    "common": {
-        "name": "govee-smart",
-        "version": "0.2.0",
-        "news": {
-            "0.2.0": {
-                "en": "Device folders use Cloud name (SKU fallback), control states in control/ channel",
-                "de": "Geräte-Ordner mit Cloud-Name (SKU-Fallback), Steuer-States in control/ Channel",
-                "ru": "Папки устройств используют имя из облака, состояния управления в канале control/",
-                "pt": "Pastas de dispositivos usam nome da nuvem, estados de controle no canal control/",
-                "nl": "Apparaatmappen gebruiken cloudnaam, besturingsstaten in control/ kanaal",
-                "fr": "Dossiers d'appareils avec nom cloud, états de contrôle dans le canal control/",
-                "it": "Cartelle dispositivi con nome cloud, stati di controllo nel canale control/",
-                "es": "Carpetas de dispositivos con nombre de nube, estados de control en canal control/",
-                "pl": "Foldery urządzeń z nazwą z chmury, stany sterowania w kanale control/",
-                "uk": "Теки пристроїв з іменем з хмари, стани керування в каналі control/",
-                "zh-cn": "设备文件夹使用云端名称，控制状态移至control/通道"
-            },
-            "0.1.2": {
-                "en": "Fix LAN discovery race condition: listen socket ready before first scan",
-                "de": "Fix LAN-Discovery Race Condition: Listen-Socket bereit vor erstem Scan",
-                "ru": "Исправление гонки при обнаружении LAN: сокет прослушивания готов перед сканированием",
-                "pt": "Correção de condição de corrida na descoberta LAN",
-                "nl": "Fix LAN-ontdekking race-conditie",
-                "fr": "Correction de la condition de course dans la découverte LAN",
-                "it": "Correzione race condition nella scoperta LAN",
-                "es": "Corrección de condición de carrera en descubrimiento LAN",
-                "pl": "Naprawa wyścigu w wykrywaniu LAN",
-                "uk": "Виправлення перегонів при LAN-виявленні",
-                "zh-cn": "修复LAN发现竞争条件"
-            },
-            "0.1.1": {
-                "en": "Fix LAN-only devices missing control states, fix status matching by source IP",
-                "de": "Fix LAN-only Geräte ohne Steuer-States, Fix Status-Zuordnung per Source-IP",
-                "ru": "Исправление отсутствия состояний управления для устройств только LAN",
-                "pt": "Correção de estados de controle ausentes para dispositivos somente LAN",
-                "nl": "Fix ontbrekende besturingsstaten voor LAN-only apparaten",
-                "fr": "Correction des états de contrôle manquants pour les appareils LAN uniquement",
-                "it": "Correzione stati di controllo mancanti per dispositivi solo LAN",
-                "es": "Corrección de estados de control faltantes para dispositivos solo LAN",
-                "pl": "Naprawiono brakujące stany sterowania dla urządzeń tylko LAN",
-                "uk": "Виправлення відсутніх станів керування для пристроїв лише LAN",
-                "zh-cn": "修复仅LAN设备缺少控制状态的问题"
-            },
-            "0.1.0": {
-                "en": "Initial release",
-                "de": "Erstveröffentlichung",
-                "ru": "Первоначальный выпуск",
-                "pt": "Lançamento inicial",
-                "nl": "Eerste uitgave",
-                "fr": "Version initiale",
-                "it": "Rilascio iniziale",
-                "es": "Lanzamiento inicial",
-                "pl": "Pierwsze wydanie",
-                "uk": "Початковий випуск",
-                "zh-cn": "初始版本"
-            }
-        },
-        "titleLang": {
-            "en": "Govee Smart Lights",
-            "de": "Govee Smart Lights",
-            "ru": "Govee Smart Lights",
-            "pt": "Govee Smart Lights",
-            "nl": "Govee Smart Lights",
-            "fr": "Govee Smart Lights",
-            "it": "Govee Smart Lights",
-            "es": "Govee Smart Lights",
-            "pl": "Govee Smart Lights",
-            "uk": "Govee Smart Lights",
-            "zh-cn": "Govee Smart Lights"
-        },
-        "desc": {
-            "en": "Control Govee smart lights via LAN, MQTT and Cloud API",
-            "de": "Govee Smart Lights über LAN, MQTT und Cloud API steuern",
-            "ru": "Управление умными светильниками Govee через LAN, MQTT и Cloud API",
-            "pt": "Controle luzes inteligentes Govee via LAN, MQTT e Cloud API",
-            "nl": "Bedien Govee slimme verlichting via LAN, MQTT en Cloud API",
-            "fr": "Contrôlez les lumières intelligentes Govee via LAN, MQTT et Cloud API",
-            "it": "Controlla le luci intelligenti Govee tramite LAN, MQTT e Cloud API",
-            "es": "Controla las luces inteligentes Govee a través de LAN, MQTT y Cloud API",
-            "pl": "Steruj inteligentnymi lampami Govee przez LAN, MQTT i Cloud API",
-            "uk": "Керуйте розумними світильниками Govee через LAN, MQTT та Cloud API",
-            "zh-cn": "通过LAN、MQTT和Cloud API控制Govee智能灯"
-        },
-        "authors": [
-            "krobi <krobi@power-dreams.com>"
-        ],
-        "licenseInformation": {
-            "license": "MIT",
-            "type": "free"
-        },
-        "platform": "Javascript/Node.js",
-        "icon": "govee-smart.svg",
-        "extIcon": "https://raw.githubusercontent.com/krobipd/ioBroker.govee-smart/main/admin/govee-smart.svg",
-        "readme": "https://github.com/krobipd/ioBroker.govee-smart/blob/main/README.md",
-        "enabled": true,
-        "tier": 3,
-        "loglevel": "info",
-        "mode": "daemon",
-        "type": "lighting",
-        "compact": true,
-        "connectionType": "local",
-        "dataSource": "push",
-        "adminUI": {
-            "config": "json"
-        },
-        "supportedMessages": {
-            "stopInstance": true
-        },
-        "dependencies": [
-            {
-                "js-controller": ">=7.0.0"
-            }
-        ],
-        "globalDependencies": [
-            {
-                "admin": ">=7.6.20"
-            }
-        ]
+  "common": {
+    "name": "govee-smart",
+    "version": "0.2.1",
+    "news": {
+      "0.2.1": {
+        "en": "Fix duplicate SKU collision: LAN-only devices now use SKU with short device ID suffix for unique folder names\nFix deploy workflow: add build step before npm publish",
+        "de": "Fix duplicate SKU Kollision: LAN-only-Geräte verwenden jetzt SKU mit Short Device ID Suffix für eindeutige Ordnernamen\nWorkflow einstellen: Erstellen Sie einen Schritt vor npm veröffentlichen",
+        "ru": "Исправьте двойное столкновение SKU: устройства только для LAN теперь используют SKU с коротким идентификатором устройства для уникальных имен папок\nИсправьте рабочий процесс развертывания: добавьте шаг сборки до публикации npm",
+        "pt": "Corrigir colisão SKU duplicada: dispositivos somente LAN agora usam SKU com sufixo de ID de dispositivo curto para nomes de pastas exclusivos\nCorrigir o fluxo de trabalho de implantação: adicionar o passo de compilação antes da publicação do npm",
+        "nl": "Fix dubbele SKU botsing: LAN-alleen apparaten gebruiken nu SKU met korte apparaat ID achtervoegsel voor unieke mapnamen\nFix implementatie workflow: voeg bouw stap voor npm publiceren",
+        "fr": "Correction de la collision SKU dupliquée : les périphériques LAN seulement utilisent désormais SKU avec un suffixe d'ID de périphérique court pour les noms de dossiers uniques\nCorrection du workflow de déploiement : ajouter l'étape de construction avant npm publier",
+        "it": "Risolvere la collisione di SKU duplicato: i dispositivi LAN-only ora utilizzano SKU con il suffisso di ID di dispositivo corto per i nomi di cartella unici\nFissare il flusso di lavoro di distribuzione: aggiungere passo di build prima npm pubblicare",
+        "es": "Fijar la colisión SKU duplicada: Los dispositivos LAN solo utilizan ahora SKU con sufijo de identificación de dispositivo corto para nombres de carpeta únicos\nFijar flujo de trabajo de despliegue: añadir paso de construcción antes de que npm publique",
+        "pl": "Fix duplikat SKU kolizji: tylko LAN urządzenia teraz używać SKU z krótkim ID urządzenia przyrostek dla unikalnych nazw folderów\nNapraw przepływ pracy: dodaj krok budowy przed publikacją npm",
+        "uk": "Фіксувати дублікати зіткнення кодів: локально-тільки пристрої тепер використовують коди з коротким пристроєм ID suffix для унікальних назв папок\nВиправлення розгортання робочого процесу: додати крок до npm публікувати",
+        "zh-cn": "修复重复的 SKU 碰撞: 现在仅使用 LAN 设备的 SKU , 并带有短设备 ID 后缀, 用于独有的文件夹名称\n固定部署工作流程: 在 npm 发布前添加构建步骤"
+      },
+      "0.2.0": {
+        "en": "Device folders use Cloud name (SKU fallback), control states in control/ channel",
+        "de": "Geräte-Ordner mit Cloud-Name (SKU-Fallback), Steuer-States in control/ Channel",
+        "ru": "Папки устройств используют имя из облака, состояния управления в канале control/",
+        "pt": "Pastas de dispositivos usam nome da nuvem, estados de controle no canal control/",
+        "nl": "Apparaatmappen gebruiken cloudnaam, besturingsstaten in control/ kanaal",
+        "fr": "Dossiers d'appareils avec nom cloud, états de contrôle dans le canal control/",
+        "it": "Cartelle dispositivi con nome cloud, stati di controllo nel canale control/",
+        "es": "Carpetas de dispositivos con nombre de nube, estados de control en canal control/",
+        "pl": "Foldery urządzeń z nazwą z chmury, stany sterowania w kanale control/",
+        "uk": "Теки пристроїв з іменем з хмари, стани керування в каналі control/",
+        "zh-cn": "设备文件夹使用云端名称，控制状态移至control/通道"
+      },
+      "0.1.2": {
+        "en": "Fix LAN discovery race condition: listen socket ready before first scan",
+        "de": "Fix LAN-Discovery Race Condition: Listen-Socket bereit vor erstem Scan",
+        "ru": "Исправление гонки при обнаружении LAN: сокет прослушивания готов перед сканированием",
+        "pt": "Correção de condição de corrida na descoberta LAN",
+        "nl": "Fix LAN-ontdekking race-conditie",
+        "fr": "Correction de la condition de course dans la découverte LAN",
+        "it": "Correzione race condition nella scoperta LAN",
+        "es": "Corrección de condición de carrera en descubrimiento LAN",
+        "pl": "Naprawa wyścigu w wykrywaniu LAN",
+        "uk": "Виправлення перегонів при LAN-виявленні",
+        "zh-cn": "修复LAN发现竞争条件"
+      },
+      "0.1.1": {
+        "en": "Fix LAN-only devices missing control states, fix status matching by source IP",
+        "de": "Fix LAN-only Geräte ohne Steuer-States, Fix Status-Zuordnung per Source-IP",
+        "ru": "Исправление отсутствия состояний управления для устройств только LAN",
+        "pt": "Correção de estados de controle ausentes para dispositivos somente LAN",
+        "nl": "Fix ontbrekende besturingsstaten voor LAN-only apparaten",
+        "fr": "Correction des états de contrôle manquants pour les appareils LAN uniquement",
+        "it": "Correzione stati di controllo mancanti per dispositivi solo LAN",
+        "es": "Corrección de estados de control faltantes para dispositivos solo LAN",
+        "pl": "Naprawiono brakujące stany sterowania dla urządzeń tylko LAN",
+        "uk": "Виправлення відсутніх станів керування для пристроїв лише LAN",
+        "zh-cn": "修复仅LAN设备缺少控制状态的问题"
+      },
+      "0.1.0": {
+        "en": "Initial release",
+        "de": "Erstveröffentlichung",
+        "ru": "Первоначальный выпуск",
+        "pt": "Lançamento inicial",
+        "nl": "Eerste uitgave",
+        "fr": "Version initiale",
+        "it": "Rilascio iniziale",
+        "es": "Lanzamiento inicial",
+        "pl": "Pierwsze wydanie",
+        "uk": "Початковий випуск",
+        "zh-cn": "初始版本"
+      }
     },
-    "encryptedNative": [
-        "apiKey",
-        "goveePassword"
+    "titleLang": {
+      "en": "Govee Smart Lights",
+      "de": "Govee Smart Lights",
+      "ru": "Govee Smart Lights",
+      "pt": "Govee Smart Lights",
+      "nl": "Govee Smart Lights",
+      "fr": "Govee Smart Lights",
+      "it": "Govee Smart Lights",
+      "es": "Govee Smart Lights",
+      "pl": "Govee Smart Lights",
+      "uk": "Govee Smart Lights",
+      "zh-cn": "Govee Smart Lights"
+    },
+    "desc": {
+      "en": "Control Govee smart lights via LAN, MQTT and Cloud API",
+      "de": "Govee Smart Lights über LAN, MQTT und Cloud API steuern",
+      "ru": "Управление умными светильниками Govee через LAN, MQTT и Cloud API",
+      "pt": "Controle luzes inteligentes Govee via LAN, MQTT e Cloud API",
+      "nl": "Bedien Govee slimme verlichting via LAN, MQTT en Cloud API",
+      "fr": "Contrôlez les lumières intelligentes Govee via LAN, MQTT et Cloud API",
+      "it": "Controlla le luci intelligenti Govee tramite LAN, MQTT e Cloud API",
+      "es": "Controla las luces inteligentes Govee a través de LAN, MQTT y Cloud API",
+      "pl": "Steruj inteligentnymi lampami Govee przez LAN, MQTT i Cloud API",
+      "uk": "Керуйте розумними світильниками Govee через LAN, MQTT та Cloud API",
+      "zh-cn": "通过LAN、MQTT和Cloud API控制Govee智能灯"
+    },
+    "authors": [
+      "krobi <krobi@power-dreams.com>"
     ],
-    "protectedNative": [
-        "apiKey",
-        "goveePassword"
+    "licenseInformation": {
+      "license": "MIT",
+      "type": "free"
+    },
+    "platform": "Javascript/Node.js",
+    "icon": "govee-smart.svg",
+    "extIcon": "https://raw.githubusercontent.com/krobipd/ioBroker.govee-smart/main/admin/govee-smart.svg",
+    "readme": "https://github.com/krobipd/ioBroker.govee-smart/blob/main/README.md",
+    "enabled": true,
+    "tier": 3,
+    "loglevel": "info",
+    "mode": "daemon",
+    "type": "lighting",
+    "compact": true,
+    "connectionType": "local",
+    "dataSource": "push",
+    "adminUI": {
+      "config": "json"
+    },
+    "supportedMessages": {
+      "stopInstance": true
+    },
+    "dependencies": [
+      {
+        "js-controller": ">=7.0.0"
+      }
     ],
-    "native": {
-        "apiKey": "",
-        "goveeEmail": "",
-        "goveePassword": "",
-        "pollInterval": 60
-    }
+    "globalDependencies": [
+      {
+        "admin": ">=7.6.20"
+      }
+    ]
+  },
+  "encryptedNative": [
+    "apiKey",
+    "goveePassword"
+  ],
+  "protectedNative": [
+    "apiKey",
+    "goveePassword"
+  ],
+  "native": {
+    "apiKey": "",
+    "goveeEmail": "",
+    "goveePassword": "",
+    "pollInterval": 60
+  }
 }

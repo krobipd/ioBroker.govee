@@ -1,5 +1,6 @@
 node_modules/
-build/
+build/test/
+build/src/
 .dev-server/
 .DS_Store
 *.tgz
