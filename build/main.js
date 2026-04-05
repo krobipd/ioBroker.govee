@@ -65,7 +65,33 @@ class GoveeAdapter extends utils.Adapter {
       },
       native: {}
     });
+    await this.setObjectNotExistsAsync("info.mqttConnected", {
+      type: "state",
+      common: {
+        name: "MQTT connected",
+        type: "boolean",
+        role: "indicator.connected",
+        read: true,
+        write: false,
+        def: false
+      },
+      native: {}
+    });
+    await this.setObjectNotExistsAsync("info.cloudConnected", {
+      type: "state",
+      common: {
+        name: "Cloud API connected",
+        type: "boolean",
+        role: "indicator.connected",
+        read: true,
+        write: false,
+        def: false
+      },
+      native: {}
+    });
     await this.setStateAsync("info.connection", { val: false, ack: true });
+    await this.setStateAsync("info.mqttConnected", { val: false, ack: true });
+    await this.setStateAsync("info.cloudConnected", { val: false, ack: true });
     this.stateManager = new import_state_manager.StateManager(this);
     this.deviceManager = new import_device_manager.DeviceManager(this.log);
     this.deviceManager.setCallbacks(
@@ -89,10 +115,19 @@ class GoveeAdapter extends utils.Adapter {
       this.rateLimiter = new import_rate_limiter.RateLimiter(this.log, this);
       this.rateLimiter.start();
       this.deviceManager.setRateLimiter(this.rateLimiter);
-      await this.deviceManager.loadFromCloud();
+      const cloudOk = await this.deviceManager.loadFromCloud();
+      void this.setStateAsync("info.cloudConnected", {
+        val: cloudOk,
+        ack: true
+      });
       const intervalMs = Math.max(30, (_a = config.pollInterval) != null ? _a : 60) * 1e3;
       this.cloudPollTimer = this.setInterval(() => {
-        void this.deviceManager.loadFromCloud();
+        void this.deviceManager.loadFromCloud().then((ok) => {
+          void this.setStateAsync("info.cloudConnected", {
+            val: ok,
+            ack: true
+          });
+        });
       }, intervalMs);
     }
     if (config.goveeEmail && config.goveePassword) {
@@ -106,6 +141,10 @@ class GoveeAdapter extends utils.Adapter {
       await this.mqttClient.connect(
         (update) => this.deviceManager.handleMqttStatus(update),
         (connected) => {
+          void this.setStateAsync("info.mqttConnected", {
+            val: connected,
+            ack: true
+          });
           if (connected) {
             this.log.debug("MQTT connected \u2014 real-time status active");
             for (const dev of this.deviceManager.getDevices()) {

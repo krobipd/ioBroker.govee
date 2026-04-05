@@ -96,7 +96,7 @@ class DeviceManager {
   async loadFromCloud() {
     var _a;
     if (!this.cloudClient) {
-      return;
+      return false;
     }
     try {
       const cloudDevices = await this.cloudClient.getDevices();
@@ -133,10 +133,12 @@ class DeviceManager {
       if (changed) {
         (_a = this.onDeviceListChanged) == null ? void 0 : _a.call(this, this.getDevices());
       }
+      return true;
     } catch (err) {
       this.log.warn(
         `Cloud device list failed: ${err instanceof Error ? err.message : String(err)}`
       );
+      return false;
     }
   }
   /**
@@ -453,7 +455,7 @@ class DeviceManager {
       type: cd.type || "unknown",
       capabilities: cd.capabilities,
       scenes: [],
-      state: { online: false },
+      state: { online: true },
       channels: { lan: false, mqtt: false, cloud: true }
     };
   }

@@ -100,9 +100,9 @@ export class DeviceManager {
    * Load devices from Cloud API and merge with LAN discovery.
    * Called on startup and periodically.
    */
-  async loadFromCloud(): Promise<void> {
+  async loadFromCloud(): Promise<boolean> {
     if (!this.cloudClient) {
-      return;
+      return false;
     }
 
     try {
@@ -149,10 +149,12 @@ export class DeviceManager {
       if (changed) {
         this.onDeviceListChanged?.(this.getDevices());
       }
+      return true;
     } catch (err) {
       this.log.warn(
         `Cloud device list failed: ${err instanceof Error ? err.message : String(err)}`,
       );
+      return false;
     }
   }
 
@@ -550,7 +552,7 @@ export class DeviceManager {
       type: cd.type || "unknown",
       capabilities: cd.capabilities,
       scenes: [],
-      state: { online: false },
+      state: { online: true },
       channels: { lan: false, mqtt: false, cloud: true },
     };
   }
