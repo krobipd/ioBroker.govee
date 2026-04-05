@@ -129,7 +129,6 @@ class GoveeAdapter extends utils.Adapter {
 
     this.updateConnectionState();
 
-    const devCount = this.deviceManager.getDevices().length;
     const channels: string[] = ["LAN"];
     if (config.apiKey) {
       channels.push("Cloud");
@@ -137,9 +136,7 @@ class GoveeAdapter extends utils.Adapter {
     if (config.goveeEmail) {
       channels.push("MQTT");
     }
-    this.log.info(
-      `Govee adapter started — ${devCount} device(s), channels: ${channels.join(", ")}`,
-    );
+    this.log.info(`Govee adapter started — channels: ${channels.join(", ")}`);
   }
 
   /**
@@ -183,19 +180,14 @@ class GoveeAdapter extends utils.Adapter {
       return;
     }
 
-    // Parse: devices.<sku>_<id>.<stateId>
-    const parts = localId.split(".");
-    if (parts.length < 3) {
-      return;
-    }
-
     const device = this.findDeviceForState(localId);
     if (!device) {
       return;
     }
 
-    // Determine command from state suffix
-    const stateSuffix = parts.slice(2).join(".");
+    // Determine command from state suffix after device prefix
+    const prefix = this.stateManager.devicePrefix(device);
+    const stateSuffix = localId.slice(prefix.length + 1);
     const command = this.stateToCommand(stateSuffix);
 
     if (!command) {
@@ -287,19 +279,19 @@ class GoveeAdapter extends utils.Adapter {
    * @param suffix State ID suffix (e.g. "power", "brightness")
    */
   private stateToCommand(suffix: string): string | null {
-    if (suffix === "power") {
+    if (suffix === "control.power") {
       return "power";
     }
-    if (suffix === "brightness") {
+    if (suffix === "control.brightness") {
       return "brightness";
     }
-    if (suffix === "colorRgb") {
+    if (suffix === "control.colorRgb") {
       return "colorRgb";
     }
-    if (suffix === "colorTemperature") {
+    if (suffix === "control.colorTemperature") {
       return "colorTemperature";
     }
-    if (suffix === "scene") {
+    if (suffix === "control.scene") {
       return "scene";
     }
     // Segment commands

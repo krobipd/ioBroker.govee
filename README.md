@@ -77,21 +77,25 @@ The adapter works with different levels of configuration. Each level unlocks add
 
 ## State Tree
 
+Device folders are named after the device name from the Govee Cloud API (e.g., `wohnzimmer_led_strip`). Without an API key, the SKU is used as the folder name (e.g., `h6160`).
+
 ```
 govee-smart.0.
 ├── info/
 │   └── connection              — Overall connection status (boolean)
 └── devices/
-    └── {sku}_{deviceId}/
+    └── {device_name}/
         ├── info/
         │   ├── name            — Device display name (string)
         │   ├── model           — Product SKU (string)
+        │   ├── serial          — Device ID (string)
         │   └── online          — Device reachable (boolean)
-        ├── power               — On/Off (boolean, writable)
-        ├── brightness          — Brightness 0-100% (number, writable)
-        ├── colorRgb            — Color as "#RRGGBB" (string, writable)
-        ├── colorTemperature    — Color temperature in Kelvin (number, writable)
-        ├── scene               — Active scene (string, dropdown, writable)
+        ├── control/
+        │   ├── power           — On/Off (boolean, writable)
+        │   ├── brightness      — Brightness 0-100% (number, writable)
+        │   ├── colorRgb        — Color as "#RRGGBB" (string, writable)
+        │   ├── colorTemperature — Color temperature in Kelvin (number, writable)
+        │   └── scene           — Active scene (string, dropdown, writable)
         └── segments/
             ├── count           — Number of segments (number)
             └── {0..n}/

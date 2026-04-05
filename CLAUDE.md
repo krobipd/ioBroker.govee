@@ -53,27 +53,16 @@ src/lib/state-manager.ts      → State CRUD + Cleanup
 
 ## State Tree
 
+Ordnername = Cloud-Gerätename (z.B. `wohnzimmer_led_strip`), ohne Cloud = SKU (z.B. `h6160`).
+
 ```
 govee-smart.0.
 ├── info.connection
 └── devices.
-    ├── h6160_1f80c532.
-    │   ├── info.name                  ─ "Wohnzimmer LED Strip"
-    │   ├── info.model                 ─ "H6160"
-    │   ├── info.online                ─ true
-    │   ├── power                      ─ true (write)
-    │   ├── brightness                 ─ 80 (write, 0-100)
-    │   ├── colorRgb                   ─ "#FF6600" (write)
-    │   ├── colorTemperature           ─ 4000 (write, 2000-9000)
-    │   ├── scene                      ─ "Sunset" (write, select mit states-Property)
-    │   └── segments.
-    │       ├── count                  ─ 15 (read-only)
-    │       ├── 0.
-    │       │   ├── color              ─ "#FF0000" (write)
-    │       │   └── brightness         ─ 80 (write)
-    │       └── 1.
-    │           ├── color              ─ "#00FF00" (write)
-    │           └── brightness         ─ 100 (write)
+    └── wohnzimmer_led_strip.
+        ├── info.name / .model / .serial / .online
+        ├── control.power / .brightness / .colorRgb / .colorTemperature / .scene
+        └── segments.count / .0.color / .0.brightness
 ```
 
 ## Szenen-Steuerung

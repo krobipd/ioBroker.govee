@@ -14,6 +14,8 @@ function sanitize(str: string): string {
 /** Manages ioBroker state creation and updates for Govee devices */
 export class StateManager {
   private readonly adapter: utils.AdapterInstance;
+  /** Maps deviceKey (sku_deviceId) → current object prefix */
+  private readonly prefixMap = new Map<string, string>();
 
   /** @param adapter The ioBroker adapter instance */
   constructor(adapter: utils.AdapterInstance) {
@@ -30,7 +32,20 @@ export class StateManager {
     device: GoveeDevice,
     stateDefs: StateDefinition[],
   ): Promise<void> {
-    const prefix = this.devicePrefix(device);
+    const key = this.deviceKey(device);
+    const newPrefix = this.devicePrefix(device);
+    const oldPrefix = this.prefixMap.get(key);
+
+    // Migrate if prefix changed (e.g., SKU → Cloud name)
+    if (oldPrefix && oldPrefix !== newPrefix) {
+      this.adapter.log.debug(
+        `Migrating ${device.name}: ${oldPrefix} → ${newPrefix}`,
+      );
+      await this.adapter.delObjectAsync(oldPrefix, { recursive: true });
+    }
+    this.prefixMap.set(key, newPrefix);
+
+    const prefix = newPrefix;
 
     // Device object with online status indicator
     await this.adapter.extendObjectAsync(prefix, {
@@ -69,6 +84,13 @@ export class StateManager {
       false,
     );
     await this.ensureState(
+      `${prefix}.info.serial`,
+      "Serial Number",
+      "string",
+      "text",
+      false,
+    );
+    await this.ensureState(
       `${prefix}.info.online`,
       "Online",
       "boolean",
@@ -84,43 +106,51 @@ export class StateManager {
       val: device.sku,
       ack: true,
     });
+    await this.adapter.setStateAsync(`${prefix}.info.serial`, {
+      val: device.deviceId,
+      ack: true,
+    });
 
-    // Capability-driven states
-    for (const def of stateDefs) {
-      if (def.id.startsWith("_segment_")) {
-        // Segment states are created separately
-        continue;
-      }
-
-      const common: Partial<ioBroker.StateCommon> = {
-        name: def.name,
-        type: def.type,
-        role: def.role,
-        read: true,
-        write: def.write,
-      };
-
-      if (def.unit) {
-        common.unit = def.unit;
-      }
-      if (def.min !== undefined) {
-        common.min = def.min;
-      }
-      if (def.max !== undefined) {
-        common.max = def.max;
-      }
-      if (def.states) {
-        common.states = def.states;
-      }
-
-      await this.adapter.extendObjectAsync(`${prefix}.${def.id}`, {
-        type: "state",
-        common: common as ioBroker.StateCommon,
-        native: {
-          capabilityType: def.capabilityType,
-          capabilityInstance: def.capabilityInstance,
-        },
+    // Control channel
+    const controlDefs = stateDefs.filter((d) => !d.id.startsWith("_segment_"));
+    if (controlDefs.length > 0) {
+      await this.adapter.extendObjectAsync(`${prefix}.control`, {
+        type: "channel",
+        common: { name: "Controls" },
+        native: {},
       });
+
+      for (const def of controlDefs) {
+        const common: Partial<ioBroker.StateCommon> = {
+          name: def.name,
+          type: def.type,
+          role: def.role,
+          read: true,
+          write: def.write,
+        };
+
+        if (def.unit) {
+          common.unit = def.unit;
+        }
+        if (def.min !== undefined) {
+          common.min = def.min;
+        }
+        if (def.max !== undefined) {
+          common.max = def.max;
+        }
+        if (def.states) {
+          common.states = def.states;
+        }
+
+        await this.adapter.extendObjectAsync(`${prefix}.control.${def.id}`, {
+          type: "state",
+          common: common as ioBroker.StateCommon,
+          native: {
+            capabilityType: def.capabilityType,
+            capabilityInstance: def.capabilityInstance,
+          },
+        });
+      }
     }
 
     // Check if device has segment capabilities
@@ -220,22 +250,25 @@ export class StateManager {
       });
     }
     if (state.power !== undefined) {
-      await this.setStateIfExists(`${prefix}.power`, state.power);
+      await this.setStateIfExists(`${prefix}.control.power`, state.power);
     }
     if (state.brightness !== undefined) {
-      await this.setStateIfExists(`${prefix}.brightness`, state.brightness);
+      await this.setStateIfExists(
+        `${prefix}.control.brightness`,
+        state.brightness,
+      );
     }
     if (state.colorRgb !== undefined) {
-      await this.setStateIfExists(`${prefix}.colorRgb`, state.colorRgb);
+      await this.setStateIfExists(`${prefix}.control.colorRgb`, state.colorRgb);
     }
     if (state.colorTemperature !== undefined) {
       await this.setStateIfExists(
-        `${prefix}.colorTemperature`,
+        `${prefix}.control.colorTemperature`,
         state.colorTemperature,
       );
     }
     if (state.scene !== undefined) {
-      await this.setStateIfExists(`${prefix}.scene`, state.scene);
+      await this.setStateIfExists(`${prefix}.control.scene`, state.scene);
     }
   }
 
@@ -247,6 +280,7 @@ export class StateManager {
   async removeDevice(device: GoveeDevice): Promise<void> {
     const prefix = this.devicePrefix(device);
     await this.adapter.delObjectAsync(prefix, { recursive: true });
+    this.prefixMap.delete(this.deviceKey(device));
   }
 
   /**
@@ -281,13 +315,21 @@ export class StateManager {
   }
 
   /**
-   * Get device object ID prefix.
+   * Get device object ID prefix — uses device name for readable folders.
    *
    * @param device Govee device
    */
   devicePrefix(device: GoveeDevice): string {
-    const safeId = sanitize(device.deviceId.replace(/:/g, ""));
-    return `devices.${sanitize(device.sku)}_${safeId}`;
+    return `devices.${sanitize(device.name)}`;
+  }
+
+  /**
+   * Unique key for internal tracking (not used as object ID).
+   *
+   * @param device Govee device
+   */
+  private deviceKey(device: GoveeDevice): string {
+    return `${device.sku}_${device.deviceId.replace(/:/g, "").toLowerCase()}`;
   }
 
   /**
