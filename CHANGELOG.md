@@ -1,4 +1,8 @@
 # Changelog
+## **WORK IN PROGRESS**
+- Fix duplicate SKU collision: LAN-only devices now use SKU with short device ID suffix for unique folder names
+- Fix deploy workflow: add build step before npm publish
+
 ## 0.2.0 (2026-04-06)
 
 - Device folders use Cloud device name (falls back to SKU without API key)
