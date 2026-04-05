@@ -7,7 +7,7 @@
 
 **ioBroker Govee Smart Adapter** — Steuert Govee Smart-Home-Geräte. LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig.
 
-- **Version:** 0.1.2 (April 2026)
+- **Version:** 0.2.0 (April 2026)
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** (noch nicht published)
 - **Runtime-Deps:** `@iobroker/adapter-core`, `mqtt`, `node-forge`
@@ -159,7 +159,8 @@ Nicht getestet (bewusst): main.ts Lifecycle, MQTT/LAN-Clients (Netzwerk), Cloud-
 
 | Version | Highlights |
 |---------|------------|
-| 0.1.2 | Fix LAN discovery race condition: listen socket ready before first scan |
+| 0.2.0 | Name-based folders, control/ channel, info.serial, stale cleanup |
+| 0.1.2 | Fix LAN discovery race condition |
 | 0.1.1 | Fix LAN-only devices: default control states, status matching by source IP |
 | 0.1.0 | Initial: LAN UDP, AWS IoT MQTT, Cloud API v2, Szenen, Segmente |
 

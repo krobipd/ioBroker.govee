@@ -127,6 +127,13 @@ class GoveeAdapter extends utils.Adapter {
     // Subscribe to all writable device states
     await this.subscribeStatesAsync("devices.*");
 
+    // Cleanup stale devices after initial discovery (30s delay for LAN scan)
+    this.setTimeout(() => {
+      if (this.stateManager && this.deviceManager) {
+        void this.stateManager.cleanupDevices(this.deviceManager.getDevices());
+      }
+    }, 30_000);
+
     this.updateConnectionState();
 
     const channels: string[] = ["LAN"];

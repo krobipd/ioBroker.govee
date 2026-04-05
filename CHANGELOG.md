@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.2.0 (2026-04-06)
 
 - Device folders use Cloud device name (falls back to SKU without API key)
 - Control states moved to `control/` channel for cleaner structure

@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "govee-smart",
-        "version": "0.1.2",
+        "version": "0.2.0",
         "news": {
+            "0.2.0": {
+                "en": "Device folders use Cloud name (SKU fallback), control states in control/ channel",
+                "de": "Geräte-Ordner mit Cloud-Name (SKU-Fallback), Steuer-States in control/ Channel",
+                "ru": "Папки устройств используют имя из облака, состояния управления в канале control/",
+                "pt": "Pastas de dispositivos usam nome da nuvem, estados de controle no canal control/",
+                "nl": "Apparaatmappen gebruiken cloudnaam, besturingsstaten in control/ kanaal",
+                "fr": "Dossiers d'appareils avec nom cloud, états de contrôle dans le canal control/",
+                "it": "Cartelle dispositivi con nome cloud, stati di controllo nel canale control/",
+                "es": "Carpetas de dispositivos con nombre de nube, estados de control en canal control/",
+                "pl": "Foldery urządzeń z nazwą z chmury, stany sterowania w kanale control/",
+                "uk": "Теки пристроїв з іменем з хмари, стани керування в каналі control/",
+                "zh-cn": "设备文件夹使用云端名称，控制状态移至control/通道"
+            },
             "0.1.2": {
                 "en": "Fix LAN discovery race condition: listen socket ready before first scan",
                 "de": "Fix LAN-Discovery Race Condition: Listen-Socket bereit vor erstem Scan",
