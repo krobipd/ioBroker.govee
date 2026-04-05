@@ -12,7 +12,13 @@ const BASE_URL = "https://openapi.api.govee.com";
 
 /** Error with HTTP status code */
 export class CloudApiError extends Error {
+  /** HTTP status code */
   readonly statusCode: number;
+
+  /**
+   * @param message Error message
+   * @param statusCode HTTP status code
+   */
   constructor(message: string, statusCode: number) {
     super(message);
     this.name = "CloudApiError";
@@ -47,8 +53,8 @@ export class GoveeCloudClient {
   /**
    * Fetch current state of a device
    *
-   * @param sku
-   * @param device
+   * @param sku Product model
+   * @param device Device identifier
    */
   async getDeviceState(
     sku: string,
@@ -98,8 +104,8 @@ export class GoveeCloudClient {
   /**
    * Fetch dynamic scenes for a device
    *
-   * @param sku
-   * @param device
+   * @param sku Product model
+   * @param device Device identifier
    */
   async getScenes(sku: string, device: string): Promise<CloudScene[]> {
     const resp = await this.request<CloudScenesResponse>(
@@ -137,9 +143,9 @@ export class GoveeCloudClient {
   /**
    * Make an HTTPS request to the Govee Cloud API
    *
-   * @param method
-   * @param path
-   * @param body
+   * @param method HTTP method (GET, POST)
+   * @param path API endpoint path
+   * @param body Optional request body
    */
   private request<T>(method: string, path: string, body?: unknown): Promise<T> {
     return new Promise((resolve, reject) => {

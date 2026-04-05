@@ -138,8 +138,8 @@ export class GoveeLanClient {
   /**
    * Send power command
    *
-   * @param ip
-   * @param on
+   * @param ip Device IP address
+   * @param on Power state
    */
   setPower(ip: string, on: boolean): void {
     this.sendCommand(ip, "turn", { value: on ? 1 : 0 });
@@ -148,8 +148,8 @@ export class GoveeLanClient {
   /**
    * Send brightness command
    *
-   * @param ip
-   * @param brightness
+   * @param ip Device IP address
+   * @param brightness Brightness 0-100
    */
   setBrightness(ip: string, brightness: number): void {
     this.sendCommand(ip, "brightness", {
@@ -160,10 +160,10 @@ export class GoveeLanClient {
   /**
    * Send color command
    *
-   * @param ip
-   * @param r
-   * @param g
-   * @param b
+   * @param ip Device IP address
+   * @param r Red channel 0-255
+   * @param g Green channel 0-255
+   * @param b Blue channel 0-255
    */
   setColor(ip: string, r: number, g: number, b: number): void {
     this.sendCommand(ip, "colorwc", {
@@ -175,8 +175,8 @@ export class GoveeLanClient {
   /**
    * Send color temperature command
    *
-   * @param ip
-   * @param kelvin
+   * @param ip Device IP address
+   * @param kelvin Color temperature in Kelvin
    */
   setColorTemperature(ip: string, kelvin: number): void {
     this.sendCommand(ip, "colorwc", {
@@ -188,7 +188,7 @@ export class GoveeLanClient {
   /**
    * Request device status
    *
-   * @param ip
+   * @param ip Device IP address
    */
   requestStatus(ip: string): void {
     this.sendCommand(ip, "devStatus", {});
@@ -224,7 +224,7 @@ export class GoveeLanClient {
   /**
    * Parse incoming UDP message
    *
-   * @param msg
+   * @param msg Raw UDP message buffer
    */
   private handleMessage(msg: Buffer): void {
     try {
@@ -253,7 +253,7 @@ export class GoveeLanClient {
   /**
    * Handle scan response — new device found
    *
-   * @param data
+   * @param data Parsed scan response payload
    */
   private handleScanResponse(data: Record<string, unknown>): void {
     const ip = data.ip as string;
@@ -286,7 +286,7 @@ export class GoveeLanClient {
   /**
    * Handle status response
    *
-   * @param data
+   * @param data Parsed status response payload
    */
   private handleStatusResponse(data: Record<string, unknown>): void {
     // Find device by looking at response — LAN responses don't always include device ID

@@ -5,7 +5,7 @@ import type { DeviceState, GoveeDevice } from "./types.js";
 /**
  * Sanitize a string for ioBroker object ID
  *
- * @param str
+ * @param str Input string to sanitize
  */
 function sanitize(str: string): string {
   return str.replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase();
@@ -293,7 +293,7 @@ export class StateManager {
   /**
    * Determine segment count from capability
    *
-   * @param cap
+   * @param cap Segment color capability definition
    */
   private getSegmentCount(
     cap:
@@ -317,12 +317,12 @@ export class StateManager {
   /**
    * Create a state if it doesn't exist
    *
-   * @param id
-   * @param name
-   * @param type
-   * @param role
-   * @param write
-   * @param unit
+   * @param id State object ID
+   * @param name Display name
+   * @param type Value type
+   * @param role ioBroker role
+   * @param write Whether state is writable
+   * @param unit Optional unit of measurement
    */
   private async ensureState(
     id: string,
@@ -352,8 +352,8 @@ export class StateManager {
   /**
    * Set state value only if the object exists
    *
-   * @param id
-   * @param value
+   * @param id State object ID
+   * @param value Value to set
    */
   private async setStateIfExists(
     id: string,

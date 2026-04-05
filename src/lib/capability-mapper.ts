@@ -50,7 +50,7 @@ export function mapCapabilities(
 /**
  * Map a single capability to state definition(s)
  *
- * @param cap
+ * @param cap Cloud capability to map
  */
 function mapSingleCapability(cap: CloudCapability): StateDefinition[] | null {
   const shortType = cap.type.replace("devices.capabilities.", "");
@@ -137,7 +137,7 @@ function mapSingleCapability(cap: CloudCapability): StateDefinition[] | null {
 /**
  * Map range capability (brightness, humidity, etc.)
  *
- * @param cap
+ * @param cap Cloud range capability
  */
 function mapRange(cap: CloudCapability): StateDefinition[] {
   const range = cap.parameters.range;
@@ -162,7 +162,7 @@ function mapRange(cap: CloudCapability): StateDefinition[] {
 /**
  * Map color_setting capability (RGB or color temperature)
  *
- * @param cap
+ * @param cap Cloud color setting capability
  */
 function mapColorSetting(cap: CloudCapability): StateDefinition[] {
   if (cap.instance === "colorRgb") {
@@ -206,7 +206,7 @@ function mapColorSetting(cap: CloudCapability): StateDefinition[] {
 /**
  * Map mode capability (scenes with ENUM options)
  *
- * @param cap
+ * @param cap Cloud mode capability
  */
 function mapMode(cap: CloudCapability): StateDefinition[] {
   if (cap.instance !== "presetScene" || !cap.parameters.options) {
@@ -239,7 +239,7 @@ function mapMode(cap: CloudCapability): StateDefinition[] {
 /**
  * Map property capability (read-only sensors)
  *
- * @param cap
+ * @param cap Cloud property capability
  */
 function mapProperty(cap: CloudCapability): StateDefinition[] {
   const instance = cap.instance.toLowerCase();
@@ -277,7 +277,7 @@ function mapProperty(cap: CloudCapability): StateDefinition[] {
 /**
  * Sanitize a string for use as ioBroker state ID
  *
- * @param str
+ * @param str Input string to sanitize
  */
 function sanitizeId(str: string): string {
   return str
@@ -289,7 +289,7 @@ function sanitizeId(str: string): string {
 /**
  * Convert camelCase to human-readable name
  *
- * @param str
+ * @param str camelCase input string
  */
 function humanize(str: string): string {
   return str

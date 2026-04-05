@@ -34,7 +34,7 @@ export class DeviceManager {
   /**
    * Register the LAN client
    *
-   * @param client
+   * @param client LAN UDP client instance
    */
   setLanClient(client: GoveeLanClient): void {
     this.lanClient = client;
@@ -43,7 +43,7 @@ export class DeviceManager {
   /**
    * Register the MQTT client
    *
-   * @param client
+   * @param client MQTT client instance
    */
   setMqttClient(client: GoveeMqttClient): void {
     this.mqttClient = client;
@@ -52,7 +52,7 @@ export class DeviceManager {
   /**
    * Register the Cloud client
    *
-   * @param client
+   * @param client Cloud API client instance
    */
   setCloudClient(client: GoveeCloudClient): void {
     this.cloudClient = client;
@@ -61,7 +61,7 @@ export class DeviceManager {
   /**
    * Register the rate limiter for cloud calls
    *
-   * @param limiter
+   * @param limiter Rate limiter instance
    */
   setRateLimiter(limiter: RateLimiter): void {
     this.rateLimiter = limiter;
@@ -89,8 +89,8 @@ export class DeviceManager {
   /**
    * Get a device by its unique key (sku_deviceId)
    *
-   * @param sku
-   * @param deviceId
+   * @param sku Product model
+   * @param deviceId Unique device identifier
    */
   getDevice(sku: string, deviceId: string): GoveeDevice | undefined {
     return this.devices.get(this.deviceKey(sku, deviceId));
@@ -248,15 +248,15 @@ export class DeviceManager {
   /**
    * Handle LAN status response.
    *
-   * @param ip Source IP
+   * @param ip Source IP address
    * @param status LAN status data
-   * @param status.onOff
-   * @param status.brightness
-   * @param status.color
-   * @param status.color.r
-   * @param status.color.g
-   * @param status.color.b
-   * @param status.colorTemInKelvin
+   * @param status.onOff Power state (1=on, 0=off)
+   * @param status.brightness Brightness 0-100
+   * @param status.color RGB color values
+   * @param status.color.r Red channel 0-255
+   * @param status.color.g Green channel 0-255
+   * @param status.color.b Blue channel 0-255
+   * @param status.colorTemInKelvin Color temperature in Kelvin
    */
   handleLanStatus(
     ip: string,
@@ -329,9 +329,9 @@ export class DeviceManager {
   /**
    * Send command via LAN UDP
    *
-   * @param device
-   * @param command
-   * @param value
+   * @param device Target device
+   * @param command Command type
+   * @param value Command value
    */
   private sendLanCommand(
     device: GoveeDevice,
@@ -372,9 +372,9 @@ export class DeviceManager {
   /**
    * Send command via MQTT — returns true if sent
    *
-   * @param device
-   * @param command
-   * @param value
+   * @param device Target device
+   * @param command Command type
+   * @param value Command value
    */
   private sendMqttCommand(
     device: GoveeDevice,
@@ -407,9 +407,9 @@ export class DeviceManager {
   /**
    * Send command via Cloud API (rate-limited)
    *
-   * @param device
-   * @param command
-   * @param value
+   * @param device Target device
+   * @param command Command type
+   * @param value Command value
    */
   private async sendCloudCommand(
     device: GoveeDevice,
@@ -451,8 +451,8 @@ export class DeviceManager {
   /**
    * Find capability matching a command name
    *
-   * @param device
-   * @param command
+   * @param device Target device
+   * @param command Command type to find capability for
    */
   private findCapabilityForCommand(
     device: GoveeDevice,
@@ -498,8 +498,8 @@ export class DeviceManager {
   /**
    * Convert adapter value to Cloud API value
    *
-   * @param command
-   * @param value
+   * @param command Command type
+   * @param value Adapter-side value to convert
    */
   private toCloudValue(command: string, value: unknown): unknown {
     switch (command) {
@@ -523,7 +523,7 @@ export class DeviceManager {
   /**
    * Parse "#RRGGBB" hex string to RGB
    *
-   * @param hex
+   * @param hex Color hex string (e.g. "#FF6600")
    */
   private parseColor(hex: string): { r: number; g: number; b: number } {
     const clean = hex.replace("#", "");
@@ -538,7 +538,7 @@ export class DeviceManager {
   /**
    * Convert Cloud device to internal device model
    *
-   * @param cd
+   * @param cd Cloud API device data
    */
   private cloudDeviceToGoveeDevice(cd: CloudDevice): GoveeDevice {
     return {
@@ -556,8 +556,8 @@ export class DeviceManager {
   /**
    * Find device by SKU and device ID (handles format differences)
    *
-   * @param sku
-   * @param deviceId
+   * @param sku Product model
+   * @param deviceId Device identifier
    */
   private findDeviceBySkuAndId(
     sku: string,
@@ -585,8 +585,8 @@ export class DeviceManager {
   /**
    * Generate unique key for a device
    *
-   * @param sku
-   * @param deviceId
+   * @param sku Product model
+   * @param deviceId Device identifier
    */
   private deviceKey(sku: string, deviceId: string): string {
     return `${sku}_${this.normalizeDeviceId(deviceId)}`;
@@ -595,7 +595,7 @@ export class DeviceManager {
   /**
    * Normalize device ID — remove colons, lowercase
    *
-   * @param id
+   * @param id Raw device identifier
    */
   private normalizeDeviceId(id: string): string {
     return id.replace(/:/g, "").toLowerCase();

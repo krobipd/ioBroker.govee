@@ -215,8 +215,8 @@ class GoveeAdapter extends utils.Adapter {
   /**
    * Called by device-manager when a device state changes
    *
-   * @param device
-   * @param state
+   * @param device Updated device
+   * @param state Changed state values
    */
   private onDeviceStateUpdate(
     device: GoveeDevice,
@@ -231,7 +231,7 @@ class GoveeAdapter extends utils.Adapter {
   /**
    * Called by device-manager when the device list changes
    *
-   * @param devices
+   * @param devices Current list of all devices
    */
   private onDeviceListChanged(devices: GoveeDevice[]): void {
     if (!this.stateManager) {
@@ -259,7 +259,7 @@ class GoveeAdapter extends utils.Adapter {
   /**
    * Find device for a state ID
    *
-   * @param localId
+   * @param localId Local state ID without namespace prefix
    */
   private findDeviceForState(localId: string): GoveeDevice | undefined {
     if (!this.deviceManager || !this.stateManager) {
@@ -278,7 +278,7 @@ class GoveeAdapter extends utils.Adapter {
   /**
    * Map state suffix to command name
    *
-   * @param suffix
+   * @param suffix State ID suffix (e.g. "power", "brightness")
    */
   private stateToCommand(suffix: string): string | null {
     if (suffix === "power") {

@@ -158,8 +158,8 @@ export class GoveeMqttClient {
   /**
    * Register a device topic for MQTT command publishing
    *
-   * @param deviceId
-   * @param topic
+   * @param deviceId Device identifier
+   * @param topic MQTT topic for this device
    */
   registerDeviceTopic(deviceId: string, topic: string): void {
     this.deviceTopics.set(deviceId, topic);
@@ -200,8 +200,8 @@ export class GoveeMqttClient {
   /**
    * Send power command
    *
-   * @param deviceId
-   * @param on
+   * @param deviceId Device identifier
+   * @param on Power state
    */
   setPower(deviceId: string, on: boolean): boolean {
     return this.sendCommand(deviceId, "turn", { val: on ? 1 : 0 });
@@ -210,8 +210,8 @@ export class GoveeMqttClient {
   /**
    * Send brightness command
    *
-   * @param deviceId
-   * @param brightness
+   * @param deviceId Device identifier
+   * @param brightness Brightness 0-100
    */
   setBrightness(deviceId: string, brightness: number): boolean {
     return this.sendCommand(deviceId, "brightness", { val: brightness });
@@ -220,10 +220,10 @@ export class GoveeMqttClient {
   /**
    * Send color command
    *
-   * @param deviceId
-   * @param r
-   * @param g
-   * @param b
+   * @param deviceId Device identifier
+   * @param r Red channel 0-255
+   * @param g Green channel 0-255
+   * @param b Blue channel 0-255
    */
   setColor(deviceId: string, r: number, g: number, b: number): boolean {
     return this.sendCommand(deviceId, "colorwc", {
@@ -235,8 +235,8 @@ export class GoveeMqttClient {
   /**
    * Send color temperature command
    *
-   * @param deviceId
-   * @param kelvin
+   * @param deviceId Device identifier
+   * @param kelvin Color temperature in Kelvin
    */
   setColorTemperature(deviceId: string, kelvin: number): boolean {
     return this.sendCommand(deviceId, "colorwc", {
@@ -248,7 +248,7 @@ export class GoveeMqttClient {
   /**
    * Request device status via MQTT
    *
-   * @param deviceId
+   * @param deviceId Device identifier
    */
   requestStatus(deviceId: string): boolean {
     const topic = this.deviceTopics.get(deviceId);
@@ -295,7 +295,7 @@ export class GoveeMqttClient {
   /**
    * Parse MQTT status message
    *
-   * @param payload
+   * @param payload Raw MQTT message buffer
    */
   private handleMessage(payload: Buffer): void {
     try {
@@ -370,8 +370,8 @@ export class GoveeMqttClient {
   /**
    * Extract PEM key + cert from PKCS12
    *
-   * @param p12Base64
-   * @param password
+   * @param p12Base64 Base64-encoded PKCS12 data
+   * @param password PKCS12 password
    */
   private extractCertsFromP12(
     p12Base64: string,
@@ -417,9 +417,9 @@ export class GoveeMqttClient {
   /**
    * HTTPS POST helper
    *
-   * @param url
-   * @param body
-   * @param extraHeaders
+   * @param url Full URL to POST to
+   * @param body Request body object
+   * @param extraHeaders Additional HTTP headers
    */
   private httpsPost<T>(
     url: string,
@@ -469,8 +469,8 @@ export class GoveeMqttClient {
   /**
    * HTTPS GET helper
    *
-   * @param url
-   * @param headers
+   * @param url Full URL to GET
+   * @param headers HTTP headers
    */
   private httpsGet<T>(
     url: string,
