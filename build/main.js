@@ -270,10 +270,12 @@ class GoveeAdapter extends utils.Adapter {
       await this.deviceManager.sendCommand(device, command, state.val);
       await this.setStateAsync(id, { val: state.val, ack: true });
       if (command === "colorRgb" || command === "colorTemperature") {
-        const sceneId = `${this.namespace}.${prefix}.control.light_scene`;
-        const sceneState = await this.getStateAsync(sceneId);
-        if ((sceneState == null ? void 0 : sceneState.val) && sceneState.val !== "0") {
-          await this.setStateAsync(sceneId, { val: "0", ack: true });
+        for (const sceneKey of ["light_scene", "diy_scene", "snapshot"]) {
+          const sceneId = `${this.namespace}.${prefix}.control.${sceneKey}`;
+          const sceneState = await this.getStateAsync(sceneId);
+          if ((sceneState == null ? void 0 : sceneState.val) && sceneState.val !== "0") {
+            await this.setStateAsync(sceneId, { val: "0", ack: true });
+          }
         }
       }
     } catch (err) {
@@ -321,7 +323,7 @@ class GoveeAdapter extends utils.Adapter {
         stateDefs = (0, import_capability_mapper.mapCapabilities)(device.capabilities);
       }
       stateDefs = stateDefs.filter(
-        (d) => d.id !== "light_scene" && d.id !== "snapshot"
+        (d) => d.id !== "light_scene" && d.id !== "diy_scene" && d.id !== "snapshot"
       );
       if (device.scenes.length > 0) {
         const sceneStates = { 0: "---" };
@@ -338,6 +340,23 @@ class GoveeAdapter extends utils.Adapter {
           def: "0",
           capabilityType: "devices.capabilities.dynamic_scene",
           capabilityInstance: "lightScene"
+        });
+      }
+      if (device.diyScenes.length > 0) {
+        const diyStates = { 0: "---" };
+        device.diyScenes.forEach((s, i) => {
+          diyStates[i + 1] = s.name;
+        });
+        stateDefs.push({
+          id: "diy_scene",
+          name: "DIY Scene",
+          type: "string",
+          role: "text",
+          write: true,
+          states: diyStates,
+          def: "0",
+          capabilityType: "devices.capabilities.dynamic_scene",
+          capabilityInstance: "diyScene"
         });
       }
       if (device.snapshots.length > 0) {
@@ -499,6 +518,9 @@ class GoveeAdapter extends utils.Adapter {
     }
     if (suffix === "control.light_scene") {
       return "lightScene";
+    }
+    if (suffix === "control.diy_scene") {
+      return "diyScene";
     }
     if (suffix === "control.snapshot") {
       return "snapshot";

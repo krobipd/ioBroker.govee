@@ -142,13 +142,19 @@ export class DeviceManager {
             // Rate-limited to avoid hitting API limits during startup
             const loadScenes = async (): Promise<void> => {
               try {
-                const { lightScenes, snapshots } =
+                const { lightScenes, diyScenes, snapshots } =
                   await this.cloudClient!.getScenes(cd.sku, cd.device);
-                if (lightScenes.length > 0 || snapshots.length > 0) {
+                if (
+                  lightScenes.length > 0 ||
+                  diyScenes.length > 0 ||
+                  snapshots.length > 0
+                ) {
                   const scenesChanged =
                     lightScenes.length !== device.scenes.length ||
+                    diyScenes.length !== device.diyScenes.length ||
                     snapshots.length !== device.snapshots.length;
                   device.scenes = lightScenes;
+                  device.diyScenes = diyScenes;
                   device.snapshots = snapshots;
                   if (scenesChanged) {
                     changed = true;
@@ -246,6 +252,7 @@ export class DeviceManager {
         lanIp: lanDevice.ip,
         capabilities: [],
         scenes: [],
+        diyScenes: [],
         snapshots: [],
         state: { online: true },
         channels: { lan: true, mqtt: false, cloud: false },
@@ -764,6 +771,13 @@ export class DeviceManager {
         return cap;
       }
       if (
+        command === "diyScene" &&
+        shortType === "dynamic_scene" &&
+        cap.instance === "diyScene"
+      ) {
+        return cap;
+      }
+      if (
         command === "snapshot" &&
         shortType === "dynamic_scene" &&
         cap.instance === "snapshot"
@@ -817,6 +831,11 @@ export class DeviceManager {
         const scene = device.scenes[idx - 1];
         return scene?.value ?? value;
       }
+      case "diyScene": {
+        const idx = parseInt(String(value), 10);
+        const diy = device.diyScenes[idx - 1];
+        return diy?.value ?? value;
+      }
       case "snapshot": {
         const idx = parseInt(String(value), 10);
         const snap = device.snapshots[idx - 1];
@@ -864,6 +883,7 @@ export class DeviceManager {
       type: cd.type || "unknown",
       capabilities: cd.capabilities,
       scenes: [],
+      diyScenes: [],
       snapshots: [],
       state: { online: true },
       channels: { lan: false, mqtt: false, cloud: true },

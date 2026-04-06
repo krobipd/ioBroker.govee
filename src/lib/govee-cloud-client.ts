@@ -113,7 +113,11 @@ export class GoveeCloudClient {
   async getScenes(
     sku: string,
     device: string,
-  ): Promise<{ lightScenes: CloudScene[]; snapshots: CloudScene[] }> {
+  ): Promise<{
+    lightScenes: CloudScene[];
+    diyScenes: CloudScene[];
+    snapshots: CloudScene[];
+  }> {
     const resp = await this.request<CloudScenesResponse>(
       "POST",
       "/router/api/v1/device/scenes",
@@ -124,9 +128,13 @@ export class GoveeCloudClient {
     );
 
     const lightScenes: CloudScene[] = [];
+    const diyScenes: CloudScene[] = [];
     const snapshots: CloudScene[] = [];
 
     for (const cap of resp.payload?.capabilities ?? []) {
+      this.log.debug(
+        `Scenes endpoint: instance=${cap.instance}, type=${cap.type}, options=${cap.parameters.options?.length ?? 0}`,
+      );
       const opts = cap.parameters.options ?? [];
       const mapped: CloudScene[] = opts
         .filter(
@@ -140,12 +148,14 @@ export class GoveeCloudClient {
 
       if (cap.instance === "lightScene") {
         lightScenes.push(...mapped);
+      } else if (cap.instance === "diyScene") {
+        diyScenes.push(...mapped);
       } else if (cap.instance === "snapshot") {
         snapshots.push(...mapped);
       }
     }
 
-    return { lightScenes, snapshots };
+    return { lightScenes, diyScenes, snapshots };
   }
 
   /** Check if the API key is valid */

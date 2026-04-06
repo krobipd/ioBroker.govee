@@ -116,7 +116,7 @@ class GoveeCloudClient {
    * @param device Device identifier
    */
   async getScenes(sku, device) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     const resp = await this.request(
       "POST",
       "/router/api/v1/device/scenes",
@@ -126,9 +126,13 @@ class GoveeCloudClient {
       }
     );
     const lightScenes = [];
+    const diyScenes = [];
     const snapshots = [];
     for (const cap of (_b = (_a = resp.payload) == null ? void 0 : _a.capabilities) != null ? _b : []) {
-      const opts = (_c = cap.parameters.options) != null ? _c : [];
+      this.log.debug(
+        `Scenes endpoint: instance=${cap.instance}, type=${cap.type}, options=${(_d = (_c = cap.parameters.options) == null ? void 0 : _c.length) != null ? _d : 0}`
+      );
+      const opts = (_e = cap.parameters.options) != null ? _e : [];
       const mapped = opts.filter(
         (o) => typeof o.name === "string" && typeof o.value === "object"
       ).map((o) => ({
@@ -137,11 +141,13 @@ class GoveeCloudClient {
       }));
       if (cap.instance === "lightScene") {
         lightScenes.push(...mapped);
+      } else if (cap.instance === "diyScene") {
+        diyScenes.push(...mapped);
       } else if (cap.instance === "snapshot") {
         snapshots.push(...mapped);
       }
     }
-    return { lightScenes, snapshots };
+    return { lightScenes, diyScenes, snapshots };
   }
   /** Check if the API key is valid */
   async checkConnection() {

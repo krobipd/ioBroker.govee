@@ -123,10 +123,11 @@ class DeviceManager {
           if (device) {
             const loadScenes = async () => {
               try {
-                const { lightScenes, snapshots } = await this.cloudClient.getScenes(cd.sku, cd.device);
-                if (lightScenes.length > 0 || snapshots.length > 0) {
-                  const scenesChanged = lightScenes.length !== device.scenes.length || snapshots.length !== device.snapshots.length;
+                const { lightScenes, diyScenes, snapshots } = await this.cloudClient.getScenes(cd.sku, cd.device);
+                if (lightScenes.length > 0 || diyScenes.length > 0 || snapshots.length > 0) {
+                  const scenesChanged = lightScenes.length !== device.scenes.length || diyScenes.length !== device.diyScenes.length || snapshots.length !== device.snapshots.length;
                   device.scenes = lightScenes;
+                  device.diyScenes = diyScenes;
                   device.snapshots = snapshots;
                   if (scenesChanged) {
                     changed = true;
@@ -207,6 +208,7 @@ class DeviceManager {
         lanIp: lanDevice.ip,
         capabilities: [],
         scenes: [],
+        diyScenes: [],
         snapshots: [],
         state: { online: true },
         channels: { lan: true, mqtt: false, cloud: false }
@@ -603,6 +605,9 @@ class DeviceManager {
       if (command === "lightScene" && shortType === "dynamic_scene" && cap.instance === "lightScene") {
         return cap;
       }
+      if (command === "diyScene" && shortType === "dynamic_scene" && cap.instance === "diyScene") {
+        return cap;
+      }
       if (command === "snapshot" && shortType === "dynamic_scene" && cap.instance === "snapshot") {
         return cap;
       }
@@ -623,7 +628,7 @@ class DeviceManager {
    * @param value Adapter-side value to convert
    */
   toCloudValue(device, command, value) {
-    var _a, _b;
+    var _a, _b, _c;
     switch (command) {
       case "power":
         return value ? 1 : 0;
@@ -642,10 +647,15 @@ class DeviceManager {
         const scene = device.scenes[idx - 1];
         return (_a = scene == null ? void 0 : scene.value) != null ? _a : value;
       }
+      case "diyScene": {
+        const idx = parseInt(String(value), 10);
+        const diy = device.diyScenes[idx - 1];
+        return (_b = diy == null ? void 0 : diy.value) != null ? _b : value;
+      }
       case "snapshot": {
         const idx = parseInt(String(value), 10);
         const snap = device.snapshots[idx - 1];
-        return (_b = snap == null ? void 0 : snap.value) != null ? _b : value;
+        return (_c = snap == null ? void 0 : snap.value) != null ? _c : value;
       }
       default:
         if (command.startsWith("segmentColor:")) {
@@ -687,6 +697,7 @@ class DeviceManager {
       type: cd.type || "unknown",
       capabilities: cd.capabilities,
       scenes: [],
+      diyScenes: [],
       snapshots: [],
       state: { online: true },
       channels: { lan: false, mqtt: false, cloud: true }

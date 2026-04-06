@@ -266,6 +266,8 @@ export interface GoveeDevice {
   capabilities: CloudCapability[];
   /** Available light scenes (from Cloud scenes endpoint) */
   scenes: CloudScene[];
+  /** Available DIY scenes (from Cloud scenes endpoint) */
+  diyScenes: CloudScene[];
   /** Available snapshots (from Cloud scenes endpoint) */
   snapshots: CloudScene[];
   /** Last known state */
