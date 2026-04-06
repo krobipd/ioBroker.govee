@@ -10,7 +10,7 @@
 - **Version:** 0.6.0 (April 2026)
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** https://www.npmjs.com/package/iobroker.govee-smart
-- **Runtime-Deps:** `@iobroker/adapter-core`, `mqtt`, `node-forge`
+- **Runtime-Deps:** `@iobroker/adapter-core`, `@iobroker/types`, `mqtt`, `node-forge`
 
 ## KRITISCH: LAN-first ist unantastbar!
 
@@ -72,7 +72,7 @@ govee-smart.0.
 │       ├── control.light_scene       (Dropdown: 78-237 Szenen aus Cloud)
 │       ├── control.snapshot          (Dropdown: User-gespeicherte Zustände)
 │       ├── control.gradient_toggle / .diy_scene / .music_mode
-│       └── segments.count / .0.color / .0.brightness
+│       └── segments.count / .command / .0.color / .0.brightness
 └── groups.
     └── basegroup_1280.              (Govee-Gruppen)
 ```
