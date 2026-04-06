@@ -169,7 +169,7 @@ govee-smart.0.
 ### 0.2.0 (2026-04-06)
 - Control states in `control/` channel, `info.serial` state
 
-[Older changelog entries](CHANGELOG_OLD.md)
+Older changelog: [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
