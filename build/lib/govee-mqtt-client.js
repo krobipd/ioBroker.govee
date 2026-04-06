@@ -34,6 +34,8 @@ module.exports = __toCommonJS(govee_mqtt_client_exports);
 var https = __toESM(require("node:https"));
 var forge = __toESM(require("node-forge"));
 var mqtt = __toESM(require("mqtt"));
+var import_types = require("./types.js");
+const MAX_AUTH_FAILURES = 3;
 const LOGIN_URL = "https://app2.govee.com/account/rest/account/v2/login";
 const IOT_KEY_URL = "https://app2.govee.com/app/v1/account/iot/key";
 const APP_VERSION = "7.3.30";
@@ -71,6 +73,8 @@ class GoveeMqttClient {
   accountId = "";
   reconnectTimer = void 0;
   reconnectAttempts = 0;
+  authFailCount = 0;
+  lastErrorCategory = null;
   onStatus = null;
   onConnection = null;
   /** Map of device ID → MQTT topic for publishing commands */
@@ -95,7 +99,7 @@ class GoveeMqttClient {
    * @param onConnection Called on connection state changes
    */
   async connect(onStatus, onConnection) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     this.onStatus = onStatus;
     this.onConnection = onConnection;
     try {
@@ -129,6 +133,11 @@ class GoveeMqttClient {
       this.client.on("connect", () => {
         var _a2;
         this.reconnectAttempts = 0;
+        this.authFailCount = 0;
+        if (this.lastErrorCategory) {
+          this.log.info("MQTT connection restored");
+          this.lastErrorCategory = null;
+        }
         this.log.debug("MQTT connected to AWS IoT");
         (_a2 = this.client) == null ? void 0 : _a2.subscribe(this.accountTopic, { qos: 0 }, (err) => {
           var _a3;
@@ -149,12 +158,33 @@ class GoveeMqttClient {
       this.client.on("close", () => {
         var _a2;
         (_a2 = this.onConnection) == null ? void 0 : _a2.call(this, false);
+        if (!this.lastErrorCategory) {
+          this.lastErrorCategory = "NETWORK";
+          this.log.debug("MQTT disconnected \u2014 will reconnect");
+        }
         this.scheduleReconnect();
       });
     } catch (err) {
-      this.log.warn(
-        `MQTT connection failed: ${err instanceof Error ? err.message : String(err)}`
-      );
+      const category = (0, import_types.classifyError)(err);
+      const msg = `MQTT connection failed: ${err instanceof Error ? err.message : String(err)}`;
+      if (category === "AUTH") {
+        this.authFailCount++;
+        if (this.authFailCount >= MAX_AUTH_FAILURES) {
+          this.log.warn(
+            `MQTT login failed ${this.authFailCount} times \u2014 check email/password in adapter settings`
+          );
+          (_d = this.onConnection) == null ? void 0 : _d.call(this, false);
+          return;
+        }
+      } else {
+        this.authFailCount = 0;
+      }
+      if (category !== this.lastErrorCategory) {
+        this.lastErrorCategory = category;
+        this.log.warn(msg);
+      } else {
+        this.log.debug(msg);
+      }
       this.scheduleReconnect();
     }
   }
@@ -307,6 +337,9 @@ class GoveeMqttClient {
   /** Schedule reconnect with exponential backoff */
   scheduleReconnect() {
     if (this.reconnectTimer) {
+      return;
+    }
+    if (this.authFailCount >= MAX_AUTH_FAILURES) {
       return;
     }
     this.reconnectAttempts++;

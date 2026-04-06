@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "0.6.2",
+    "version": "0.6.3",
     "news": {
+      "0.6.3": {
+        "en": "MQTT auth backoff, error dedup, Cloud/MQTT recovery logging, improved error classification",
+        "de": "MQTT Auth-Backoff, Error-Dedup, Cloud/MQTT Recovery-Logging, verbesserte Fehlerklassifizierung",
+        "ru": "MQTT откат авторизации, дедупликация ошибок, логирование восстановления Cloud/MQTT, улучшенная классификация",
+        "pt": "MQTT auth backoff, dedup de erros, logging de recuperação Cloud/MQTT, classificação melhorada",
+        "nl": "MQTT auth-backoff, fout-dedup, Cloud/MQTT herstel-logging, verbeterde foutclassificatie",
+        "fr": "MQTT auth backoff, dédup erreurs, logging restauration Cloud/MQTT, classification améliorée",
+        "it": "MQTT auth backoff, dedup errori, logging recupero Cloud/MQTT, classificazione errori migliorata",
+        "es": "MQTT auth backoff, dedup de errores, logging de recuperación Cloud/MQTT, clasificación mejorada",
+        "pl": "MQTT auth backoff, dedup błędów, logowanie odzyskiwania Cloud/MQTT, ulepszona klasyfikacja",
+        "uk": "MQTT auth backoff, дедуплікація помилок, логування відновлення Cloud/MQTT, покращена класифікація",
+        "zh-cn": "MQTT认证回退，错误去重，Cloud/MQTT恢复日志，改进的错误分类"
+      },
       "0.6.2": {
         "en": "Comprehensive test suite: 78 to 175 tests covering command routing, value conversions, segment parsing",
         "de": "Umfassende Tests: 78 auf 175 Tests für Command-Routing, Wertkonvertierung, Segment-Parsing",
@@ -80,19 +93,6 @@
         "pl": "Sceny i snapshoty jako dropdown, ładowanie stanów Cloud, info.mqttConnected/cloudConnected",
         "uk": "Сцени та знімки як dropdown, завантаження станів Cloud, info.mqttConnected/cloudConnected",
         "zh-cn": "场景和快照作为下拉菜单，Cloud状态加载，info.mqttConnected/cloudConnected"
-      },
-      "0.3.0": {
-        "en": "Stable device folders (SKU+ID), LAN-first controls, fix MQTT login v2, groups folder, fix Cloud unit strings",
-        "de": "Stabile Geräteordner (SKU+ID), LAN-first Steuerung, Fix MQTT Login v2, Gruppen-Ordner, Fix Cloud-Einheiten",
-        "ru": "Стабильные папки устройств (SKU+ID), LAN-приоритет, исправление MQTT входа v2, папка групп, исправление единиц Cloud",
-        "pt": "Pastas estáveis (SKU+ID), controle LAN-first, correção MQTT login v2, pasta de grupos, correção unidades Cloud",
-        "nl": "Stabiele apparaatmappen (SKU+ID), LAN-first bediening, fix MQTT login v2, groepmap, fix Cloud eenheden",
-        "fr": "Dossiers stables (SKU+ID), contrôle LAN-first, correction MQTT login v2, dossier groupes, correction unités Cloud",
-        "it": "Cartelle stabili (SKU+ID), controllo LAN-first, fix login MQTT v2, cartella gruppi, fix unità Cloud",
-        "es": "Carpetas estables (SKU+ID), control LAN-first, fix MQTT login v2, carpeta grupos, fix unidades Cloud",
-        "pl": "Stabilne foldery (SKU+ID), LAN-first sterowanie, fix MQTT login v2, folder grup, fix jednostek Cloud",
-        "uk": "Стабільні теки (SKU+ID), LAN-first керування, виправлення MQTT логін v2, тека груп, виправлення одиниць Cloud",
-        "zh-cn": "稳定设备文件夹(SKU+ID)，LAN优先控制，修复MQTT登录v2，分组文件夹，修复Cloud单位"
       }
     },
     "titleLang": {

@@ -1,12 +1,17 @@
 import * as https from "node:https";
 import * as forge from "node-forge";
 import * as mqtt from "mqtt";
-import type {
-  GoveeIotKeyResponse,
-  GoveeLoginResponse,
-  MqttStatusUpdate,
-  TimerAdapter,
+import {
+  classifyError,
+  type ErrorCategory,
+  type GoveeIotKeyResponse,
+  type GoveeLoginResponse,
+  type MqttStatusUpdate,
+  type TimerAdapter,
 } from "./types.js";
+
+/** Max consecutive auth failures before giving up */
+const MAX_AUTH_FAILURES = 3;
 
 const LOGIN_URL = "https://app2.govee.com/account/rest/account/v2/login";
 const IOT_KEY_URL = "https://app2.govee.com/app/v1/account/iot/key";
@@ -59,6 +64,8 @@ export class GoveeMqttClient {
   private accountId = "";
   private reconnectTimer: ioBroker.Timeout | undefined = undefined;
   private reconnectAttempts = 0;
+  private authFailCount = 0;
+  private lastErrorCategory: ErrorCategory | null = null;
   private onStatus: MqttStatusCallback | null = null;
   private onConnection: MqttConnectionCallback | null = null;
   /** Map of device ID → MQTT topic for publishing commands */
@@ -133,6 +140,11 @@ export class GoveeMqttClient {
 
       this.client.on("connect", () => {
         this.reconnectAttempts = 0;
+        this.authFailCount = 0;
+        if (this.lastErrorCategory) {
+          this.log.info("MQTT connection restored");
+          this.lastErrorCategory = null;
+        }
         this.log.debug("MQTT connected to AWS IoT");
 
         // Subscribe to account topic for status updates
@@ -156,12 +168,39 @@ export class GoveeMqttClient {
 
       this.client.on("close", () => {
         this.onConnection?.(false);
+        // Only warn on first disconnect, debug on repeated
+        if (!this.lastErrorCategory) {
+          this.lastErrorCategory = "NETWORK";
+          this.log.debug("MQTT disconnected — will reconnect");
+        }
         this.scheduleReconnect();
       });
     } catch (err) {
-      this.log.warn(
-        `MQTT connection failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      const category = classifyError(err);
+      const msg = `MQTT connection failed: ${err instanceof Error ? err.message : String(err)}`;
+
+      // Auth backoff — stop reconnecting after repeated auth failures
+      if (category === "AUTH") {
+        this.authFailCount++;
+        if (this.authFailCount >= MAX_AUTH_FAILURES) {
+          this.log.warn(
+            `MQTT login failed ${this.authFailCount} times — check email/password in adapter settings`,
+          );
+          this.onConnection?.(false);
+          return;
+        }
+      } else {
+        this.authFailCount = 0;
+      }
+
+      // Error dedup — warn on first/new category, debug on repeat
+      if (category !== this.lastErrorCategory) {
+        this.lastErrorCategory = category;
+        this.log.warn(msg);
+      } else {
+        this.log.debug(msg);
+      }
+
       this.scheduleReconnect();
     }
   }
@@ -333,6 +372,9 @@ export class GoveeMqttClient {
   /** Schedule reconnect with exponential backoff */
   private scheduleReconnect(): void {
     if (this.reconnectTimer) {
+      return;
+    }
+    if (this.authFailCount >= MAX_AUTH_FAILURES) {
       return;
     }
 

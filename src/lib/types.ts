@@ -328,6 +328,22 @@ export type ErrorCategory =
  * @param err Error to classify
  */
 export function classifyError(err: unknown): ErrorCategory {
+  if (err instanceof Error) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (
+      code === "ECONNREFUSED" ||
+      code === "EHOSTUNREACH" ||
+      code === "ENOTFOUND" ||
+      code === "ENETUNREACH" ||
+      code === "ECONNRESET" ||
+      code === "EAI_AGAIN"
+    ) {
+      return "NETWORK";
+    }
+    if (code === "ETIMEDOUT" || err.message.includes("timed out")) {
+      return "TIMEOUT";
+    }
+  }
   const msg = err instanceof Error ? err.message : String(err);
   if (
     msg.includes("ECONNREFUSED") ||
@@ -337,7 +353,7 @@ export function classifyError(err: unknown): ErrorCategory {
   ) {
     return "NETWORK";
   }
-  if (msg.includes("timed out") || msg.includes("Timeout")) {
+  if (msg.includes("Timeout")) {
     return "TIMEOUT";
   }
   if (

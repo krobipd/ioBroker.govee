@@ -26,11 +26,20 @@ function normalizeDeviceId(id) {
   return id.replace(/:/g, "").toLowerCase();
 }
 function classifyError(err) {
+  if (err instanceof Error) {
+    const code = err.code;
+    if (code === "ECONNREFUSED" || code === "EHOSTUNREACH" || code === "ENOTFOUND" || code === "ENETUNREACH" || code === "ECONNRESET" || code === "EAI_AGAIN") {
+      return "NETWORK";
+    }
+    if (code === "ETIMEDOUT" || err.message.includes("timed out")) {
+      return "TIMEOUT";
+    }
+  }
   const msg = err instanceof Error ? err.message : String(err);
   if (msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND") || msg.includes("ENETUNREACH") || msg.includes("ECONNRESET")) {
     return "NETWORK";
   }
-  if (msg.includes("timed out") || msg.includes("Timeout")) {
+  if (msg.includes("Timeout")) {
     return "TIMEOUT";
   }
   if (msg.includes("401") || msg.includes("403") || msg.includes("Login failed") || msg.includes("auth")) {

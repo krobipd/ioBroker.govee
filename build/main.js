@@ -37,6 +37,7 @@ class GoveeAdapter extends utils.Adapter {
   cloudClient = null;
   rateLimiter = null;
   cloudPollTimer = void 0;
+  cloudWasConnected = false;
   /** @param options Adapter options */
   constructor(options = {}) {
     super({ ...options, name: "govee-smart" });
@@ -141,6 +142,7 @@ class GoveeAdapter extends utils.Adapter {
       this.rateLimiter.start();
       this.deviceManager.setRateLimiter(this.rateLimiter);
       const cloudOk = await this.deviceManager.loadFromCloud();
+      this.cloudWasConnected = cloudOk;
       this.setStateAsync("info.cloudConnected", {
         val: cloudOk,
         ack: true
@@ -152,6 +154,10 @@ class GoveeAdapter extends utils.Adapter {
       const intervalMs = Math.max(30, (_a = config.pollInterval) != null ? _a : 60) * 1e3;
       this.cloudPollTimer = this.setInterval(() => {
         this.deviceManager.loadFromCloud().then((ok) => {
+          if (ok && !this.cloudWasConnected) {
+            this.log.info("Cloud API connection restored");
+          }
+          this.cloudWasConnected = ok;
           this.setStateAsync("info.cloudConnected", {
             val: ok,
             ack: true

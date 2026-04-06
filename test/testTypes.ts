@@ -37,6 +37,22 @@ describe("Types utilities", () => {
             expect(classifyError(new Error("read ECONNRESET"))).to.equal("NETWORK");
         });
 
+        it("should classify errors with .code property as NETWORK", () => {
+            const err = new Error("connect failed") as NodeJS.ErrnoException;
+            err.code = "EHOSTUNREACH";
+            expect(classifyError(err)).to.equal("NETWORK");
+
+            const err2 = new Error("DNS lookup failed") as NodeJS.ErrnoException;
+            err2.code = "EAI_AGAIN";
+            expect(classifyError(err2)).to.equal("NETWORK");
+        });
+
+        it("should classify ETIMEDOUT via .code as TIMEOUT", () => {
+            const err = new Error("connect failed") as NodeJS.ErrnoException;
+            err.code = "ETIMEDOUT";
+            expect(classifyError(err)).to.equal("TIMEOUT");
+        });
+
         it("should classify timeout errors as TIMEOUT", () => {
             expect(classifyError(new Error("Request timed out"))).to.equal("TIMEOUT");
             expect(classifyError(new Error("Timeout waiting for response"))).to.equal("TIMEOUT");

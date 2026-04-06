@@ -142,6 +142,11 @@ govee-smart.0.
 
 ## Changelog
 
+### 0.6.3 (2026-04-06)
+- MQTT auth backoff (stop after 3 failures), error dedup, recovery logging
+- Cloud connection recovery detection
+- Improved error classification (OS-level error codes)
+
 ### 0.6.2 (2026-04-06)
 - Comprehensive test suite: 78 → 175 tests (command routing, value conversions, segment parsing, capability matching)
 

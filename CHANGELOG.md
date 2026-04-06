@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.3 (2026-04-06)
+- MQTT auth backoff: stop reconnecting after 3 consecutive login failures with actionable warning
+- MQTT error dedup: first error warns, repeated same category silent (debug)
+- MQTT/Cloud recovery logging: "connection restored" info message when coming back online
+- Improved error classification: detect OS-level error codes (EHOSTUNREACH, EAI_AGAIN, ETIMEDOUT)
+
 ## 0.6.2 (2026-04-06)
 - Comprehensive test suite: 78 → 175 tests covering command routing, value conversions, segment batch parsing, capability matching, cloud state mapping, error classification
 
