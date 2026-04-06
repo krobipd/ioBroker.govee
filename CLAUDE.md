@@ -154,6 +154,7 @@ Single Page, drei Sektionen:
 17. **Kein Fire-and-forget** — Alle async void-Calls haben `.catch()` Handler
 18. **Scene-State Sync** — `light_scene` wird auf "0" zurückgesetzt wenn colorRgb/colorTemperature gesetzt wird
 19. **Generic Capability Routing** — States mit `native.capabilityType/Instance` werden automatisch via Cloud API geroutet (toggle, dynamic_scene, etc.)
+20. **Batch Segment Command** — `segments.command` State: `1-5:#ff0000:20`, `all:#00ff00`, `0,3,7::50` — max 2 API-Calls statt N×2
 
 ## Tests (78)
 
