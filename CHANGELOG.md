@@ -8,7 +8,7 @@
 - Shared utilities (normalizeDeviceId, classifyError), removed code duplication
 - Add .catch() to all fire-and-forget async calls
 - Fix MQTT reconnect null safety, Cloud API requestId, LanStatusCallback type
-- Remove stale files (javscript.txt, CHANGELOG_OLD.md)
+- Remove stale file (javscript.txt)
 
 ## 0.4.1 (2026-04-06)
 - Fix null state values: sensible defaults for all control states
@@ -34,7 +34,7 @@
 - Fix Cloud API unit normalization (`unit.percent` → `%`)
 - Fix `info.online` race condition on startup
 
-## 0.2.1 (2026-04-05)
+## 0.2.1 (2026-04-06)
 - Fix duplicate SKU collision: LAN-only devices now use SKU with short device ID suffix for unique folder names
 - Fix deploy workflow: add build step before npm publish
 
@@ -45,7 +45,7 @@
 - Added `info.serial` state for device ID
 - Removed misleading device count from startup log
 
-## 0.1.2 (2026-04-06)
+## 0.1.2 (2026-04-05)
 
 - Fix LAN discovery race condition: listen socket ready before first scan
 

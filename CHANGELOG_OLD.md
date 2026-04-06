@@ -1,6 +1,6 @@
 # Older Changes
 
-## 0.1.2 (2026-04-06)
+## 0.1.2 (2026-04-05)
 
 - Fix LAN discovery race condition: listen socket ready before first scan
 

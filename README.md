@@ -11,7 +11,7 @@
 
 <img src="https://raw.githubusercontent.com/krobipd/ioBroker.govee-smart/main/admin/govee-smart.svg" width="100" />
 
-Control [Govee](https://www.govee.com/) smart lights (H6xxx/H7xxx series) via three seamless channels: **LAN** (fastest, primary), **AWS IoT MQTT** (real-time status push), and **Cloud API v2** (scenes, segments, capabilities).
+Control [Govee](https://www.govee.com/) smart lights via three seamless channels: **LAN** (fastest, primary), **AWS IoT MQTT** (real-time status push), and **Cloud API v2** (scenes, segments, capabilities).
 
 ---
 
@@ -163,7 +163,7 @@ govee-smart.0.
 - Stable device folder naming (`sku_shortId`), LAN-first controls
 - Fix MQTT login v2, groups folder, Cloud unit normalization
 
-### 0.2.1 (2026-04-05)
+### 0.2.1 (2026-04-06)
 - Fix duplicate SKU collision, fix deploy workflow
 
 ### 0.2.0 (2026-04-06)
