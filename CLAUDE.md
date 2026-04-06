@@ -152,6 +152,8 @@ Single Page, drei Sektionen:
 15. **Segment-Routing** — `segmentColor:N`/`segmentBrightness:N` Commands → Cloud `segment_color_setting`
 16. **Shared Utilities** — `normalizeDeviceId()` + `classifyError()` in types.ts, nicht dupliziert
 17. **Kein Fire-and-forget** — Alle async void-Calls haben `.catch()` Handler
+18. **Scene-State Sync** — `light_scene` wird auf "0" zurückgesetzt wenn colorRgb/colorTemperature gesetzt wird
+19. **Generic Capability Routing** — States mit `native.capabilityType/Instance` werden automatisch via Cloud API geroutet (toggle, dynamic_scene, etc.)
 
 ## Tests (78)
 
