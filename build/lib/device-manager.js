@@ -160,14 +160,14 @@ class DeviceManager {
                 (c) => c.type === "devices.capabilities.dynamic_scene" && c.instance === "snapshot" && c.parameters.options
               );
               if (snapCap == null ? void 0 : snapCap.parameters.options) {
-                this.log.info(
-                  `Snapshot options for ${cd.sku}: ${JSON.stringify(snapCap.parameters.options.slice(0, 2))}`
+                this.log.debug(
+                  `Snapshots from capabilities for ${cd.sku}: ${device.snapshots.length}`
                 );
                 device.snapshots = snapCap.parameters.options.filter(
                   (o) => typeof o.name === "string" && o.value !== void 0 && o.value !== null
                 ).map((o) => ({
                   name: o.name,
-                  value: typeof o.value === "object" ? o.value : { value: o.value }
+                  value: typeof o.value === "number" ? o.value : o.value
                 }));
               }
             }

@@ -200,8 +200,8 @@ export class DeviceManager {
                   c.parameters.options,
               );
               if (snapCap?.parameters.options) {
-                this.log.info(
-                  `Snapshot options for ${cd.sku}: ${JSON.stringify(snapCap.parameters.options.slice(0, 2))}`,
+                this.log.debug(
+                  `Snapshots from capabilities for ${cd.sku}: ${device.snapshots.length}`,
                 );
                 device.snapshots = snapCap.parameters.options
                   .filter(
@@ -213,9 +213,9 @@ export class DeviceManager {
                   .map((o) => ({
                     name: o.name,
                     value:
-                      typeof o.value === "object"
-                        ? (o.value as Record<string, unknown>)
-                        : { value: o.value },
+                      typeof o.value === "number"
+                        ? o.value
+                        : (o.value as Record<string, unknown>),
                   }));
               }
             }

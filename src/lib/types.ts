@@ -126,8 +126,8 @@ export interface CloudScenesResponse {
 export interface CloudScene {
   /** Display name */
   name: string;
-  /** Activation value (passed directly to control endpoint) */
-  value: Record<string, unknown>;
+  /** Activation value (passed directly to control endpoint) — object for scenes, integer for snapshots */
+  value: Record<string, unknown> | number;
 }
 
 // --- AWS IoT MQTT Types ---
