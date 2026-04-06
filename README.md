@@ -118,7 +118,7 @@ govee-smart.0.
 
 - Ensure your Govee lights are connected to the **same network** as ioBroker
 - Check that UDP multicast (239.255.255.250) is not blocked by your router/firewall
-- Only devices with **LAN API support** are discovered (primarily H6xxx/H7xxx lights)
+- Only devices with **LAN API support** are discovered — [Supported devices list](https://app-h5.govee.com/user-manual/wlan-guide)
 - Verify your lights have the latest firmware via the Govee Home app
 
 ### Scenes/segments not available
