@@ -116,7 +116,7 @@ class GoveeCloudClient {
    * @param device Device identifier
    */
   async getScenes(sku, device) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     const resp = await this.request(
       "POST",
       "/router/api/v1/device/scenes",
@@ -130,9 +130,9 @@ class GoveeCloudClient {
     const snapshots = [];
     for (const cap of (_b = (_a = resp.payload) == null ? void 0 : _a.capabilities) != null ? _b : []) {
       this.log.info(
-        `Scenes endpoint: instance=${cap.instance}, type=${cap.type}, options=${(_d = (_c = cap.parameters.options) == null ? void 0 : _c.length) != null ? _d : 0}`
+        `Scenes endpoint: instance=${cap.instance}, type=${cap.type}, options=${(_d = (_c = cap.parameters.options) == null ? void 0 : _c.length) != null ? _d : 0}, names=${((_e = cap.parameters.options) != null ? _e : []).slice(0, 5).map((o) => o.name).join(",")}...`
       );
-      const opts = (_e = cap.parameters.options) != null ? _e : [];
+      const opts = (_f = cap.parameters.options) != null ? _f : [];
       const mapped = opts.filter(
         (o) => typeof o.name === "string" && typeof o.value === "object"
       ).map((o) => ({

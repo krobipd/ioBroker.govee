@@ -133,7 +133,7 @@ export class GoveeCloudClient {
 
     for (const cap of resp.payload?.capabilities ?? []) {
       this.log.info(
-        `Scenes endpoint: instance=${cap.instance}, type=${cap.type}, options=${cap.parameters.options?.length ?? 0}`,
+        `Scenes endpoint: instance=${cap.instance}, type=${cap.type}, options=${cap.parameters.options?.length ?? 0}, names=${(cap.parameters.options ?? []).slice(0, 5).map((o) => o.name).join(",")}...`,
       );
       const opts = cap.parameters.options ?? [];
       const mapped: CloudScene[] = opts
