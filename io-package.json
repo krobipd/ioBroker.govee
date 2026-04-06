@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "news": {
+      "0.4.1": {
+        "en": "Fix null state values: sensible defaults for all states, remove stale control states on startup",
+        "de": "Fix Null-Werte: sinnvolle Standardwerte für alle States, veraltete Control-States beim Start entfernen",
+        "ru": "Исправление null значений: разумные значения по умолчанию, удаление устаревших состояний",
+        "pt": "Correção de valores nulos: padrões sensatos para todos os estados, remoção de estados obsoletos",
+        "nl": "Fix null-waarden: standaardwaarden voor alle staten, verouderde control-staten verwijderen",
+        "fr": "Correction des valeurs nulles: valeurs par défaut pour tous les états, suppression des états obsolètes",
+        "it": "Correzione valori null: valori predefiniti per tutti gli stati, rimozione stati obsoleti",
+        "es": "Corrección valores nulos: valores predeterminados para todos los estados, eliminar estados obsoletos",
+        "pl": "Naprawa wartości null: domyślne wartości dla wszystkich stanów, usuwanie nieaktualnych stanów",
+        "uk": "Виправлення null значень: розумні значення за замовчуванням, видалення застарілих станів",
+        "zh-cn": "修复空值：为所有状态设置合理的默认值，启动时删除过期的控制状态"
+      },
       "0.4.0": {
         "en": "Scenes and snapshots as dropdowns, Cloud state loading, info.mqttConnected/cloudConnected, cleaner logging",
         "de": "Szenen und Snapshots als Dropdowns, Cloud-Status-Laden, info.mqttConnected/cloudConnected, saubereres Logging",

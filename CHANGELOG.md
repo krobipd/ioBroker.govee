@@ -1,4 +1,11 @@
 # Changelog
+## 0.4.1 (2026-04-06)
+- Fix null state values: sensible defaults for all control states
+- Remove stale control states on startup (e.g. leftover snapshot JSON state)
+- Only create light_scene/snapshot states as dropdowns when data available
+- Set info.online on device creation
+- Add error handler for async state creation
+
 ## 0.4.0 (2026-04-06)
 - Scenes as real dropdowns — loaded from Cloud scenes endpoint (78-237 scenes per device)
 - Snapshots as dropdowns — from scenes endpoint with device capability fallback
