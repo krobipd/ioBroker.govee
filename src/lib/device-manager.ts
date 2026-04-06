@@ -389,6 +389,52 @@ export class DeviceManager {
   }
 
   /**
+   * Send a generic capability command via Cloud API.
+   * Used for capability types not explicitly handled (toggle, dynamic_scene, etc.)
+   *
+   * @param device
+   * @param capabilityType
+   * @param capabilityInstance
+   * @param value
+   */
+  async sendCapabilityCommand(
+    device: GoveeDevice,
+    capabilityType: string,
+    capabilityInstance: string,
+    value: unknown,
+  ): Promise<void> {
+    if (!this.cloudClient || !device.channels.cloud) {
+      this.log.debug(
+        `Cloud not available for generic command on ${device.name}`,
+      );
+      return;
+    }
+
+    const shortType = capabilityType.replace("devices.capabilities.", "");
+    let cloudValue: unknown = value;
+
+    if (shortType === "toggle") {
+      cloudValue = value ? 1 : 0;
+    }
+
+    const execute = async (): Promise<void> => {
+      await this.cloudClient!.controlDevice(
+        device.sku,
+        device.deviceId,
+        capabilityType,
+        capabilityInstance,
+        cloudValue,
+      );
+    };
+
+    if (this.rateLimiter) {
+      await this.rateLimiter.tryExecute(execute, 0);
+    } else {
+      await execute();
+    }
+  }
+
+  /**
    * Send command via LAN UDP
    *
    * @param device Target device

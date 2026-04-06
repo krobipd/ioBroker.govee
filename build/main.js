@@ -210,6 +210,7 @@ class GoveeAdapter extends utils.Adapter {
    * @param state New state value
    */
   async onStateChange(id, state) {
+    var _a, _b;
     if (!state || state.ack || !this.deviceManager || !this.stateManager) {
       return;
     }
@@ -225,12 +226,36 @@ class GoveeAdapter extends utils.Adapter {
     const stateSuffix = localId.slice(prefix.length + 1);
     const command = this.stateToCommand(stateSuffix);
     if (!command) {
-      this.log.debug(`Unknown writable state: ${stateSuffix}`);
+      const obj = await this.getObjectAsync(id);
+      if (((_a = obj == null ? void 0 : obj.native) == null ? void 0 : _a.capabilityType) && ((_b = obj == null ? void 0 : obj.native) == null ? void 0 : _b.capabilityInstance)) {
+        try {
+          await this.deviceManager.sendCapabilityCommand(
+            device,
+            obj.native.capabilityType,
+            obj.native.capabilityInstance,
+            state.val
+          );
+          await this.setStateAsync(id, { val: state.val, ack: true });
+        } catch (err) {
+          this.log.warn(
+            `Command failed for ${device.name}: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      } else {
+        this.log.debug(`Unknown writable state: ${stateSuffix}`);
+      }
       return;
     }
     try {
       await this.deviceManager.sendCommand(device, command, state.val);
       await this.setStateAsync(id, { val: state.val, ack: true });
+      if (command === "colorRgb" || command === "colorTemperature") {
+        const sceneId = `${this.namespace}.${prefix}.control.light_scene`;
+        const sceneState = await this.getStateAsync(sceneId);
+        if ((sceneState == null ? void 0 : sceneState.val) && sceneState.val !== "0") {
+          await this.setStateAsync(sceneId, { val: "0", ack: true });
+        }
+      }
     } catch (err) {
       this.log.warn(
         `Command failed for ${device.name}: ${err instanceof Error ? err.message : String(err)}`

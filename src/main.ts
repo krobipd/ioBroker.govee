@@ -249,7 +249,25 @@ class GoveeAdapter extends utils.Adapter {
     const command = this.stateToCommand(stateSuffix);
 
     if (!command) {
-      this.log.debug(`Unknown writable state: ${stateSuffix}`);
+      // Try generic capability routing via state object metadata
+      const obj = await this.getObjectAsync(id);
+      if (obj?.native?.capabilityType && obj?.native?.capabilityInstance) {
+        try {
+          await this.deviceManager.sendCapabilityCommand(
+            device,
+            obj.native.capabilityType as string,
+            obj.native.capabilityInstance as string,
+            state.val,
+          );
+          await this.setStateAsync(id, { val: state.val, ack: true });
+        } catch (err) {
+          this.log.warn(
+            `Command failed for ${device.name}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      } else {
+        this.log.debug(`Unknown writable state: ${stateSuffix}`);
+      }
       return;
     }
 
@@ -257,6 +275,14 @@ class GoveeAdapter extends utils.Adapter {
       await this.deviceManager.sendCommand(device, command, state.val);
       // Optimistic ack
       await this.setStateAsync(id, { val: state.val, ack: true });
+      // Reset scene dropdown when switching to solid color/colorTemp
+      if (command === "colorRgb" || command === "colorTemperature") {
+        const sceneId = `${this.namespace}.${prefix}.control.light_scene`;
+        const sceneState = await this.getStateAsync(sceneId);
+        if (sceneState?.val && sceneState.val !== "0") {
+          await this.setStateAsync(sceneId, { val: "0", ack: true });
+        }
+      }
     } catch (err) {
       this.log.warn(
         `Command failed for ${device.name}: ${err instanceof Error ? err.message : String(err)}`,
