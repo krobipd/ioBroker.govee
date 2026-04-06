@@ -7,7 +7,7 @@
 
 **ioBroker Govee Smart Adapter** — Steuert Govee Smart-Home-Geräte. LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig.
 
-- **Version:** 0.6.0 (April 2026)
+- **Version:** 0.6.1 (April 2026)
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** https://www.npmjs.com/package/iobroker.govee-smart
 - **Runtime-Deps:** `@iobroker/adapter-core`, `@iobroker/types`, `mqtt`, `node-forge`
@@ -156,12 +156,26 @@ Single Page, drei Sektionen:
 19. **Generic Capability Routing** — States mit `native.capabilityType/Instance` werden automatisch via Cloud API geroutet (toggle, dynamic_scene, etc.)
 20. **Batch Segment Command** — `segments.command` State: `1-5:#ff0000:20`, `all:#00ff00`, `0,3,7::50` — max 2 API-Calls statt N×2
 
-## Tests (78)
+## Tests (175)
 
 ```
-test/testCapabilityMapper.ts → Capability Mapping (on_off, range, color, scenes, property, toggle, LAN defaults) (11 Tests)
-test/testDeviceManager.ts    → Device Manager (LAN discovery, IP update, MQTT status, filtering, SKU collision) (6 Tests)
-test/testRateLimiter.ts      → Rate Limiter (per-minute, per-day, queueing) (4 Tests)
+test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping (37 Tests)
+  - mapCapabilities: on_off, range, color, scenes, property, toggle, LAN defaults (11)
+  - mapCapabilities branches: segment, dynamic_scene, music, work_mode, unknown, edge cases (10)
+  - mapCloudStateValue: all types, null/undefined, unknown capability, edge cases (16)
+test/testDeviceManager.ts    → Device Manager (55 Tests)
+  - LAN discovery, IP update, MQTT status, unknown device/IP handling (7)
+  - sendCommand channel routing: LAN→MQTT→Cloud fallback, segment→Cloud only (6)
+  - toCloudValue: power, brightness, color hex→int, scene/snapshot/diy index lookup, segments (14)
+  - parseSegmentBatch: range, all, comma, brightness-only, clamp, invalid, mixed (10)
+  - findCapabilityForCommand: all command types, unknown, empty capabilities (11)
+  - parseColor: hex with/without #, black, white, invalid (5)
+  - logDedup: category tracking, warn vs debug (1+assertions)
+test/testRateLimiter.ts      → Rate Limiter (9 Tests)
+  - Limits, daily usage, queueing, priority sorting, stop/clear, counter tracking
+test/testTypes.ts            → Shared Utilities (16 Tests)
+  - normalizeDeviceId: colons, lowercase, empty string
+  - classifyError: NETWORK, TIMEOUT, AUTH, RATE_LIMIT, UNKNOWN, string/non-Error
 test/testPackageFiles.ts     → @iobroker/testing (57 Tests)
 ```
 

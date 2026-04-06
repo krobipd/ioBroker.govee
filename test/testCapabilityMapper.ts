@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { getDefaultLanStates, mapCapabilities } from "../src/lib/capability-mapper";
-import type { CloudCapability } from "../src/lib/types";
+import { getDefaultLanStates, mapCapabilities, mapCloudStateValue } from "../src/lib/capability-mapper";
+import type { CloudCapability, CloudStateCapability } from "../src/lib/types";
 
 describe("CapabilityMapper", () => {
     describe("mapCapabilities", () => {
@@ -182,6 +182,310 @@ describe("CapabilityMapper", () => {
             expect(temp.min).to.equal(2000);
             expect(temp.max).to.equal(9000);
             expect(temp.unit).to.equal("K");
+        });
+    });
+
+    describe("mapCapabilities — additional branches", () => {
+        it("should map segment_color_setting to JSON state", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.segment_color_setting",
+                    instance: "segmentedColorRgb",
+                    parameters: { dataType: "STRUCT" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].id).to.equal("_segment_segmented_color_rgb");
+            expect(result[0].type).to.equal("string");
+            expect(result[0].role).to.equal("json");
+        });
+
+        it("should map dynamic_scene to JSON state", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.dynamic_scene",
+                    instance: "lightScene",
+                    parameters: { dataType: "STRUCT" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].id).to.equal("light_scene");
+            expect(result[0].write).to.be.true;
+        });
+
+        it("should map music_setting to JSON state", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.music_setting",
+                    instance: "musicMode",
+                    parameters: { dataType: "STRUCT" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].id).to.equal("music_mode");
+        });
+
+        it("should map work_mode to JSON state", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.work_mode",
+                    instance: "workMode",
+                    parameters: { dataType: "STRUCT" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].id).to.equal("work_mode");
+        });
+
+        it("should skip mode with non-presetScene instance", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.mode",
+                    instance: "someOtherMode",
+                    parameters: { dataType: "ENUM", options: [{ name: "A", value: 1 }] },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(0);
+        });
+
+        it("should return empty for unknown color_setting instance", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.color_setting",
+                    instance: "unknownColorMode",
+                    parameters: { dataType: "INTEGER" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(0);
+        });
+
+        it("should skip unknown capability types", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.completely_unknown",
+                    instance: "foo",
+                    parameters: { dataType: "ENUM" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(0);
+        });
+
+        it("should normalize unit.percent to %", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.range",
+                    instance: "brightness",
+                    parameters: { dataType: "INTEGER", range: { min: 0, max: 100, precision: 1 }, unit: "unit.percent" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result[0].unit).to.equal("%");
+        });
+
+        it("should map property humidity with correct role", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.property",
+                    instance: "sensorHumidity",
+                    parameters: { dataType: "INTEGER", range: { min: 0, max: 100, precision: 1 } },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result[0].role).to.equal("value.humidity");
+            expect(result[0].unit).to.equal("%");
+        });
+
+        it("should handle empty capabilities array", () => {
+            const result = mapCapabilities([]);
+            expect(result).to.have.lengthOf(0);
+        });
+    });
+
+    describe("mapCloudStateValue", () => {
+        it("should map on_off to power boolean", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.on_off",
+                instance: "powerSwitch",
+                state: { value: 1 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result).to.not.be.null;
+            expect(result!.stateId).to.equal("power");
+            expect(result!.value).to.be.true;
+        });
+
+        it("should map on_off 0 to false", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.on_off",
+                instance: "powerSwitch",
+                state: { value: 0 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result!.value).to.be.false;
+        });
+
+        it("should map colorRgb integer to hex string", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.color_setting",
+                instance: "colorRgb",
+                state: { value: 0xff8000 }, // orange
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result!.stateId).to.equal("colorRgb");
+            expect(result!.value).to.equal("#ff8000");
+        });
+
+        it("should map colorRgb 0 to black", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.color_setting",
+                instance: "colorRgb",
+                state: { value: 0 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result!.value).to.equal("#000000");
+        });
+
+        it("should map colorRgb white (16777215)", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.color_setting",
+                instance: "colorRgb",
+                state: { value: 16777215 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result!.value).to.equal("#ffffff");
+        });
+
+        it("should map colorTemperatureK to number", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.color_setting",
+                instance: "colorTemperatureK",
+                state: { value: 4000 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result!.stateId).to.equal("colorTemperature");
+            expect(result!.value).to.equal(4000);
+        });
+
+        it("should map range brightness to number", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.range",
+                instance: "brightness",
+                state: { value: 75 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result!.stateId).to.equal("brightness");
+            expect(result!.value).to.equal(75);
+        });
+
+        it("should map toggle to boolean", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.toggle",
+                instance: "gradientToggle",
+                state: { value: 1 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result!.stateId).to.equal("gradient_toggle");
+            expect(result!.value).to.be.true;
+        });
+
+        it("should map toggle 0 to false", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.toggle",
+                instance: "gradientToggle",
+                state: { value: 0 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result!.value).to.be.false;
+        });
+
+        it("should map dynamic_scene object to JSON string", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.dynamic_scene",
+                instance: "lightScene",
+                state: { value: { id: 123, paramId: "abc" } },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result!.stateId).to.equal("light_scene");
+            expect(result!.value).to.equal('{"id":123,"paramId":"abc"}');
+        });
+
+        it("should map property to number", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.property",
+                instance: "sensorTemperature",
+                state: { value: 22.5 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result!.stateId).to.equal("sensor_temperature");
+            expect(result!.value).to.equal(22.5);
+        });
+
+        it("should map presetScene to string", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.mode",
+                instance: "presetScene",
+                state: { value: 42 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result!.stateId).to.equal("scene");
+            expect(result!.value).to.equal("42");
+        });
+
+        it("should return null for null state value", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.on_off",
+                instance: "powerSwitch",
+                state: { value: null },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result).to.be.null;
+        });
+
+        it("should return null for undefined state value", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.on_off",
+                instance: "powerSwitch",
+                state: { value: undefined },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result).to.be.null;
+        });
+
+        it("should return null for unknown capability type", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.completely_unknown",
+                instance: "foo",
+                state: { value: 1 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result).to.be.null;
+        });
+
+        it("should return null for non-presetScene mode", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.mode",
+                instance: "someOtherMode",
+                state: { value: 1 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result).to.be.null;
+        });
+
+        it("should return null for unknown color_setting instance", () => {
+            const cap: CloudStateCapability = {
+                type: "devices.capabilities.color_setting",
+                instance: "unknownColor",
+                state: { value: 100 },
+            };
+            const result = mapCloudStateValue(cap);
+            expect(result).to.be.null;
         });
     });
 });

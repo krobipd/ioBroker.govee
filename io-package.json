@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "0.6.1",
+    "version": "0.6.2",
     "news": {
+      "0.6.2": {
+        "en": "Comprehensive test suite: 78 to 175 tests covering command routing, value conversions, segment parsing",
+        "de": "Umfassende Tests: 78 auf 175 Tests für Command-Routing, Wertkonvertierung, Segment-Parsing",
+        "ru": "Комплексное тестирование: с 78 до 175 тестов для маршрутизации команд, конвертации значений, парсинга сегментов",
+        "pt": "Suite de testes abrangente: 78 para 175 testes cobrindo roteamento de comandos, conversões de valores",
+        "nl": "Uitgebreide testsuite: 78 naar 175 tests voor command-routing, waarde-conversies, segment-parsing",
+        "fr": "Suite de tests complète : 78 à 175 tests couvrant le routage des commandes, conversions de valeurs",
+        "it": "Suite di test completa: da 78 a 175 test per routing comandi, conversioni valori, parsing segmenti",
+        "es": "Suite de pruebas completa: 78 a 175 pruebas cubriendo enrutamiento de comandos, conversiones de valores",
+        "pl": "Kompleksowe testy: 78 do 175 testów dla routingu komend, konwersji wartości, parsowania segmentów",
+        "uk": "Комплексне тестування: з 78 до 175 тестів для маршрутизації команд, конвертації значень",
+        "zh-cn": "全面测试套件：78增至175个测试，覆盖命令路由、值转换、段解析"
+      },
       "0.6.1": {
         "en": "Fix snapshots not appearing, DIY scene dropdown support prepared, scene reset clears all dropdowns",
         "de": "Fix Snapshots nicht sichtbar, DIY-Szenen-Dropdown vorbereitet, Szenen-Reset löscht alle Dropdowns",
@@ -80,19 +93,6 @@
         "pl": "Stabilne foldery (SKU+ID), LAN-first sterowanie, fix MQTT login v2, folder grup, fix jednostek Cloud",
         "uk": "Стабільні теки (SKU+ID), LAN-first керування, виправлення MQTT логін v2, тека груп, виправлення одиниць Cloud",
         "zh-cn": "稳定设备文件夹(SKU+ID)，LAN优先控制，修复MQTT登录v2，分组文件夹，修复Cloud单位"
-      },
-      "0.2.1": {
-        "en": "Fix duplicate SKU collision: LAN-only devices now use SKU with short device ID suffix for unique folder names\nFix deploy workflow: add build step before npm publish",
-        "de": "Fix duplicate SKU Kollision: LAN-only-Geräte verwenden jetzt SKU mit Short Device ID Suffix für eindeutige Ordnernamen\nWorkflow einstellen: Erstellen Sie einen Schritt vor npm veröffentlichen",
-        "ru": "Исправьте двойное столкновение SKU: устройства только для LAN теперь используют SKU с коротким идентификатором устройства для уникальных имен папок\nИсправьте рабочий процесс развертывания: добавьте шаг сборки до публикации npm",
-        "pt": "Corrigir colisão SKU duplicada: dispositivos somente LAN agora usam SKU com sufixo de ID de dispositivo curto para nomes de pastas exclusivos\nCorrigir o fluxo de trabalho de implantação: adicionar o passo de compilação antes da publicação do npm",
-        "nl": "Fix dubbele SKU botsing: LAN-alleen apparaten gebruiken nu SKU met korte apparaat ID achtervoegsel voor unieke mapnamen\nFix implementatie workflow: voeg bouw stap voor npm publiceren",
-        "fr": "Correction de la collision SKU dupliquée : les périphériques LAN seulement utilisent désormais SKU avec un suffixe d'ID de périphérique court pour les noms de dossiers uniques\nCorrection du workflow de déploiement : ajouter l'étape de construction avant npm publier",
-        "it": "Risolvere la collisione di SKU duplicato: i dispositivi LAN-only ora utilizzano SKU con il suffisso di ID di dispositivo corto per i nomi di cartella unici\nFissare il flusso di lavoro di distribuzione: aggiungere passo di build prima npm pubblicare",
-        "es": "Fijar la colisión SKU duplicada: Los dispositivos LAN solo utilizan ahora SKU con sufijo de identificación de dispositivo corto para nombres de carpeta únicos\nFijar flujo de trabajo de despliegue: añadir paso de construcción antes de que npm publique",
-        "pl": "Fix duplikat SKU kolizji: tylko LAN urządzenia teraz używać SKU z krótkim ID urządzenia przyrostek dla unikalnych nazw folderów\nNapraw przepływ pracy: dodaj krok budowy przed publikacją npm",
-        "uk": "Фіксувати дублікати зіткнення кодів: локально-тільки пристрої тепер використовують коди з коротким пристроєм ID suffix для унікальних назв папок\nВиправлення розгортання робочого процесу: додати крок до npm публікувати",
-        "zh-cn": "修复重复的 SKU 碰撞: 现在仅使用 LAN 设备的 SKU , 并带有短设备 ID 后缀, 用于独有的文件夹名称\n固定部署工作流程: 在 npm 发布前添加构建步骤"
       }
     },
     "titleLang": {

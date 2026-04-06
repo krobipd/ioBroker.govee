@@ -142,6 +142,9 @@ govee-smart.0.
 
 ## Changelog
 
+### 0.6.2 (2026-04-06)
+- Comprehensive test suite: 78 → 175 tests (command routing, value conversions, segment parsing, capability matching)
+
 ### 0.6.1 (2026-04-06)
 - Fix snapshots not appearing (integer values from capabilities were filtered out)
 - DIY scene dropdown support prepared (API currently provides no data)

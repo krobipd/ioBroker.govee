@@ -1,4 +1,7 @@
 # Changelog
+## 0.6.2 (2026-04-06)
+- Comprehensive test suite: 78 → 175 tests covering command routing, value conversions, segment batch parsing, capability matching, cloud state mapping, error classification
+
 ## 0.6.1 (2026-04-06)
 - Fix snapshots not appearing: values are integers from device capabilities, not objects from scenes endpoint
 - Snapshot dropdowns now show on all devices with saved snapshots (e.g. "Snap1", "Snap2")
