@@ -19,7 +19,6 @@ npm-debug.log*
 admin/i18n/flat.txt
 
 # Build & Test
-build/
 coverage/
 .nyc_output/
 
