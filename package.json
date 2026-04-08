@@ -62,7 +62,7 @@
     "check": "tsc --noEmit",
     "test:package": "npm run build:test && mocha --exit \"build/test/testPackageFiles.js\"",
     "test:integration": "npm run build:test && mocha --exit \"build/test/**/*.js\"",
-    "test": "npm run build:test && mocha --exit \"build/test/**/*.js\"",
+    "test": "npm run build && npm run build:test && mocha --exit \"build/test/**/*.js\"",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "translate": "translate-adapter",
