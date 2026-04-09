@@ -191,8 +191,7 @@ Segment indices start at 0. Values beyond the device's segment count are automat
 ---
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 0.8.3 (2026-04-09)
 - Fix release-script blocking on manual-review plugin
 
 ### 0.8.2 (2026-04-08)
@@ -208,19 +207,6 @@ Segment indices start at 0. Values beyond the device's segment count are automat
 ### 0.7.0 (2026-04-06)
 - Add IP address to device info (`info.ip`), auto-updated on LAN discovery
 - Batch segment control documentation (format, examples, notes)
-
-### 0.6.4 (2026-04-06)
-- Fix misleading "check email/password" for non-credential Govee login errors
-- MQTT login errors classified by actual Govee response (rate-limit, credential, account issue)
-
-### 0.6.3 (2026-04-06)
-- MQTT auth backoff (stop after 3 failures), error dedup, recovery logging
-- Cloud connection recovery detection
-- Improved error classification (OS-level error codes)
-
-Older changelog: [CHANGELOG_OLD.md](CHANGELOG_OLD.md)
-
----
 
 ## Support
 

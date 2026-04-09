@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "0.8.2",
+    "version": "0.8.3",
     "news": {
+      "0.8.3": {
+        "en": "Fix release-script blocking on manual-review plugin",
+        "de": "Fix Release-script Sperrung auf manuelle Vorschau-Plugin",
+        "ru": "Исправьте блокировку сценария выпуска на плагине ручного обзора",
+        "pt": "Corrigir bloqueio release-script no plugin de revisão manual",
+        "nl": "Release-script blokkeren op manual-review plugin",
+        "fr": "Correction du blocage de la version-script sur le plugin de révision manuelle",
+        "it": "Bloccaggio di rilascio-script sul plugin di revisione manuale",
+        "es": "Arreglar bloqueo de la publicación en el plugin de revisión manual",
+        "pl": "Fix release- script blocking na wtyczce manual- review",
+        "uk": "Виправлення блокування записів на ручний плагін",
+        "zh-cn": "在手动审查插件上修复发布标记屏蔽"
+      },
       "0.8.2": {
         "en": "Remove build/ from git tracking, fix .gitignore, remove redundant CHANGELOG.md",
         "de": "build/ aus Git-Tracking entfernt, .gitignore korrigiert, redundante CHANGELOG.md entfernt",
@@ -80,19 +93,6 @@
         "pl": "MQTT auth backoff, dedup błędów, logowanie odzyskiwania Cloud/MQTT, ulepszona klasyfikacja",
         "uk": "MQTT auth backoff, дедуплікація помилок, логування відновлення Cloud/MQTT, покращена класифікація",
         "zh-cn": "MQTT认证回退，错误去重，Cloud/MQTT恢复日志，改进的错误分类"
-      },
-      "0.6.2": {
-        "en": "Comprehensive test suite: 78 to 175 tests covering command routing, value conversions, segment parsing",
-        "de": "Umfassende Tests: 78 auf 175 Tests für Command-Routing, Wertkonvertierung, Segment-Parsing",
-        "ru": "Комплексное тестирование: с 78 до 175 тестов для маршрутизации команд, конвертации значений, парсинга сегментов",
-        "pt": "Suite de testes abrangente: 78 para 175 testes cobrindo roteamento de comandos, conversões de valores",
-        "nl": "Uitgebreide testsuite: 78 naar 175 tests voor command-routing, waarde-conversies, segment-parsing",
-        "fr": "Suite de tests complète : 78 à 175 tests couvrant le routage des commandes, conversions de valeurs",
-        "it": "Suite di test completa: da 78 a 175 test per routing comandi, conversioni valori, parsing segmenti",
-        "es": "Suite de pruebas completa: 78 a 175 pruebas cubriendo enrutamiento de comandos, conversiones de valores",
-        "pl": "Kompleksowe testy: 78 do 175 testów dla routingu komend, konwersji wartości, parsowania segmentów",
-        "uk": "Комплексне тестування: з 78 до 175 тестів для маршрутизації команд, конвертації значень",
-        "zh-cn": "全面测试套件：78增至175个测试，覆盖命令路由、值转换、段解析"
       }
     },
     "titleLang": {
