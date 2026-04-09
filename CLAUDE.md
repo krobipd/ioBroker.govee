@@ -7,7 +7,7 @@
 
 **ioBroker Govee Smart Adapter** — Steuert Govee Smart-Home-Geräte. LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig.
 
-- **Version:** 0.9.0 (April 2026)
+- **Version:** 0.9.3 (April 2026)
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** https://www.npmjs.com/package/iobroker.govee-smart
 - **Runtime-Deps:** `@iobroker/adapter-core`, `@iobroker/types`, `mqtt`, `node-forge`
@@ -45,15 +45,18 @@ Jeder Kanal hat genau eine Rolle. Kein Overlap.
 ## Architektur
 
 ```
-src/main.ts                   → Lifecycle, StateChange, Cloud State Loading
+src/main.ts                   → Lifecycle, StateChange, Cloud State Loading, Local Snapshots
 src/lib/types.ts              → Interfaces (API, Config, Capabilities, Devices, Scenes)
 src/lib/govee-cloud-client.ts → Cloud REST API v2 (Devices, Capabilities, Szenen+Snapshots, Control)
-src/lib/govee-mqtt-client.ts  → AWS IoT MQTT (Status-Push + Control Fallback)
-src/lib/govee-lan-client.ts   → LAN UDP (Discovery + Control + Status)
-src/lib/device-manager.ts     → LAN → MQTT → Cloud Routing, Scene/Snapshot Loading
+src/lib/govee-mqtt-client.ts  → AWS IoT MQTT (Status-Push + Control Fallback + Scene Library)
+src/lib/govee-lan-client.ts   → LAN UDP (Discovery + Control + Status + ptReal BLE Packets)
+src/lib/device-manager.ts     → LAN → MQTT → Cloud Routing, Scene/Snapshot Loading, Device Quirks
 src/lib/rate-limiter.ts       → Rate-Limits für Cloud REST Calls
-src/lib/capability-mapper.ts  → Capability → ioBroker State Definition + Cloud State Value Mapping
+src/lib/capability-mapper.ts  → Capability → ioBroker State Definition + Cloud State Value Mapping + Quirks
 src/lib/state-manager.ts      → State CRUD + Cleanup
+src/lib/local-snapshots.ts    → Local Snapshot Store (LAN-based save/restore, JSON files)
+src/lib/device-quirks.ts      → SKU-specific overrides (colorTemp ranges, noMqtt, brokenPlatformApi)
+src/lib/sku-cache.ts          → Persistent SKU cache (device data, scene/music/DIY libraries)
 ```
 
 ## State Tree
@@ -69,9 +72,15 @@ govee-smart.0.
 │   └── h61be_1d6f.                  (SKU + letzte 4 Hex der Device-ID)
 │       ├── info.name / .model / .serial / .online / .ip
 │       ├── control.power / .brightness / .colorRgb / .colorTemperature
-│       ├── control.light_scene       (Dropdown: 78-237 Szenen aus Cloud)
-│       ├── control.snapshot          (Dropdown: User-gespeicherte Zustände)
-│       ├── control.gradient_toggle / .diy_scene / .music_mode
+│       ├── control.light_scene       (Dropdown: 78-237 Szenen, lokal via ptReal)
+│       ├── control.diy_scene         (Dropdown: User-DIY-Szenen, lokal via ptReal)
+│       ├── control.snapshot          (Dropdown: Cloud-Snapshots)
+│       ├── control.snapshot_local    (Dropdown: Lokale Snapshots)
+│       ├── control.snapshot_save     (Text: Neuen lokalen Snapshot speichern)
+│       ├── control.snapshot_delete   (Text: Lokalen Snapshot löschen)
+│       ├── control.scene_speed       (Slider: Szenen-Geschwindigkeit)
+│       ├── control.gradient_toggle   (Boolean: Gradient ein/aus)
+│       ├── control.music_mode / .music_sensitivity / .music_auto_color
 │       └── segments.count / .command / .0.color / .0.brightness
 └── groups.
     └── basegroup_1280.              (Govee-Gruppen)
@@ -169,15 +178,20 @@ Single Page, drei Sektionen:
 25. **Network Interface Selection** — `networkInterface` Config (IP-Selector im Admin), bindet Multicast + Listen auf gewähltes Interface; Ports fix (Govee-Protokoll)
 26. **MQTT before Cloud** — MQTT wird vor Cloud initialisiert, damit Scene Library beim ersten loadFromCloud verfügbar ist
 27. **Ready-Message Ordering** — `checkAllReady()` prüft MQTT+Cloud bevor Ready geloggt wird; Safety-Timeout 30s
+28. **SKU Cache** — `sku-cache.ts` persistiert Device-Daten + Libraries lokal; nach erstem Start null Cloud-Calls nötig
+29. **Local Snapshots** — `local-snapshots.ts` speichert Gerätezustand per LAN als JSON; Restore replayed einzelne LAN-Commands
+30. **Device Quirks** — `device-quirks.ts` korrigiert falsche API-Daten (colorTemp-Ranges, noMqtt, brokenPlatformApi)
+31. **Scene Speed Infrastructure** — `sceneLibrary` enthält `speedInfo` (supSpeed, speedIndex, config); State + Routing fertig, Byte-Manipulation pending
 
-## Tests (187)
+## Tests (254)
 
 ```
-test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping (37 Tests)
+test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping + Quirks (40 Tests)
   - mapCapabilities: on_off, range, color, scenes, property, toggle, LAN defaults (11)
   - mapCapabilities branches: segment, dynamic_scene, music, work_mode, unknown, edge cases (10)
   - mapCloudStateValue: all types, null/undefined, unknown capability, edge cases (16)
-test/testDeviceManager.ts    → Device Manager (58 Tests)
+  - applyQuirksToStates: known SKU, unknown SKU, non-colorTemp (3)
+test/testDeviceManager.ts    → Device Manager (70 Tests)
   - LAN discovery, IP update, MQTT status, unknown device/IP handling (7)
   - sendCommand channel routing: LAN→MQTT→Cloud fallback, ptReal scene, segment→Cloud only (9)
   - toCloudValue: power, brightness, color hex→int, scene/snapshot/diy index lookup, segments (14)
@@ -185,10 +199,26 @@ test/testDeviceManager.ts    → Device Manager (58 Tests)
   - findCapabilityForCommand: all command types, unknown, empty capabilities (11)
   - parseColor: hex with/without #, black, white, invalid (5)
   - logDedup: category tracking, warn vs debug (1+assertions)
-test/testLanClient.ts        → LAN Client BLE Packet Builder (5 Tests)
-  - buildScenePackets: activation packet, little-endian, A3 data, XOR checksum, empty param
+  - handleMqttStatus edge cases: partial update, colorTemp, mqtt channel, empty state (4)
+  - handleLanStatus edge cases: zero brightness, colorTemInKelvin 0 (2)
+  - noMqtt quirk: H6121 skips MQTT, non-quirk uses MQTT (2)
+  - DIY scene via LAN: library match, no match fallback (2)
+  - colorTemperature via LAN, no channel warning (2)
+test/testDeviceQuirks.ts     → Device Quirks (12 Tests)
+  - getDeviceQuirks: known, case-insensitive, unknown, brokenPlatformApi, noMqtt, all broken, all noMqtt (7)
+  - applyColorTempQuirk: override, passthrough, no range, H6022, case-insensitive (5)
+test/testLocalSnapshots.ts   → Local Snapshots (10 Tests)
+  - Create dir, empty device, save/retrieve, overwrite, multiple, delete, non-existent, per-device, corrupt, colorTemp
+test/testLanClient.ts        → LAN Client BLE Packet Builder (16 Tests)
+  - buildScenePackets: activation, little-endian, A3 data, XOR checksum, empty param (5)
+  - buildGradientPacket: ON, OFF, checksum (3)
+  - buildSegmentColorPacket: single, multiple, all, overflow, checksum (5)
+  - buildMusicModePacket: Energic, Spectrum, Rolling, Rhythm, checksum (5 → overlaps)
+  - buildDiyPackets: activation-only, A1 data, checksums (3)
 test/testRateLimiter.ts      → Rate Limiter (9 Tests)
   - Limits, daily usage, queueing, priority sorting, stop/clear, counter tracking
+test/testSkuCache.ts         → SKU Cache (12 Tests)
+  - Create dir, null entry, save/load, overwrite, separate devices, same SKU, loadAll, clear, corrupt, normalized ID, libraries, null features
 test/testTypes.ts            → Shared Utilities (19 Tests)
   - normalizeDeviceId: colons, lowercase, empty string
   - classifyError: NETWORK, TIMEOUT, AUTH, RATE_LIMIT, UNKNOWN, string/non-Error, .code property

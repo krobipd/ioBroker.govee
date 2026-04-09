@@ -19,8 +19,14 @@ Control [Govee](https://www.govee.com/) smart lights via three seamless channels
 
 - **LAN First** — UDP multicast discovery and control for lowest latency
 - **Real-Time Status** — AWS IoT MQTT push updates (no polling)
-- **Scene Control** — Dropdown select with all available scenes from Cloud API
+- **BLE-over-LAN Scenes** — 78-237 scenes per device activated locally via ptReal protocol (no Cloud needed)
+- **Music Mode** — Local BLE-over-LAN music reactive effects with sensitivity and auto-color control
+- **DIY Scenes** — User-created scenes activated locally via ptReal
+- **Local Snapshots** — Save and restore device state via LAN (independent of Govee Cloud)
+- **Scene Control** — Dropdown with all available scenes from Cloud API + local scene library
 - **Segment Control** — Per-segment color and brightness for LED strips
+- **SKU Cache** — Device data persisted locally, zero Cloud calls after first start
+- **Device Quirks** — Automatic correction of wrong API data for specific SKUs
 - **Seamless Channel Routing** — Automatically uses the fastest available channel (LAN > MQTT > Cloud)
 - **Graceful Degradation** — Works LAN-only without any credentials; each credential level unlocks more features
 - **Rate Limited** — Respects Govee API limits (10/min, 10,000/day) with priority queue
@@ -100,7 +106,16 @@ govee-smart.0.
 │       │   ├── colorRgb        — Color as "#RRGGBB" (string, writable)
 │       │   ├── colorTemperature — Color temperature in Kelvin (number, writable)
 │       │   ├── light_scene     — Light scene (string, dropdown, writable)
-│       │   └── snapshot        — Saved snapshot (string, dropdown, writable)
+│       │   ├── diy_scene       — DIY scene (string, dropdown, writable)
+│       │   ├── snapshot        — Cloud snapshot (string, dropdown, writable)
+│       │   ├── snapshot_local  — Local snapshot (string, dropdown, writable)
+│       │   ├── snapshot_save   — Save current state as local snapshot (string, writable)
+│       │   ├── snapshot_delete — Delete a local snapshot (string, writable)
+│       │   ├── scene_speed     — Scene speed level (number, slider, writable)
+│       │   ├── gradient_toggle — Gradient on/off (boolean, writable)
+│       │   ├── music_mode      — Music mode effect (string, dropdown, writable)
+│       │   ├── music_sensitivity — Music sensitivity 0-100 (number, writable)
+│       │   └── music_auto_color — Music auto color (boolean, writable)
 │       └── segments/
 │           ├── count           — Number of segments (number)
 │           ├── command         — Batch control "1-5:#ff0000:20" (string, writable)
@@ -191,6 +206,18 @@ Segment indices start at 0. Values beyond the device's segment count are automat
 ---
 
 ## Changelog
+### 0.9.3 (2026-04-09)
+- Add local snapshots: save/restore device state via LAN without Cloud
+- Add device quirks system: correct wrong API data for specific SKUs
+- Add scene speed control infrastructure (speed adjustment pending live testing)
+- Extend test coverage to 254 tests
+
+### 0.9.2 (2026-04-09)
+- Add SKU cache: device data persisted locally, zero Cloud calls after first start
+- Remove periodic Cloud polling (was every 60s)
+- Add authenticated endpoint support for music/DIY libraries and SKU feature flags
+- Fix MQTT login classification for account-blocked scenarios
+
 ### 0.9.1 (2026-04-09)
 - Add ptReal BLE-over-LAN scene activation (local scenes without Cloud API)
 - Fix initialization order: MQTT before Cloud for scene library on first cycle
