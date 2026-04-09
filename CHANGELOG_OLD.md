@@ -1,4 +1,7 @@
 # Older Changes
+## 0.8.0 (2026-04-06)
+- Network interface selection for LAN discovery (multi-NIC/VLAN support)
+
 ## 0.7.0 (2026-04-06)
 - Add IP address to device info (`info.ip`), auto-updated on LAN discovery
 - Batch segment control documentation (format, examples, notes)

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "0.9.0",
+    "version": "0.9.1",
     "news": {
+      "0.9.1": {
+        "en": "Add ptReal BLE-over-LAN scene activation (local scenes without Cloud API)\nFix initialization order: MQTT before Cloud for scene library on first cycle\nFix ready message only appears after all channels are fully initialized",
+        "de": "Fügen Sie ptReal BLE-over-LAN Szenenaktivierung (lokale Szenen ohne Cloud API) hinzu\nFix Initialisierungsauftrag: MQTT vor Cloud für Szenenbibliothek im ersten Zyklus\nFix bereite Nachricht erscheint nur, nachdem alle Kanäle vollständig initialisiert werden",
+        "ru": "Добавить активацию сцены BLE-over-LAN (локальные сцены без облачного API)\nПорядок инициализации исправления: MQTT перед Cloud для библиотеки сцен первого цикла\nИсправьте готовое сообщение только после того, как все каналы полностью инициализированы",
+        "pt": "Adicionar ativação real de cena BLE-over-LAN (cenas locais sem API Cloud)\nCorrigir ordem de inicialização: MQTT antes da nuvem para biblioteca de cenas no primeiro ciclo\nCorrigir a mensagem pronta só aparece depois de todos os canais estarem completamente inicializados",
+        "nl": "PtEchte BLE-over-LAN scène activatie toevoegen (lokale scènes zonder Cloud API)\nFix initialisatie orde: MQTT voor Cloud voor scène library op eerste cyclus\nRepareren bericht verschijnt pas nadat alle kanalen volledig zijn geïnitialiseerd",
+        "fr": "Ajouter ptReal BLE-over-LAN activation de la scène (scènes locales sans API Cloud)\nCorrection de l'ordre d'initialisation : MQTT avant Cloud pour la bibliothèque de scène sur le premier cycle\nCorrection du message prêt n'apparaît qu'après que tous les canaux soient entièrement initialisés",
+        "it": "Aggiungi l'attivazione della scena ptReal BLE-over-LAN (scene locali senza API Cloud)\nFissa l'ordine di inizializzazione: MQTT prima di Cloud per la libreria di scena sul primo ciclo\nFissare il messaggio pronto appare solo dopo che tutti i canali sono completamente inizializzati",
+        "es": "Agregue la activación de la escena ptReal BLE-over-LAN (escenas locales sin API Cloud)\nOrden de inicialización: MQTT antes de Cloud para la biblioteca de escena en el primer ciclo\nCorregir mensaje listo sólo aparece después de que todos los canales estén completamente inicializados",
+        "pl": "Dodaj aktywację sceny PtReal BLE- over- LAN (sceny lokalne bez API Cloud)\nNapraw kolejność inicjalizacji: MQTT przed Cloud dla biblioteki sceny na pierwszym cyklu\nNapraw gotowy komunikat pojawia się dopiero po pełnej inicjalizacji wszystkich kanałów",
+        "uk": "Додати ptReal BLE-over-LAN сцена активації (локальні сцени без Cloud API)\nВиправлено порядок ініціалізації: MQTT до Cloud для бібліотеки сцен на першому циклі\nВиправлення готового повідомлення тільки з'являється після того, як всі канали повністю ініціовані",
+        "zh-cn": "添加 ptReal BLE- over- LAN 场景激活( 无 Cloud API 的局部场景)\n固定初始化顺序: 云前 MQTT 用于第一周期的场景库\n在所有频道全部初始化后才能修复已准备好的消息"
+      },
       "0.9.0": {
         "en": "Add dedicated DIY-scenes endpoint for user-created scenes\nAdd music mode controls: dropdown, sensitivity slider, auto-color toggle\nAdd scene library per SKU from undocumented API (78-159 scenes per device)\nFix ready message now waits for MQTT before logging channel summary\nFix scene library: correct endpoint path, remove unnecessary auth, preserve query parameters",
         "de": "Fügen Sie dedizierte DIY-Scenes Endpoint für benutzerdefinierte Szenen hinzu\nMusikmodussteuerungen hinzufügen: Dropdown, Sensitivität Slider, Auto-Farb-Toggle\nSzenenbibliothek pro SKU von unocumented API (78-159 Szenen pro Gerät)\nFix bereite Nachricht wartet jetzt auf MQTT vor Protokollierung Kanal Zusammenfassung\nSzenenbibliothek reparieren: korrekter Endpunktpfad, unnötige Auth entfernen, Abfrageparameter speichern",
@@ -80,19 +93,6 @@
         "pl": "Adres IP w informacjach o urządzeniu (automatycznie aktualizowany przez LAN), dokumentacja sterowania segmentami wsadowego",
         "uk": "IP-адреса в інформації пристрою (автооновлення через LAN), документація пакетного керування сегментами",
         "zh-cn": "设备信息中添加IP地址（通过LAN自动更新），批量段控制文档"
-      },
-      "0.6.4": {
-        "en": "Fix misleading MQTT error: distinguish credential, rate-limit and account issues in Govee login",
-        "de": "Fix irreführende MQTT-Fehlermeldung: Credential-, Rate-Limit- und Account-Probleme beim Govee-Login unterscheiden",
-        "ru": "Исправление ошибки MQTT: различение проблем с учетными данными, ограничением скорости и аккаунтом",
-        "pt": "Correção de erro MQTT enganoso: distinguir problemas de credenciais, limite de taxa e conta no login Govee",
-        "nl": "Fix misleidende MQTT-fout: onderscheid credential-, rate-limit- en accountproblemen bij Govee-login",
-        "fr": "Correction erreur MQTT trompeuse: distinction des problèmes de credentials, rate-limit et compte Govee",
-        "it": "Correzione errore MQTT fuorviante: distinzione problemi credenziali, rate-limit e account nel login Govee",
-        "es": "Corrección error MQTT engañoso: distinguir problemas de credenciales, límite de tasa y cuenta en login Govee",
-        "pl": "Naprawa mylącego błędu MQTT: rozróżnienie problemów z danymi logowania, limitem i kontem Govee",
-        "uk": "Виправлення помилки MQTT: розрізнення проблем з обліковими даними, обмеженням і акаунтом Govee",
-        "zh-cn": "修复误导性MQTT错误：区分Govee登录中的凭证、速率限制和账户问题"
       }
     },
     "titleLang": {
