@@ -836,6 +836,32 @@ export class DeviceManager {
       case "gradientToggle":
         this.lanClient.setGradient(device.lanIp, value as boolean);
         break;
+      case "diyScene": {
+        // Try ptReal BLE-over-LAN if DIY scene is in library
+        const diyIdx = parseInt(String(value), 10);
+        const diyScene = device.diyScenes[diyIdx - 1];
+        if (diyScene) {
+          const diyLib = device.diyLibrary.find(
+            (d) => d.name === diyScene.name,
+          );
+          if (diyLib) {
+            this.log.debug(
+              `ptReal DIY: ${diyScene.name} → code=${diyLib.diyCode}`,
+            );
+            this.lanClient.setDiyScene(device.lanIp, diyLib.scenceParam ?? "");
+            return;
+          }
+        }
+        // No library match — fall through to MQTT/Cloud
+        if (
+          this.mqttClient?.connected &&
+          this.sendMqttCommand(device, command, value)
+        ) {
+          return;
+        }
+        this.sendCloudCommand(device, command, value).catch(() => {});
+        break;
+      }
       case "lightScene": {
         // Try ptReal BLE-over-LAN if scene is in scene library
         const idx = parseInt(String(value), 10);

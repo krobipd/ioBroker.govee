@@ -262,6 +262,32 @@ export class GoveeLanClient {
   }
 
   /**
+   * Activate a DIY scene via ptReal BLE-passthrough.
+   * Sends A1 multi-packet data (if provided) + activation command.
+   *
+   * @param ip Device IP address
+   * @param scenceParam Base64-encoded DIY parameter data (may be empty to activate last DIY)
+   */
+  setDiyScene(ip: string, scenceParam: string): void {
+    const packets = buildDiyPackets(scenceParam);
+    this.sendPtReal(ip, packets);
+  }
+
+  /**
+   * Set music mode via ptReal BLE-passthrough.
+   * Sub-modes 1 (Spectrum) and 2 (Rolling) use RGB color.
+   *
+   * @param ip Device IP address
+   * @param subMode Music sub-mode (0-3)
+   * @param r Red channel 0-255 (used by modes 1, 2)
+   * @param g Green channel 0-255
+   * @param b Blue channel 0-255
+   */
+  setMusicMode(ip: string, subMode: number, r = 0, g = 0, b = 0): void {
+    this.sendPtReal(ip, [buildMusicModePacket(subMode, r, g, b)]);
+  }
+
+  /**
    * Request device status
    *
    * @param ip Device IP address
@@ -463,6 +489,47 @@ export function buildScenePackets(
 }
 
 /**
+ * Build Base64-encoded BLE packets for DIY scene activation via ptReal.
+ * Uses A1 framing for multi-packet data, then sends activation command.
+ *
+ * @param scenceParam Base64-encoded DIY parameter data (may be empty)
+ */
+export function buildDiyPackets(scenceParam: string): string[] {
+  const packets: string[] = [];
+
+  if (scenceParam) {
+    const paramBytes = Array.from(Buffer.from(scenceParam, "base64"));
+    // A1-framed packets: start A1 02 00 <total>
+    const rawData: number[] = [0xa1, 0x02, 0x00, 0x00];
+    let numLines = 0;
+    let lastLineMarker = 2;
+
+    for (const b of paramBytes) {
+      if (rawData.length % 19 === 0) {
+        numLines++;
+        rawData.push(0xa1, 0x02);
+        lastLineMarker = rawData.length - 1;
+        rawData.push(numLines);
+      }
+      rawData.push(b);
+    }
+    rawData[lastLineMarker] = 0xff;
+    rawData[3] = numLines + 1;
+
+    for (let i = 0; i < rawData.length; i += 19) {
+      const chunk = rawData.slice(i, i + 19);
+      packets.push(Buffer.from(finishPacket([...chunk])).toString("base64"));
+    }
+  }
+
+  // Activation: 33 05 0A
+  packets.push(
+    Buffer.from(finishPacket([0x33, 0x05, 0x0a])).toString("base64"),
+  );
+  return packets;
+}
+
+/**
  * Build a Base64-encoded BLE packet for gradient toggle via ptReal.
  *
  * @param on Gradient on/off
@@ -471,6 +538,28 @@ export function buildGradientPacket(on: boolean): string {
   return Buffer.from(finishPacket([0x33, 0x14, on ? 0x01 : 0x00])).toString(
     "base64",
   );
+}
+
+/**
+ * Build a Base64-encoded BLE packet for music mode via ptReal.
+ * Sub-modes 1 (Spectrum) and 2 (Rolling) include RGB color.
+ *
+ * @param subMode Music sub-mode (0=Energic, 1=Spectrum, 2=Rolling, 3=Rhythm)
+ * @param r Red channel 0-255
+ * @param g Green channel 0-255
+ * @param b Blue channel 0-255
+ */
+export function buildMusicModePacket(
+  subMode: number,
+  r = 0,
+  g = 0,
+  b = 0,
+): string {
+  const data = [0x33, 0x05, 0x01, subMode & 0xff];
+  if (subMode === 1 || subMode === 2) {
+    data.push(r & 0xff, g & 0xff, b & 0xff);
+  }
+  return Buffer.from(finishPacket(data)).toString("base64");
 }
 
 /**

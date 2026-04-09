@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { buildScenePackets, buildGradientPacket, buildSegmentColorPacket } from "../src/lib/govee-lan-client";
+import { buildScenePackets, buildGradientPacket, buildSegmentColorPacket, buildMusicModePacket, buildDiyPackets } from "../src/lib/govee-lan-client";
 
 describe("buildScenePackets", () => {
     it("should build a single activation packet for scene code only", () => {
@@ -140,5 +140,87 @@ describe("buildSegmentColorPacket", () => {
             xor ^= buf[i];
         }
         expect(buf[19]).to.equal(xor);
+    });
+});
+
+describe("buildMusicModePacket", () => {
+    it("should build Energic mode (0) without RGB", () => {
+        const buf = Buffer.from(buildMusicModePacket(0), "base64");
+        expect(buf).to.have.lengthOf(20);
+        expect(buf[0]).to.equal(0x33);
+        expect(buf[1]).to.equal(0x05);
+        expect(buf[2]).to.equal(0x01);
+        expect(buf[3]).to.equal(0x00);
+        for (let i = 4; i < 19; i++) {
+            expect(buf[i]).to.equal(0);
+        }
+    });
+
+    it("should build Spectrum mode (1) with RGB", () => {
+        const buf = Buffer.from(buildMusicModePacket(1, 0xff, 0x80, 0x00), "base64");
+        expect(buf[3]).to.equal(0x01);
+        expect(buf[4]).to.equal(0xff);
+        expect(buf[5]).to.equal(0x80);
+        expect(buf[6]).to.equal(0x00);
+    });
+
+    it("should build Rolling mode (2) with RGB", () => {
+        const buf = Buffer.from(buildMusicModePacket(2, 0x10, 0x20, 0x30), "base64");
+        expect(buf[3]).to.equal(0x02);
+        expect(buf[4]).to.equal(0x10);
+        expect(buf[5]).to.equal(0x20);
+        expect(buf[6]).to.equal(0x30);
+    });
+
+    it("should build Rhythm mode (3) without RGB", () => {
+        const buf = Buffer.from(buildMusicModePacket(3, 0xff, 0xff, 0xff), "base64");
+        expect(buf[3]).to.equal(0x03);
+        expect(buf[4]).to.equal(0x00);
+    });
+
+    it("should have valid XOR checksum", () => {
+        const buf = Buffer.from(buildMusicModePacket(1, 255, 0, 128), "base64");
+        let xor = 0;
+        for (let i = 0; i < 19; i++) {
+            xor ^= buf[i];
+        }
+        expect(buf[19]).to.equal(xor);
+    });
+});
+
+describe("buildDiyPackets", () => {
+    it("should build activation-only packet when no param data", () => {
+        const packets = buildDiyPackets("");
+        expect(packets).to.have.lengthOf(1);
+        const buf = Buffer.from(packets[0], "base64");
+        expect(buf[0]).to.equal(0x33);
+        expect(buf[1]).to.equal(0x05);
+        expect(buf[2]).to.equal(0x0a);
+    });
+
+    it("should include A1 data packets for scenceParam", () => {
+        const param = Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05]).toString("base64");
+        const packets = buildDiyPackets(param);
+        expect(packets.length).to.be.greaterThan(1);
+        const firstBuf = Buffer.from(packets[0], "base64");
+        expect(firstBuf[0]).to.equal(0xa1);
+        const lastBuf = Buffer.from(packets[packets.length - 1], "base64");
+        expect(lastBuf[0]).to.equal(0x33);
+        expect(lastBuf[1]).to.equal(0x05);
+        expect(lastBuf[2]).to.equal(0x0a);
+    });
+
+    it("should produce 20-byte packets with valid checksums", () => {
+        const bigParam = Buffer.alloc(30, 0xcd).toString("base64");
+        const packets = buildDiyPackets(bigParam);
+        for (const p of packets) {
+            const buf = Buffer.from(p, "base64");
+            expect(buf).to.have.lengthOf(20);
+            let xor = 0;
+            for (let i = 0; i < 19; i++) {
+                xor ^= buf[i];
+            }
+            expect(buf[19]).to.equal(xor);
+        }
     });
 });

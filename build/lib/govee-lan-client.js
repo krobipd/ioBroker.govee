@@ -29,7 +29,9 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var govee_lan_client_exports = {};
 __export(govee_lan_client_exports, {
   GoveeLanClient: () => GoveeLanClient,
+  buildDiyPackets: () => buildDiyPackets,
   buildGradientPacket: () => buildGradientPacket,
+  buildMusicModePacket: () => buildMusicModePacket,
   buildScenePackets: () => buildScenePackets,
   buildSegmentColorPacket: () => buildSegmentColorPacket
 });
@@ -245,6 +247,30 @@ class GoveeLanClient {
     this.sendPtReal(ip, [buildSegmentColorPacket(segments, r, g, b)]);
   }
   /**
+   * Activate a DIY scene via ptReal BLE-passthrough.
+   * Sends A1 multi-packet data (if provided) + activation command.
+   *
+   * @param ip Device IP address
+   * @param scenceParam Base64-encoded DIY parameter data (may be empty to activate last DIY)
+   */
+  setDiyScene(ip, scenceParam) {
+    const packets = buildDiyPackets(scenceParam);
+    this.sendPtReal(ip, packets);
+  }
+  /**
+   * Set music mode via ptReal BLE-passthrough.
+   * Sub-modes 1 (Spectrum) and 2 (Rolling) use RGB color.
+   *
+   * @param ip Device IP address
+   * @param subMode Music sub-mode (0-3)
+   * @param r Red channel 0-255 (used by modes 1, 2)
+   * @param g Green channel 0-255
+   * @param b Blue channel 0-255
+   */
+  setMusicMode(ip, subMode, r = 0, g = 0, b = 0) {
+    this.sendPtReal(ip, [buildMusicModePacket(subMode, r, g, b)]);
+  }
+  /**
    * Request device status
    *
    * @param ip Device IP address
@@ -398,10 +424,45 @@ function buildScenePackets(sceneCode, scenceParam) {
   packets.push(Buffer.from(activatePacket).toString("base64"));
   return packets;
 }
+function buildDiyPackets(scenceParam) {
+  const packets = [];
+  if (scenceParam) {
+    const paramBytes = Array.from(Buffer.from(scenceParam, "base64"));
+    const rawData = [161, 2, 0, 0];
+    let numLines = 0;
+    let lastLineMarker = 2;
+    for (const b of paramBytes) {
+      if (rawData.length % 19 === 0) {
+        numLines++;
+        rawData.push(161, 2);
+        lastLineMarker = rawData.length - 1;
+        rawData.push(numLines);
+      }
+      rawData.push(b);
+    }
+    rawData[lastLineMarker] = 255;
+    rawData[3] = numLines + 1;
+    for (let i = 0; i < rawData.length; i += 19) {
+      const chunk = rawData.slice(i, i + 19);
+      packets.push(Buffer.from(finishPacket([...chunk])).toString("base64"));
+    }
+  }
+  packets.push(
+    Buffer.from(finishPacket([51, 5, 10])).toString("base64")
+  );
+  return packets;
+}
 function buildGradientPacket(on) {
   return Buffer.from(finishPacket([51, 20, on ? 1 : 0])).toString(
     "base64"
   );
+}
+function buildMusicModePacket(subMode, r = 0, g = 0, b = 0) {
+  const data = [51, 5, 1, subMode & 255];
+  if (subMode === 1 || subMode === 2) {
+    data.push(r & 255, g & 255, b & 255);
+  }
+  return Buffer.from(finishPacket(data)).toString("base64");
 }
 function buildSegmentColorPacket(segments, r, g, b) {
   let leftMask = 0;
@@ -420,7 +481,9 @@ function buildSegmentColorPacket(segments, r, g, b) {
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   GoveeLanClient,
+  buildDiyPackets,
   buildGradientPacket,
+  buildMusicModePacket,
   buildScenePackets,
   buildSegmentColorPacket
 });

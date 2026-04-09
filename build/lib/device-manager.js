@@ -666,7 +666,7 @@ class DeviceManager {
    * @param value Command value
    */
   sendLanCommand(device, command, value) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f;
     if (!device.lanIp || !this.lanClient) {
       return;
     }
@@ -688,12 +688,34 @@ class DeviceManager {
       case "gradientToggle":
         this.lanClient.setGradient(device.lanIp, value);
         break;
+      case "diyScene": {
+        const diyIdx = parseInt(String(value), 10);
+        const diyScene = device.diyScenes[diyIdx - 1];
+        if (diyScene) {
+          const diyLib = device.diyLibrary.find(
+            (d) => d.name === diyScene.name
+          );
+          if (diyLib) {
+            this.log.debug(
+              `ptReal DIY: ${diyScene.name} \u2192 code=${diyLib.diyCode}`
+            );
+            this.lanClient.setDiyScene(device.lanIp, (_a = diyLib.scenceParam) != null ? _a : "");
+            return;
+          }
+        }
+        if (((_b = this.mqttClient) == null ? void 0 : _b.connected) && this.sendMqttCommand(device, command, value)) {
+          return;
+        }
+        this.sendCloudCommand(device, command, value).catch(() => {
+        });
+        break;
+      }
       case "lightScene": {
         const idx = parseInt(String(value), 10);
         const scene = device.scenes[idx - 1];
         if (scene) {
           const baseName = scene.name.replace(/-[A-Z]$/, "");
-          const libEntry = (_a = device.sceneLibrary.find((s) => s.name === scene.name)) != null ? _a : device.sceneLibrary.find((s) => s.name === baseName);
+          const libEntry = (_c = device.sceneLibrary.find((s) => s.name === scene.name)) != null ? _c : device.sceneLibrary.find((s) => s.name === baseName);
           if (libEntry) {
             this.log.debug(
               `ptReal: ${scene.name} \u2192 code=${libEntry.sceneCode}`
@@ -701,12 +723,12 @@ class DeviceManager {
             this.lanClient.setScene(
               device.lanIp,
               libEntry.sceneCode,
-              (_b = libEntry.scenceParam) != null ? _b : ""
+              (_d = libEntry.scenceParam) != null ? _d : ""
             );
             return;
           }
         }
-        if (((_c = this.mqttClient) == null ? void 0 : _c.connected) && this.sendMqttCommand(device, command, value)) {
+        if (((_e = this.mqttClient) == null ? void 0 : _e.connected) && this.sendMqttCommand(device, command, value)) {
           return;
         }
         this.sendCloudCommand(device, command, value).catch(() => {
@@ -714,7 +736,7 @@ class DeviceManager {
         break;
       }
       default:
-        if (((_d = this.mqttClient) == null ? void 0 : _d.connected) && this.sendMqttCommand(device, command, value)) {
+        if (((_f = this.mqttClient) == null ? void 0 : _f.connected) && this.sendMqttCommand(device, command, value)) {
           return;
         }
         this.sendCloudCommand(device, command, value).catch(() => {
