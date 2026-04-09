@@ -10,6 +10,10 @@ import { DeviceManager } from "./lib/device-manager.js";
 import { GoveeCloudClient } from "./lib/govee-cloud-client.js";
 import { GoveeLanClient } from "./lib/govee-lan-client.js";
 import { GoveeMqttClient } from "./lib/govee-mqtt-client.js";
+import {
+  LocalSnapshotStore,
+  type LocalSnapshot,
+} from "./lib/local-snapshots.js";
 import { RateLimiter } from "./lib/rate-limiter.js";
 import { SkuCache } from "./lib/sku-cache.js";
 import { StateManager } from "./lib/state-manager.js";
@@ -23,6 +27,7 @@ class GoveeAdapter extends utils.Adapter {
   private cloudClient: GoveeCloudClient | null = null;
   private rateLimiter: RateLimiter | null = null;
   private skuCache: SkuCache | null = null;
+  private localSnapshots: LocalSnapshotStore | null = null;
   private cloudWasConnected = false;
   private readyLogged = false;
   private cloudInitDone = false;
@@ -87,10 +92,9 @@ class GoveeAdapter extends utils.Adapter {
 
     this.stateManager = new StateManager(this);
     this.deviceManager = new DeviceManager(this.log);
-    this.skuCache = new SkuCache(
-      utils.getAbsoluteInstanceDataDir(this),
-      this.log,
-    );
+    const dataDir = utils.getAbsoluteInstanceDataDir(this);
+    this.skuCache = new SkuCache(dataDir, this.log);
+    this.localSnapshots = new LocalSnapshotStore(dataDir, this.log);
     this.deviceManager.setSkuCache(this.skuCache);
 
     this.deviceManager.setCallbacks(
@@ -290,6 +294,35 @@ class GoveeAdapter extends utils.Adapter {
     // Determine command from state suffix after device prefix
     const prefix = this.stateManager.devicePrefix(device);
     const stateSuffix = localId.slice(prefix.length + 1);
+    // Handle local snapshot commands (no Cloud/MQTT needed)
+    if (
+      stateSuffix === "control.snapshot_save" &&
+      typeof state.val === "string" &&
+      state.val.trim()
+    ) {
+      await this.handleSnapshotSave(device, state.val.trim());
+      await this.setStateAsync(id, { val: "", ack: true });
+      return;
+    }
+    if (
+      stateSuffix === "control.snapshot_local" &&
+      state.val !== "0" &&
+      state.val !== 0
+    ) {
+      await this.handleSnapshotRestore(device, state.val);
+      await this.setStateAsync(id, { val: state.val, ack: true });
+      return;
+    }
+    if (
+      stateSuffix === "control.snapshot_delete" &&
+      typeof state.val === "string" &&
+      state.val.trim()
+    ) {
+      this.handleSnapshotDelete(device, state.val.trim());
+      await this.setStateAsync(id, { val: "", ack: true });
+      return;
+    }
+
     const command = this.stateToCommand(stateSuffix);
 
     if (!command) {
@@ -533,6 +566,49 @@ class GoveeAdapter extends utils.Adapter {
         });
       }
 
+      // Local snapshots (100% LAN, no Cloud needed)
+      const localSnaps = this.localSnapshots?.getSnapshots(
+        device.sku,
+        device.deviceId,
+      );
+      const localSnapStates: Record<string, string> = { 0: "---" };
+      if (localSnaps) {
+        localSnaps.forEach((s, i) => {
+          localSnapStates[i + 1] = s.name;
+        });
+      }
+      stateDefs.push({
+        id: "snapshot_local",
+        name: "Local Snapshot",
+        type: "string",
+        role: "text",
+        write: true,
+        states: localSnapStates,
+        def: "0",
+        capabilityType: "local",
+        capabilityInstance: "snapshotLocal",
+      });
+      stateDefs.push({
+        id: "snapshot_save",
+        name: "Save Local Snapshot",
+        type: "string",
+        role: "text",
+        write: true,
+        def: "",
+        capabilityType: "local",
+        capabilityInstance: "snapshotSave",
+      });
+      stateDefs.push({
+        id: "snapshot_delete",
+        name: "Delete Local Snapshot",
+        type: "string",
+        role: "text",
+        write: true,
+        def: "",
+        capabilityType: "local",
+        capabilityInstance: "snapshotDelete",
+      });
+
       this.stateManager.createDeviceStates(device, stateDefs).catch((e) => {
         this.log.error(
           `createDeviceStates failed for ${device.name}: ${e instanceof Error ? e.message : String(e)}`,
@@ -740,6 +816,122 @@ class GoveeAdapter extends utils.Adapter {
       return "segmentBatch";
     }
     return null;
+  }
+
+  /**
+   * Save current device state as a local snapshot.
+   *
+   * @param device Target device
+   * @param name Snapshot name
+   */
+  private async handleSnapshotSave(
+    device: GoveeDevice,
+    name: string,
+  ): Promise<void> {
+    if (!this.localSnapshots || !this.stateManager) {
+      return;
+    }
+
+    const prefix = this.stateManager.devicePrefix(device);
+    const ns = this.namespace;
+
+    // Read current state values
+    const powerState = await this.getStateAsync(
+      `${ns}.${prefix}.control.power`,
+    );
+    const brightState = await this.getStateAsync(
+      `${ns}.${prefix}.control.brightness`,
+    );
+    const colorState = await this.getStateAsync(
+      `${ns}.${prefix}.control.colorRgb`,
+    );
+    const ctState = await this.getStateAsync(
+      `${ns}.${prefix}.control.colorTemperature`,
+    );
+
+    const snapshot: LocalSnapshot = {
+      name,
+      power: powerState?.val === true,
+      brightness: typeof brightState?.val === "number" ? brightState.val : 0,
+      colorRgb:
+        typeof colorState?.val === "string" ? colorState.val : "#000000",
+      colorTemperature: typeof ctState?.val === "number" ? ctState.val : 0,
+      savedAt: Date.now(),
+    };
+
+    this.localSnapshots.saveSnapshot(device.sku, device.deviceId, snapshot);
+    this.log.info(`Local snapshot saved: "${name}" for ${device.name}`);
+
+    // Refresh device states to update the dropdown
+    this.onDeviceListChanged(this.deviceManager!.getDevices());
+  }
+
+  /**
+   * Restore a local snapshot by index.
+   *
+   * @param device Target device
+   * @param val Dropdown index value
+   */
+  private async handleSnapshotRestore(
+    device: GoveeDevice,
+    val: ioBroker.StateValue,
+  ): Promise<void> {
+    if (!this.localSnapshots || !this.deviceManager) {
+      return;
+    }
+
+    const idx = parseInt(String(val), 10);
+    if (idx < 1) {
+      return;
+    }
+
+    const snaps = this.localSnapshots.getSnapshots(device.sku, device.deviceId);
+    const snap = snaps[idx - 1];
+    if (!snap) {
+      this.log.warn(`Local snapshot index ${idx} not found for ${device.name}`);
+      return;
+    }
+
+    this.log.info(`Restoring local snapshot "${snap.name}" for ${device.name}`);
+
+    // Send each state via LAN → MQTT → Cloud routing
+    await this.deviceManager.sendCommand(device, "power", snap.power);
+    if (snap.power) {
+      await this.deviceManager.sendCommand(
+        device,
+        "brightness",
+        snap.brightness,
+      );
+      if (snap.colorTemperature > 0) {
+        await this.deviceManager.sendCommand(
+          device,
+          "colorTemperature",
+          snap.colorTemperature,
+        );
+      } else {
+        await this.deviceManager.sendCommand(device, "colorRgb", snap.colorRgb);
+      }
+    }
+  }
+
+  /**
+   * Delete a local snapshot by name.
+   *
+   * @param device Target device
+   * @param name Snapshot name to delete
+   */
+  private handleSnapshotDelete(device: GoveeDevice, name: string): void {
+    if (!this.localSnapshots) {
+      return;
+    }
+
+    if (this.localSnapshots.deleteSnapshot(device.sku, device.deviceId, name)) {
+      this.log.info(`Local snapshot deleted: "${name}" for ${device.name}`);
+      // Refresh device states to update the dropdown
+      this.onDeviceListChanged(this.deviceManager!.getDevices());
+    } else {
+      this.log.warn(`Local snapshot "${name}" not found for ${device.name}`);
+    }
   }
 }
 

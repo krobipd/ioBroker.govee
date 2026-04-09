@@ -27,6 +27,7 @@ var import_device_manager = require("./lib/device-manager.js");
 var import_govee_cloud_client = require("./lib/govee-cloud-client.js");
 var import_govee_lan_client = require("./lib/govee-lan-client.js");
 var import_govee_mqtt_client = require("./lib/govee-mqtt-client.js");
+var import_local_snapshots = require("./lib/local-snapshots.js");
 var import_rate_limiter = require("./lib/rate-limiter.js");
 var import_sku_cache = require("./lib/sku-cache.js");
 var import_state_manager = require("./lib/state-manager.js");
@@ -38,6 +39,7 @@ class GoveeAdapter extends utils.Adapter {
   cloudClient = null;
   rateLimiter = null;
   skuCache = null;
+  localSnapshots = null;
   cloudWasConnected = false;
   readyLogged = false;
   cloudInitDone = false;
@@ -97,10 +99,9 @@ class GoveeAdapter extends utils.Adapter {
     await this.setStateAsync("info.cloudConnected", { val: false, ack: true });
     this.stateManager = new import_state_manager.StateManager(this);
     this.deviceManager = new import_device_manager.DeviceManager(this.log);
-    this.skuCache = new import_sku_cache.SkuCache(
-      utils.getAbsoluteInstanceDataDir(this),
-      this.log
-    );
+    const dataDir = utils.getAbsoluteInstanceDataDir(this);
+    this.skuCache = new import_sku_cache.SkuCache(dataDir, this.log);
+    this.localSnapshots = new import_local_snapshots.LocalSnapshotStore(dataDir, this.log);
     this.deviceManager.setSkuCache(this.skuCache);
     this.deviceManager.setCallbacks(
       (device, state) => this.onDeviceStateUpdate(device, state),
@@ -266,6 +267,21 @@ class GoveeAdapter extends utils.Adapter {
     }
     const prefix = this.stateManager.devicePrefix(device);
     const stateSuffix = localId.slice(prefix.length + 1);
+    if (stateSuffix === "control.snapshot_save" && typeof state.val === "string" && state.val.trim()) {
+      await this.handleSnapshotSave(device, state.val.trim());
+      await this.setStateAsync(id, { val: "", ack: true });
+      return;
+    }
+    if (stateSuffix === "control.snapshot_local" && state.val !== "0" && state.val !== 0) {
+      await this.handleSnapshotRestore(device, state.val);
+      await this.setStateAsync(id, { val: state.val, ack: true });
+      return;
+    }
+    if (stateSuffix === "control.snapshot_delete" && typeof state.val === "string" && state.val.trim()) {
+      this.handleSnapshotDelete(device, state.val.trim());
+      await this.setStateAsync(id, { val: "", ack: true });
+      return;
+    }
     const command = this.stateToCommand(stateSuffix);
     if (!command) {
       const obj = await this.getObjectAsync(id);
@@ -379,6 +395,7 @@ class GoveeAdapter extends utils.Adapter {
    * @param devices Current list of all devices
    */
   onDeviceListChanged(devices) {
+    var _a;
     if (!this.stateManager) {
       return;
     }
@@ -453,6 +470,47 @@ class GoveeAdapter extends utils.Adapter {
           capabilityInstance: "snapshot"
         });
       }
+      const localSnaps = (_a = this.localSnapshots) == null ? void 0 : _a.getSnapshots(
+        device.sku,
+        device.deviceId
+      );
+      const localSnapStates = { 0: "---" };
+      if (localSnaps) {
+        localSnaps.forEach((s, i) => {
+          localSnapStates[i + 1] = s.name;
+        });
+      }
+      stateDefs.push({
+        id: "snapshot_local",
+        name: "Local Snapshot",
+        type: "string",
+        role: "text",
+        write: true,
+        states: localSnapStates,
+        def: "0",
+        capabilityType: "local",
+        capabilityInstance: "snapshotLocal"
+      });
+      stateDefs.push({
+        id: "snapshot_save",
+        name: "Save Local Snapshot",
+        type: "string",
+        role: "text",
+        write: true,
+        def: "",
+        capabilityType: "local",
+        capabilityInstance: "snapshotSave"
+      });
+      stateDefs.push({
+        id: "snapshot_delete",
+        name: "Delete Local Snapshot",
+        type: "string",
+        role: "text",
+        write: true,
+        def: "",
+        capabilityType: "local",
+        capabilityInstance: "snapshotDelete"
+      });
       this.stateManager.createDeviceStates(device, stateDefs).catch((e) => {
         this.log.error(
           `createDeviceStates failed for ${device.name}: ${e instanceof Error ? e.message : String(e)}`
@@ -635,6 +693,98 @@ class GoveeAdapter extends utils.Adapter {
       return "segmentBatch";
     }
     return null;
+  }
+  /**
+   * Save current device state as a local snapshot.
+   *
+   * @param device Target device
+   * @param name Snapshot name
+   */
+  async handleSnapshotSave(device, name) {
+    if (!this.localSnapshots || !this.stateManager) {
+      return;
+    }
+    const prefix = this.stateManager.devicePrefix(device);
+    const ns = this.namespace;
+    const powerState = await this.getStateAsync(
+      `${ns}.${prefix}.control.power`
+    );
+    const brightState = await this.getStateAsync(
+      `${ns}.${prefix}.control.brightness`
+    );
+    const colorState = await this.getStateAsync(
+      `${ns}.${prefix}.control.colorRgb`
+    );
+    const ctState = await this.getStateAsync(
+      `${ns}.${prefix}.control.colorTemperature`
+    );
+    const snapshot = {
+      name,
+      power: (powerState == null ? void 0 : powerState.val) === true,
+      brightness: typeof (brightState == null ? void 0 : brightState.val) === "number" ? brightState.val : 0,
+      colorRgb: typeof (colorState == null ? void 0 : colorState.val) === "string" ? colorState.val : "#000000",
+      colorTemperature: typeof (ctState == null ? void 0 : ctState.val) === "number" ? ctState.val : 0,
+      savedAt: Date.now()
+    };
+    this.localSnapshots.saveSnapshot(device.sku, device.deviceId, snapshot);
+    this.log.info(`Local snapshot saved: "${name}" for ${device.name}`);
+    this.onDeviceListChanged(this.deviceManager.getDevices());
+  }
+  /**
+   * Restore a local snapshot by index.
+   *
+   * @param device Target device
+   * @param val Dropdown index value
+   */
+  async handleSnapshotRestore(device, val) {
+    if (!this.localSnapshots || !this.deviceManager) {
+      return;
+    }
+    const idx = parseInt(String(val), 10);
+    if (idx < 1) {
+      return;
+    }
+    const snaps = this.localSnapshots.getSnapshots(device.sku, device.deviceId);
+    const snap = snaps[idx - 1];
+    if (!snap) {
+      this.log.warn(`Local snapshot index ${idx} not found for ${device.name}`);
+      return;
+    }
+    this.log.info(`Restoring local snapshot "${snap.name}" for ${device.name}`);
+    await this.deviceManager.sendCommand(device, "power", snap.power);
+    if (snap.power) {
+      await this.deviceManager.sendCommand(
+        device,
+        "brightness",
+        snap.brightness
+      );
+      if (snap.colorTemperature > 0) {
+        await this.deviceManager.sendCommand(
+          device,
+          "colorTemperature",
+          snap.colorTemperature
+        );
+      } else {
+        await this.deviceManager.sendCommand(device, "colorRgb", snap.colorRgb);
+      }
+    }
+  }
+  /**
+   * Delete a local snapshot by name.
+   *
+   * @param device Target device
+   * @param name Snapshot name to delete
+   */
+  handleSnapshotDelete(device, name) {
+    if (!this.localSnapshots) {
+      return;
+    }
+    if (this.localSnapshots.deleteSnapshot(device.sku, device.deviceId, name)) {
+      this.log.info(`Local snapshot deleted: "${name}" for ${device.name}`);
+      this.onDeviceListChanged(this.deviceManager.getDevices());
+    } else {
+      this.log.warn(`Local snapshot "${name}" not found for ${device.name}`);
+    }
   }
 }
 if (require.main !== module) {
