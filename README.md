@@ -236,9 +236,7 @@ Segment indices start at 0. Values beyond the device's segment count are automat
 ### 0.8.2 (2026-04-08)
 - Remove build/ from git tracking, fix .gitignore, remove redundant CHANGELOG.md
 
-### 0.8.1 (2026-04-06)
-- Fix ready message showing disconnected channels as active
-- Fix network interface default selection in admin UI
+Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
 ## Support
 

@@ -1,4 +1,9 @@
 # Older Changes
+
+## 0.8.1 (2026-04-06)
+- Fix ready message showing disconnected channels as active
+- Fix network interface default selection in admin UI
+
 ## 0.8.0 (2026-04-06)
 - Network interface selection for LAN discovery (multi-NIC/VLAN support)
 
@@ -15,9 +20,11 @@
 - Cloud connection recovery detection
 - Improved error classification (OS-level error codes)
 
-Older changelog: [CHANGELOG_OLD.md](CHANGELOG_OLD.md)
+## 0.6.2 (2026-04-05)
+- Comprehensive test suite expansion (78 to 175 tests)
 
----
+## 0.6.1 (2026-04-05)
+- Fix snapshots not appearing, prepare DIY scene dropdown
 
 ## 0.6.0 (2026-04-06)
 - Batch segment control: `segments.command` state (e.g. "1-5:#ff0000:20")
@@ -47,28 +54,23 @@ Older changelog: [CHANGELOG_OLD.md](CHANGELOG_OLD.md)
 - Fix MQTT login v2, groups folder, Cloud unit normalization
 
 ## 0.2.1 (2026-04-06)
-- Fix duplicate SKU collision: LAN-only devices now use SKU with short device ID suffix for unique folder names
+- Fix duplicate SKU collision: LAN-only devices now use SKU with short device ID suffix
 - Fix deploy workflow: add build step before npm publish
 
 ## 0.2.0 (2026-04-06)
-
 - Device folders use Cloud device name (falls back to SKU without API key)
-- Control states moved to `control/` channel for cleaner structure
+- Control states moved to `control/` channel
 - Added `info.serial` state for device ID
-- Removed misleading device count from startup log
 
 ## 0.1.2 (2026-04-05)
-
 - Fix LAN discovery race condition: listen socket ready before first scan
 
 ## 0.1.1 (2026-04-05)
-
-- Fix LAN-only devices missing control states (power, brightness, color, colorTemperature)
-- Fix LAN status matching by source IP instead of broadcasting to all devices
+- Fix LAN-only devices missing control states
+- Fix LAN status matching by source IP
 - Request device status immediately after LAN discovery
 
 ## 0.1.0 (2026-04-05)
-
 - Initial release
 - LAN UDP discovery and control
 - AWS IoT MQTT real-time status and control
