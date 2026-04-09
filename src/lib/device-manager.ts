@@ -223,7 +223,11 @@ export class DeviceManager {
             }
 
             // Scene library from undocumented API (needs MQTT token)
-            if (device.sceneLibrary.length === 0 && this.mqttClient?.token) {
+            const hasToken = !!this.mqttClient?.token;
+            this.log.debug(
+              `Scene library check for ${cd.sku}: cached=${device.sceneLibrary.length}, token=${hasToken}`,
+            );
+            if (device.sceneLibrary.length === 0 && hasToken) {
               const loadLibrary = async (): Promise<void> => {
                 try {
                   const lib = await this.mqttClient!.fetchSceneLibrary(cd.sku);
