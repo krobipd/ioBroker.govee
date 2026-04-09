@@ -192,6 +192,9 @@ Segment indices start at 0. Values beyond the device's segment count are automat
 
 ## Changelog
 
+### **WORK IN PROGRESS**
+- Fix release-script blocking on manual-review plugin
+
 ### 0.8.2 (2026-04-08)
 - Remove build/ from git tracking, fix .gitignore, remove redundant CHANGELOG.md
 
