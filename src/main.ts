@@ -130,12 +130,17 @@ class GoveeAdapter extends utils.Adapter {
       }
     };
 
-    // Log startup hint — initialization may take a while with Cloud/MQTT
-    if (config.apiKey || (config.goveeEmail && config.goveePassword)) {
-      this.log.info(
-        "Starting Govee adapter — initializing channels, this may take a moment...",
-      );
+    // Log startup with configured channels
+    const startChannels: string[] = ["LAN"];
+    if (config.apiKey) {
+      startChannels.push("Cloud");
     }
+    if (config.goveeEmail && config.goveePassword) {
+      startChannels.push("MQTT");
+    }
+    this.log.info(
+      `Starting with channels: ${startChannels.join(", ")} — please wait...`,
+    );
 
     // --- LAN (always active) ---
     this.lanClient = new GoveeLanClient(this.log, this);
@@ -173,7 +178,6 @@ class GoveeAdapter extends utils.Adapter {
             ack: true,
           }).catch(() => {});
           if (connected) {
-            this.log.debug("MQTT connected — real-time status active");
             for (const dev of this.deviceManager!.getDevices()) {
               if (dev.mqttTopic) {
                 this.mqttClient!.registerDeviceTopic(
@@ -689,14 +693,6 @@ class GoveeAdapter extends utils.Adapter {
     const devices = all.filter((d) => d.sku !== "BaseGroup");
     const groups = all.filter((d) => d.sku === "BaseGroup");
 
-    const parts: string[] = [];
-    if (devices.length > 0) {
-      parts.push(`${devices.length} device${devices.length > 1 ? "s" : ""}`);
-    }
-    if (groups.length > 0) {
-      parts.push(`${groups.length} group${groups.length > 1 ? "s" : ""}`);
-    }
-
     const channels: string[] = ["LAN"];
     if (this.cloudWasConnected) {
       channels.push("Cloud");
@@ -705,10 +701,50 @@ class GoveeAdapter extends utils.Adapter {
       channels.push("MQTT");
     }
 
-    const deviceInfo = parts.length > 0 ? parts.join(", ") : "no devices found";
+    if (devices.length === 0 && groups.length === 0) {
+      this.log.info(
+        `Govee adapter ready — no devices found (channels: ${channels.join("+")})`,
+      );
+      return;
+    }
+
+    // Summary line
+    const parts: string[] = [];
+    if (devices.length > 0) {
+      parts.push(`${devices.length} device${devices.length > 1 ? "s" : ""}`);
+    }
+    if (groups.length > 0) {
+      parts.push(`${groups.length} group${groups.length > 1 ? "s" : ""}`);
+    }
     this.log.info(
-      `Govee adapter ready (${deviceInfo}, channels: ${channels.join("+")})`,
+      `Govee adapter ready — ${parts.join(", ")} (channels: ${channels.join("+")})`,
     );
+
+    // Per-device detail lines
+    for (const dev of devices) {
+      const chParts: string[] = [];
+      if (dev.lanIp) {
+        chParts.push(`LAN ${dev.lanIp}`);
+      }
+      if (dev.channels.mqtt) {
+        chParts.push("MQTT");
+      }
+      if (dev.channels.cloud) {
+        chParts.push("Cloud");
+      }
+      const sceneParts: string[] = [];
+      if (dev.scenes.length > 0) {
+        sceneParts.push(`${dev.scenes.length} scenes`);
+      }
+      if (dev.diyScenes.length > 0) {
+        sceneParts.push(`${dev.diyScenes.length} DIY`);
+      }
+      const sceneInfo =
+        sceneParts.length > 0 ? `, ${sceneParts.join(", ")}` : "";
+      this.log.info(
+        `  ${dev.name} (${dev.sku}) — ${chParts.join(", ")}${sceneInfo}`,
+      );
+    }
   }
 
   /**

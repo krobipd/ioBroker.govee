@@ -316,8 +316,6 @@ export class GoveeLanClient {
       (err) => {
         if (err) {
           this.log.debug(`LAN scan send error: ${err.message}`);
-        } else {
-          this.log.debug("LAN scan sent");
         }
       },
     );

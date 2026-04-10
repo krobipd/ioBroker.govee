@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "0.9.3",
+    "version": "0.9.4",
     "news": {
+      "0.9.4": {
+        "en": "Improve startup and ready logging with channel summary and per-device details\nRemove excessive debug noise (default checks, scan messages)\nPromote MQTT first-connect to info level",
+        "de": "Startup- und Ready-Logging verbessert mit Kanal-Übersicht und Gerätedetails\nÜbermäßiges Debug-Logging entfernt (Default-Checks, Scan-Meldungen)\nMQTT-Erstverbindung auf Info-Level hochgestuft",
+        "ru": "Улучшено логирование запуска с обзором каналов и деталями устройств\nУдалены избыточные debug-сообщения\nПервое подключение MQTT на уровне info",
+        "pt": "Melhorado logging de inicialização com resumo de canais e detalhes por dispositivo\nRemovido ruído excessivo de debug\nPrimeira conexão MQTT promovida para nível info",
+        "nl": "Startup- en ready-logging verbeterd met kanaaloverzicht en apparaatdetails\nOvermatige debug-meldingen verwijderd\nMQTT eerste verbinding naar info-niveau",
+        "fr": "Amélioration du logging de démarrage avec résumé des canaux et détails par appareil\nSuppression du bruit de debug excessif\nPremière connexion MQTT au niveau info",
+        "it": "Migliorato logging di avvio con riepilogo canali e dettagli per dispositivo\nRimosso rumore debug eccessivo\nPrima connessione MQTT promossa a livello info",
+        "es": "Mejorado logging de inicio con resumen de canales y detalles por dispositivo\nEliminado ruido excesivo de debug\nPrimera conexión MQTT promovida a nivel info",
+        "pl": "Poprawiono logowanie startu z podsumowaniem kanałów i szczegółami urządzeń\nUsunięto nadmierny szum debug\nPierwsze połączenie MQTT na poziomie info",
+        "uk": "Покращено логування запуску з оглядом каналів та деталями пристроїв\nВидалено надмірний debug-шум\nПерше підключення MQTT на рівні info",
+        "zh-cn": "改进启动和就绪日志，包含通道摘要和设备详情\n移除过多的调试噪音\nMQTT首次连接提升至info级别"
+      },
       "0.9.3": {
         "en": "Add SKU cache: zero Cloud calls after first start\nAdd local snapshots: save/restore device state via LAN without Cloud\nAdd device quirks system and authenticated endpoints for music/DIY libraries\nRemove periodic Cloud polling, add scene speed infrastructure\nExtend test coverage to 254 tests",
         "de": "SKU-Cache: keine Cloud-Aufrufe nach dem ersten Start\nLokale Snapshots: Gerätezustand per LAN speichern/wiederherstellen ohne Cloud\nDevice-Quirks-System und authentifizierte Endpoints für Music-/DIY-Libraries\nPeriodisches Cloud-Polling entfernt, Scene-Speed-Infrastruktur vorbereitet\nTestabdeckung auf 254 Tests erweitert",

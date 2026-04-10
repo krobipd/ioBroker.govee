@@ -206,6 +206,11 @@ Segment indices start at 0. Values beyond the device's segment count are automat
 ---
 
 ## Changelog
+### 0.9.4 (2026-04-11)
+- Improve startup and ready logging: clear channel summary, per-device details with LAN IPs and scene counts
+- Remove excessive debug noise: default value checks, periodic LAN scan messages
+- Promote MQTT first-connect to info level for better visibility
+
 ### 0.9.3 (2026-04-09)
 - Add local snapshots: save/restore device state via LAN without Cloud
 - Add device quirks system: correct wrong API data for specific SKUs

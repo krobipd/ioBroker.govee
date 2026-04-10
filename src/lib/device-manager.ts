@@ -430,9 +430,7 @@ export class DeviceManager {
         channels: { lan: true, mqtt: false, cloud: false },
       };
       this.devices.set(this.deviceKey(lanDevice.sku, lanDevice.device), device);
-      this.log.debug(
-        `LAN: New device ${lanDevice.sku} at ${lanDevice.ip} (no Cloud data)`,
-      );
+      this.log.debug(`LAN: New device ${lanDevice.sku} at ${lanDevice.ip}`);
       this.onDeviceListChanged?.(this.getDevices());
     }
   }

@@ -151,8 +151,9 @@ class GoveeMqttClient {
         if (this.lastErrorCategory) {
           this.log.info("MQTT connection restored");
           this.lastErrorCategory = null;
+        } else {
+          this.log.info("MQTT connected to AWS IoT");
         }
-        this.log.debug("MQTT connected to AWS IoT");
         (_a2 = this.client) == null ? void 0 : _a2.subscribe(this.accountTopic, { qos: 0 }, (err) => {
           var _a3;
           if (err) {

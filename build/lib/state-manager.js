@@ -170,9 +170,6 @@ class StateManager {
           const current = await this.adapter.getStateAsync(
             `${prefix}.control.${def.id}`
           );
-          this.adapter.log.debug(
-            `Default ${def.id}: current=${current ? JSON.stringify(current.val) : "null"}, def=${JSON.stringify(def.def)}`
-          );
           if (!current || current.val === null || current.val === void 0) {
             await this.adapter.setStateAsync(`${prefix}.control.${def.id}`, {
               val: def.def,
