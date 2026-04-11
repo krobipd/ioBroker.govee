@@ -78,7 +78,6 @@ The adapter works with different levels of configuration. Each level unlocks add
 | **API Key** | Govee Cloud API key (optional) | — |
 | **Email** | Govee account email (optional) | — |
 | **Password** | Govee account password (optional) | — |
-| **Poll Interval** | Cloud device list refresh interval | 60s |
 
 ---
 
@@ -105,17 +104,20 @@ govee-smart.0.
 │       │   ├── brightness      — Brightness 0-100% (number, writable)
 │       │   ├── colorRgb        — Color as "#RRGGBB" (string, writable)
 │       │   ├── colorTemperature — Color temperature in Kelvin (number, writable)
+│       │   └── gradient_toggle — Gradient on/off (boolean, writable)
+│       ├── scenes/
 │       │   ├── light_scene     — Light scene (string, dropdown, writable)
 │       │   ├── diy_scene       — DIY scene (string, dropdown, writable)
-│       │   ├── snapshot        — Cloud snapshot (string, dropdown, writable)
-│       │   ├── snapshot_local  — Local snapshot (string, dropdown, writable)
-│       │   ├── snapshot_save   — Save current state as local snapshot (string, writable)
-│       │   ├── snapshot_delete — Delete a local snapshot (string, writable)
-│       │   ├── scene_speed     — Scene speed level (number, slider, writable)
-│       │   ├── gradient_toggle — Gradient on/off (boolean, writable)
+│       │   └── scene_speed     — Scene speed level (number, slider, writable)
+│       ├── music/
 │       │   ├── music_mode      — Music mode effect (string, dropdown, writable)
 │       │   ├── music_sensitivity — Music sensitivity 0-100 (number, writable)
 │       │   └── music_auto_color — Music auto color (boolean, writable)
+│       ├── snapshots/
+│       │   ├── snapshot        — Cloud snapshot (string, dropdown, writable)
+│       │   ├── snapshot_local  — Local snapshot (string, dropdown, writable)
+│       │   ├── snapshot_save   — Save current state as local snapshot (string, writable)
+│       │   └── snapshot_delete — Delete a local snapshot (string, writable)
 │       └── segments/
 │           ├── count           — Number of segments (number)
 │           ├── command         — Batch control "1-5:#ff0000:20" (string, writable)
@@ -124,8 +126,9 @@ govee-smart.0.
 │               └── brightness  — Segment brightness 0-100% (number, writable)
 └── groups/
     └── basegroup_1280/         — Govee device groups
-        ├── info/ ...
-        └── control/ ...
+        └── info/
+            ├── name            — Group name (string)
+            └── online          — Group reachable (boolean)
 ```
 
 ---
@@ -194,7 +197,7 @@ Segment indices start at 0. Values beyond the device's segment count are automat
 
 ### Status updates are delayed
 
-- Without MQTT credentials, status is only updated via LAN responses and cloud polling
+- Without MQTT credentials, status is only updated via LAN responses
 - Add your **Govee email and password** for real-time MQTT status push
 
 ### MQTT connection fails
