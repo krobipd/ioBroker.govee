@@ -1,5 +1,16 @@
 # Older Changes
 
+## 0.9.4 (2026-04-11)
+- Improve startup and ready logging: clear channel summary, per-device details with LAN IPs and scene counts
+- Remove excessive debug noise: default value checks, periodic LAN scan messages
+- Promote MQTT first-connect to info level for better visibility
+
+## 0.9.3 (2026-04-09)
+- Add local snapshots: save/restore device state via LAN without Cloud
+- Add device quirks system: correct wrong API data for specific SKUs
+- Add scene speed control infrastructure (speed adjustment pending live testing)
+- Extend test coverage to 254 tests
+
 ## 0.9.2 (2026-04-09)
 - Add SKU cache: device data persisted locally, zero Cloud calls after first start
 - Remove periodic Cloud polling (was every 60s)
