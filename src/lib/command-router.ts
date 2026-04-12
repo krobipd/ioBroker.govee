@@ -97,21 +97,8 @@ export class CommandRouter {
         this.onSegmentBatchUpdate?.(device, parsed);
       }
       if (device.channels.cloud && this.cloudClient) {
-        await this.sendSegmentBatch(device, value as string);
+        await this.sendSegmentBatchParsed(device, value as string, parsed);
         return;
-      }
-      return;
-    }
-
-    // Scene speed: re-send active scene with modified speed level (LAN ptReal only)
-    if (command === "sceneSpeed") {
-      if (device.lanIp && this.lanClient) {
-        // TODO: Implement speed byte manipulation in scenceParam once byte layout is verified.
-        // For now, store the speed level for next scene activation.
-        device.state.sceneSpeed = parseInt(String(value), 10) || 0;
-        this.log.debug(
-          `Scene speed set to ${device.state.sceneSpeed} for ${device.name} (applied on next scene activation)`,
-        );
       }
       return;
     }
@@ -183,21 +170,21 @@ export class CommandRouter {
   }
 
   /**
-   * Send a batch segment command.
-   * Format: "segments:color:brightness" — e.g. "1-5:#ff0000:20", "all:#00ff00", "0,3,7::50"
+   * Send a batch segment command with pre-parsed data.
    *
    * @param device Target device
-   * @param commandStr Batch command string
+   * @param commandStr Original command string (for error messages)
+   * @param parsed Pre-parsed batch data (null = invalid command)
    */
-  async sendSegmentBatch(
+  private async sendSegmentBatchParsed(
     device: GoveeDevice,
     commandStr: string,
+    parsed: { segments: number[]; color?: number; brightness?: number } | null,
   ): Promise<void> {
     if (!this.cloudClient) {
       return;
     }
 
-    const parsed = this.parseSegmentBatch(device, commandStr);
     if (!parsed) {
       this.log.warn(
         `Invalid segment command "${commandStr}" for ${device.name}`,

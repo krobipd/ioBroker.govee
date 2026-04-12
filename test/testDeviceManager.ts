@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { DeviceManager } from "../src/lib/device-manager";
+import { DeviceManager, parseMqttSegmentData } from "../src/lib/device-manager";
 import type { CloudCapability, GoveeDevice, LanDevice, MqttStatusUpdate } from "../src/lib/types";
 
 /** Minimal mock logger */
@@ -416,7 +416,6 @@ describe("DeviceManager", () => {
             const lanTracker = createCallTracker();
             const mockLan = {
                 setPower: lanTracker.track("setPower"),
-                setSegmentColor: lanTracker.track("setSegmentColor"),
             };
             dm.setLanClient(mockLan as any);
 
@@ -1016,6 +1015,206 @@ describe("DeviceManager", () => {
         it("should return raw value for NaN segment brightness index", () => {
             const result = (dm as any).commandRouter.toCloudValue(device, "segmentBrightness:abc", 50);
             expect(result).to.equal(50);
+        });
+    });
+
+    describe("parseMqttSegmentData", () => {
+        /** Build a 20-byte AA A5 packet with 4 segment slots */
+        function buildAaA5Packet(packetNum: number, slots: Array<[number, number, number, number]>): string {
+            const bytes = new Uint8Array(20);
+            bytes[0] = 0xAA;
+            bytes[1] = 0xA5;
+            bytes[2] = packetNum;
+            for (let i = 0; i < slots.length && i < 4; i++) {
+                bytes[3 + i * 4] = slots[i][0]; // brightness
+                bytes[4 + i * 4] = slots[i][1]; // r
+                bytes[5 + i * 4] = slots[i][2]; // g
+                bytes[6 + i * 4] = slots[i][3]; // b
+            }
+            // XOR checksum
+            let xor = 0;
+            for (let i = 0; i < 19; i++) xor ^= bytes[i];
+            bytes[19] = xor;
+            return Buffer.from(bytes).toString("base64");
+        }
+
+        it("should parse single AA A5 packet with 4 segments", () => {
+            const pkt = buildAaA5Packet(1, [
+                [100, 255, 0, 0],   // seg 0: brightness 100, red
+                [50, 0, 255, 0],    // seg 1: brightness 50, green
+                [75, 0, 0, 255],    // seg 2: brightness 75, blue
+                [0, 128, 128, 128], // seg 3: brightness 0, grey
+            ]);
+            const result = parseMqttSegmentData([pkt], 15);
+            expect(result).to.have.lengthOf(4);
+            expect(result[0]).to.deep.equal({ index: 0, brightness: 100, r: 255, g: 0, b: 0 });
+            expect(result[1]).to.deep.equal({ index: 1, brightness: 50, r: 0, g: 255, b: 0 });
+            expect(result[2]).to.deep.equal({ index: 2, brightness: 75, r: 0, g: 0, b: 255 });
+            expect(result[3]).to.deep.equal({ index: 3, brightness: 0, r: 128, g: 128, b: 128 });
+        });
+
+        it("should parse multiple packets and compute correct segment indices", () => {
+            const pkt1 = buildAaA5Packet(1, [[100, 255, 0, 0], [100, 0, 255, 0], [100, 0, 0, 255], [100, 255, 255, 0]]);
+            const pkt2 = buildAaA5Packet(2, [[80, 10, 20, 30], [60, 40, 50, 60], [40, 70, 80, 90], [20, 100, 110, 120]]);
+            const result = parseMqttSegmentData([pkt1, pkt2], 15);
+            expect(result).to.have.lengthOf(8);
+            // Packet 2 starts at segment index 4
+            expect(result[4]).to.deep.equal({ index: 4, brightness: 80, r: 10, g: 20, b: 30 });
+            expect(result[7]).to.deep.equal({ index: 7, brightness: 20, r: 100, g: 110, b: 120 });
+        });
+
+        it("should limit segments to segmentCount", () => {
+            const pkt = buildAaA5Packet(1, [[100, 255, 0, 0], [50, 0, 255, 0], [75, 0, 0, 255], [25, 1, 2, 3]]);
+            const result = parseMqttSegmentData([pkt], 2);
+            expect(result).to.have.lengthOf(2);
+            expect(result[0].index).to.equal(0);
+            expect(result[1].index).to.equal(1);
+        });
+
+        it("should ignore non-AA-A5 packets", () => {
+            // AA 05 mode packet (not segment data)
+            const modeBytes = new Uint8Array(20);
+            modeBytes[0] = 0xAA;
+            modeBytes[1] = 0x05;
+            modeBytes[2] = 0x15;
+            const modePkt = Buffer.from(modeBytes).toString("base64");
+
+            const segPkt = buildAaA5Packet(1, [[100, 255, 0, 0], [50, 0, 255, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
+            const result = parseMqttSegmentData([modePkt, segPkt], 15);
+            expect(result).to.have.lengthOf(4);
+            expect(result[0].index).to.equal(0);
+        });
+
+        it("should return empty array for zero segmentCount", () => {
+            const pkt = buildAaA5Packet(1, [[100, 255, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
+            const result = parseMqttSegmentData([pkt], 0);
+            expect(result).to.have.lengthOf(0);
+        });
+
+        it("should return empty array for empty commands", () => {
+            const result = parseMqttSegmentData([], 15);
+            expect(result).to.have.lengthOf(0);
+        });
+
+        it("should skip packets with invalid packet number", () => {
+            const bytes = new Uint8Array(20);
+            bytes[0] = 0xAA;
+            bytes[1] = 0xA5;
+            bytes[2] = 6; // invalid: must be 1-5
+            const pkt = Buffer.from(bytes).toString("base64");
+            const result = parseMqttSegmentData([pkt], 15);
+            expect(result).to.have.lengthOf(0);
+        });
+
+        it("should skip packets shorter than 20 bytes", () => {
+            const shortBytes = new Uint8Array(10);
+            shortBytes[0] = 0xAA;
+            shortBytes[1] = 0xA5;
+            shortBytes[2] = 1;
+            const pkt = Buffer.from(shortBytes).toString("base64");
+            const result = parseMqttSegmentData([pkt], 15);
+            expect(result).to.have.lengthOf(0);
+        });
+
+        it("should handle all 5 packets for 20 segments", () => {
+            // 0x64 = 100 decimal brightness, warm white: FF CA 91
+            const pkts = [];
+            for (let p = 1; p <= 5; p++) {
+                pkts.push(buildAaA5Packet(p, [[0x64, 0xFF, 0xCA, 0x91], [0x64, 0xFF, 0xCA, 0x91], [0x64, 0xFF, 0xCA, 0x91], [0x64, 0xFF, 0xCA, 0x91]]));
+            }
+            const result = parseMqttSegmentData(pkts, 20);
+            expect(result).to.have.lengthOf(20);
+            expect(result[0].index).to.equal(0);
+            expect(result[19].index).to.equal(19);
+            for (const seg of result) {
+                expect(seg.brightness).to.equal(100);
+                expect(seg.r).to.equal(255);
+                expect(seg.g).to.equal(202);
+                expect(seg.b).to.equal(145);
+            }
+        });
+    });
+
+    describe("handleMqttStatus — segment state sync", () => {
+        it("should call onMqttSegmentUpdate when op.command contains AA A5 packets", () => {
+            const lanDevice: LanDevice = { ip: "192.168.1.100", device: "AABBCCDDEEFF0011", sku: "H6160" };
+            dm.handleLanDiscovery(lanDevice);
+
+            // Set segmentCount on the device
+            const device = dm.getDevices()[0];
+            device.segmentCount = 15;
+
+            let segmentUpdates: import("../src/lib/device-manager").MqttSegmentData[] | null = null;
+            dm.setCallbacks(() => {}, () => {});
+            dm.onMqttSegmentUpdate = (_dev, segs) => { segmentUpdates = segs; };
+
+            // Build an AA A5 packet
+            const bytes = new Uint8Array(20);
+            bytes[0] = 0xAA; bytes[1] = 0xA5; bytes[2] = 1;
+            bytes[3] = 100; bytes[4] = 255; bytes[5] = 0; bytes[6] = 0; // seg 0
+            bytes[7] = 50; bytes[8] = 0; bytes[9] = 255; bytes[10] = 0; // seg 1
+            let xor = 0;
+            for (let i = 0; i < 19; i++) xor ^= bytes[i];
+            bytes[19] = xor;
+            const pkt = Buffer.from(bytes).toString("base64");
+
+            dm.handleMqttStatus({
+                sku: "H6160",
+                device: "AABBCCDDEEFF0011",
+                state: { onOff: 1 },
+                op: { command: [pkt] },
+            });
+
+            expect(segmentUpdates).to.not.be.null;
+            expect(segmentUpdates).to.have.lengthOf(4);
+            expect(segmentUpdates![0]).to.deep.equal({ index: 0, brightness: 100, r: 255, g: 0, b: 0 });
+            expect(segmentUpdates![1]).to.deep.equal({ index: 1, brightness: 50, r: 0, g: 255, b: 0 });
+        });
+
+        it("should not call onMqttSegmentUpdate when no segmentCount", () => {
+            const lanDevice: LanDevice = { ip: "192.168.1.100", device: "AABBCCDDEEFF0011", sku: "H6160" };
+            dm.handleLanDiscovery(lanDevice);
+            // segmentCount is undefined by default for LAN-only devices
+
+            let called = false;
+            dm.setCallbacks(() => {}, () => {});
+            dm.onMqttSegmentUpdate = () => { called = true; };
+
+            const bytes = new Uint8Array(20);
+            bytes[0] = 0xAA; bytes[1] = 0xA5; bytes[2] = 1;
+            const pkt = Buffer.from(bytes).toString("base64");
+
+            dm.handleMqttStatus({
+                sku: "H6160",
+                device: "AABBCCDDEEFF0011",
+                op: { command: [pkt] },
+            });
+
+            expect(called).to.be.false;
+        });
+
+        it("should not call onMqttSegmentUpdate when no AA A5 packets in command", () => {
+            const lanDevice: LanDevice = { ip: "192.168.1.100", device: "AABBCCDDEEFF0011", sku: "H6160" };
+            dm.handleLanDiscovery(lanDevice);
+            const device = dm.getDevices()[0];
+            device.segmentCount = 15;
+
+            let called = false;
+            dm.setCallbacks(() => {}, () => {});
+            dm.onMqttSegmentUpdate = () => { called = true; };
+
+            // AA 05 mode packet (not AA A5)
+            const bytes = new Uint8Array(20);
+            bytes[0] = 0xAA; bytes[1] = 0x05; bytes[2] = 0x15;
+            const pkt = Buffer.from(bytes).toString("base64");
+
+            dm.handleMqttStatus({
+                sku: "H6160",
+                device: "AABBCCDDEEFF0011",
+                op: { command: [pkt] },
+            });
+
+            expect(called).to.be.false;
         });
     });
 });

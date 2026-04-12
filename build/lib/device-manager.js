@@ -18,12 +18,45 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var device_manager_exports = {};
 __export(device_manager_exports, {
-  DeviceManager: () => DeviceManager
+  DeviceManager: () => DeviceManager,
+  parseMqttSegmentData: () => parseMqttSegmentData
 });
 module.exports = __toCommonJS(device_manager_exports);
 var import_command_router = require("./command-router.js");
 var import_device_quirks = require("./device-quirks.js");
 var import_types = require("./types.js");
+function parseMqttSegmentData(commands, segmentCount) {
+  if (segmentCount <= 0) {
+    return [];
+  }
+  const segments = [];
+  for (const cmd of commands) {
+    const bytes = Buffer.from(cmd, "base64");
+    if (bytes.length < 20 || bytes[0] !== 170 || bytes[1] !== 165) {
+      continue;
+    }
+    const packetNum = bytes[2];
+    if (packetNum < 1 || packetNum > 5) {
+      continue;
+    }
+    const baseIndex = (packetNum - 1) * 4;
+    for (let slot = 0; slot < 4; slot++) {
+      const segIdx = baseIndex + slot;
+      if (segIdx >= segmentCount) {
+        break;
+      }
+      const offset = 3 + slot * 4;
+      segments.push({
+        index: segIdx,
+        brightness: bytes[offset],
+        r: bytes[offset + 1],
+        g: bytes[offset + 2],
+        b: bytes[offset + 3]
+      });
+    }
+  }
+  return segments;
+}
 class DeviceManager {
   log;
   devices = /* @__PURE__ */ new Map();
@@ -438,7 +471,7 @@ class DeviceManager {
    * @param update MQTT status message
    */
   handleMqttStatus(update) {
-    var _a;
+    var _a, _b, _c;
     const device = this.findDeviceBySkuAndId(update.sku, update.device);
     if (!device) {
       this.log.debug(`MQTT: Unknown device ${update.sku} ${update.device}`);
@@ -463,6 +496,15 @@ class DeviceManager {
     }
     Object.assign(device.state, state);
     (_a = this.onDeviceUpdate) == null ? void 0 : _a.call(this, device, state);
+    if (((_b = update.op) == null ? void 0 : _b.command) && device.segmentCount) {
+      const segData = parseMqttSegmentData(
+        update.op.command,
+        device.segmentCount
+      );
+      if (segData.length > 0) {
+        (_c = this.onMqttSegmentUpdate) == null ? void 0 : _c.call(this, device, segData);
+      }
+    }
   }
   /**
    * Handle LAN status response.
@@ -538,6 +580,8 @@ class DeviceManager {
   }
   /** Callback when device LAN IP changes */
   onLanIpChanged;
+  /** Callback when MQTT delivers per-segment state data (AA A5 BLE packets) */
+  onMqttSegmentUpdate;
   /**
    * Convert Cloud device to internal device model
    *
@@ -741,6 +785,7 @@ class DeviceManager {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  DeviceManager
+  DeviceManager,
+  parseMqttSegmentData
 });
 //# sourceMappingURL=device-manager.js.map

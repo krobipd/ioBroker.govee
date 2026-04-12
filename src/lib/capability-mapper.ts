@@ -649,34 +649,6 @@ export function buildDeviceStateDefs(
     });
   }
 
-  // Scene speed slider
-  const maxSpeedLevels = device.sceneLibrary.reduce((max, s) => {
-    if (!s.speedInfo?.supSpeed || !s.speedInfo.config) {
-      return max;
-    }
-    try {
-      const levels = JSON.parse(s.speedInfo.config) as unknown[];
-      return Math.max(max, levels.length);
-    } catch {
-      return max;
-    }
-  }, 0);
-  if (maxSpeedLevels > 1) {
-    stateDefs.push({
-      id: "scene_speed",
-      name: "Scene Speed",
-      type: "number",
-      role: "level",
-      write: true,
-      min: 0,
-      max: maxSpeedLevels - 1,
-      def: 0,
-      capabilityType: "local",
-      capabilityInstance: "sceneSpeed",
-      channel: "scenes",
-    });
-  }
-
   if (device.diyScenes.length > 0) {
     const states: Record<string, string> = { 0: "---" };
     device.diyScenes.forEach((s, i) => {

@@ -21,6 +21,7 @@ import { StateManager } from "./lib/state-manager.js";
 import {
   hexToRgb,
   rgbIntToHex,
+  rgbToHex,
   type AdapterConfig,
   type DeviceState,
   type GoveeDevice,
@@ -150,6 +151,21 @@ class GoveeAdapter extends utils.Adapter {
             ack: true,
           }).catch(() => {});
         }
+      }
+    };
+
+    // Sync per-segment states from MQTT BLE status push (AA A5 packets)
+    this.deviceManager.onMqttSegmentUpdate = (device, segments) => {
+      const prefix = this.stateManager!.devicePrefix(device);
+      for (const seg of segments) {
+        this.setStateAsync(`${prefix}.segments.${seg.index}.color`, {
+          val: rgbToHex(seg.r, seg.g, seg.b),
+          ack: true,
+        }).catch(() => {});
+        this.setStateAsync(`${prefix}.segments.${seg.index}.brightness`, {
+          val: seg.brightness,
+          ack: true,
+        }).catch(() => {});
       }
     };
 
@@ -579,9 +595,9 @@ class GoveeAdapter extends utils.Adapter {
 
   /** Update global info.connection */
   private updateConnectionState(): void {
-    const hasDevices = (this.deviceManager?.getDevices().length ?? 0) > 0;
-    const anyOnline =
-      this.deviceManager?.getDevices().some((d) => d.state.online) ?? false;
+    const devices = this.deviceManager?.getDevices() ?? [];
+    const hasDevices = devices.length > 0;
+    const anyOnline = devices.some((d) => d.state.online);
     const lanRunning = this.lanClient !== null;
     const connected = hasDevices ? anyOnline : lanRunning;
     this.setStateAsync("info.connection", { val: connected, ack: true }).catch(
@@ -766,9 +782,6 @@ class GoveeAdapter extends utils.Adapter {
     }
     if (suffix === "scenes.diy_scene") {
       return "diyScene";
-    }
-    if (suffix === "scenes.scene_speed") {
-      return "sceneSpeed";
     }
     // Music channel
     if (

@@ -188,23 +188,6 @@ export interface MqttStatusUpdate {
   };
 }
 
-/** MQTT command message */
-export interface MqttCommand {
-  /** Message payload */
-  msg: {
-    /** Command name */
-    cmd: string;
-    /** Command data */
-    data: Record<string, unknown>;
-    /** Command version */
-    cmdVersion: number;
-    /** Transaction ID */
-    transaction: string;
-    /** Message type */
-    type: number;
-  };
-}
-
 // --- LAN API Types ---
 
 /** LAN discovery response */
@@ -329,8 +312,6 @@ export interface DeviceState {
   colorTemperature?: number;
   /** Active scene name */
   scene?: string;
-  /** Current scene speed level index */
-  sceneSpeed?: number;
   /** Additional dynamic state values */
   [key: string]: unknown;
 }

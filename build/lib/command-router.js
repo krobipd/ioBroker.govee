@@ -92,17 +92,8 @@ class CommandRouter {
         (_a = this.onSegmentBatchUpdate) == null ? void 0 : _a.call(this, device, parsed);
       }
       if (device.channels.cloud && this.cloudClient) {
-        await this.sendSegmentBatch(device, value);
+        await this.sendSegmentBatchParsed(device, value, parsed);
         return;
-      }
-      return;
-    }
-    if (command === "sceneSpeed") {
-      if (device.lanIp && this.lanClient) {
-        device.state.sceneSpeed = parseInt(String(value), 10) || 0;
-        this.log.debug(
-          `Scene speed set to ${device.state.sceneSpeed} for ${device.name} (applied on next scene activation)`
-        );
       }
       return;
     }
@@ -156,18 +147,17 @@ class CommandRouter {
     await this.executeRateLimited(execute);
   }
   /**
-   * Send a batch segment command.
-   * Format: "segments:color:brightness" — e.g. "1-5:#ff0000:20", "all:#00ff00", "0,3,7::50"
+   * Send a batch segment command with pre-parsed data.
    *
    * @param device Target device
-   * @param commandStr Batch command string
+   * @param commandStr Original command string (for error messages)
+   * @param parsed Pre-parsed batch data (null = invalid command)
    */
-  async sendSegmentBatch(device, commandStr) {
+  async sendSegmentBatchParsed(device, commandStr, parsed) {
     var _a;
     if (!this.cloudClient) {
       return;
     }
-    const parsed = this.parseSegmentBatch(device, commandStr);
     if (!parsed) {
       this.log.warn(
         `Invalid segment command "${commandStr}" for ${device.name}`

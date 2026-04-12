@@ -29,7 +29,7 @@ export class GoveeLanClient {
   private readonly log: ioBroker.Logger;
   private onDiscovery: LanDiscoveryCallback | null = null;
   private onStatus: LanStatusCallback | null = null;
-  private readonly knownDevices = new Map<string, LanDevice>();
+  private readonly seenDeviceIps = new Set<string>();
 
   /**
    * @param log ioBroker logger
@@ -131,7 +131,11 @@ export class GoveeLanClient {
    * @param cmd Command name (turn, brightness, colorwc, devStatus)
    * @param data Command data
    */
-  sendCommand(ip: string, cmd: string, data: Record<string, unknown>): void {
+  private sendCommand(
+    ip: string,
+    cmd: string,
+    data: Record<string, unknown>,
+  ): void {
     const message: LanMessage = {
       msg: { cmd, data },
     };
@@ -242,26 +246,6 @@ export class GoveeLanClient {
   }
 
   /**
-   * Set segment color via ptReal BLE-passthrough.
-   * Encodes segments as two bitmask bytes (segments 0-7 → left, 8-15 → right).
-   *
-   * @param ip Device IP address
-   * @param segments Array of segment indices to color
-   * @param r Red channel 0-255
-   * @param g Green channel 0-255
-   * @param b Blue channel 0-255
-   */
-  setSegmentColor(
-    ip: string,
-    segments: number[],
-    r: number,
-    g: number,
-    b: number,
-  ): void {
-    this.sendPtReal(ip, [buildSegmentColorPacket(segments, r, g, b)]);
-  }
-
-  /**
    * Activate a DIY scene via ptReal BLE-passthrough.
    * Sends A1 multi-packet data (if provided) + activation command.
    *
@@ -366,13 +350,12 @@ export class GoveeLanClient {
       sku,
     };
 
-    const existing = this.knownDevices.get(device);
-    this.knownDevices.set(device, lanDevice);
-
-    if (!existing || existing.ip !== ip) {
+    const key = `${device}:${ip}`;
+    if (!this.seenDeviceIps.has(key)) {
+      this.seenDeviceIps.add(key);
       this.log.debug(`LAN: Found ${sku} (${device}) at ${ip}`);
-      this.onDiscovery?.(lanDevice);
     }
+    this.onDiscovery?.(lanDevice);
   }
 
   /**
@@ -549,33 +532,4 @@ export function buildMusicModePacket(
     data.push(r & 0xff, g & 0xff, b & 0xff);
   }
   return Buffer.from(finishPacket(data)).toString("base64");
-}
-
-/**
- * Build a Base64-encoded BLE packet for segment color via ptReal.
- * Segments 0-7 → left bitmask, segments 8-15 → right bitmask.
- *
- * @param segments Array of segment indices
- * @param r Red channel 0-255
- * @param g Green channel 0-255
- * @param b Blue channel 0-255
- */
-export function buildSegmentColorPacket(
-  segments: number[],
-  r: number,
-  g: number,
-  b: number,
-): string {
-  let leftMask = 0;
-  let rightMask = 0;
-  for (const seg of segments) {
-    if (seg < 8) {
-      leftMask |= 1 << seg;
-    } else if (seg < 16) {
-      rightMask |= 1 << (seg - 8);
-    }
-  }
-  return Buffer.from(
-    finishPacket([0x33, 0x05, 0x0b, r, g, b, leftMask, rightMask]),
-  ).toString("base64");
 }

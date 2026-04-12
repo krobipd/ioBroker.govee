@@ -32,8 +32,7 @@ __export(govee_lan_client_exports, {
   buildDiyPackets: () => buildDiyPackets,
   buildGradientPacket: () => buildGradientPacket,
   buildMusicModePacket: () => buildMusicModePacket,
-  buildScenePackets: () => buildScenePackets,
-  buildSegmentColorPacket: () => buildSegmentColorPacket
+  buildScenePackets: () => buildScenePackets
 });
 module.exports = __toCommonJS(govee_lan_client_exports);
 var dgram = __toESM(require("node:dgram"));
@@ -49,7 +48,7 @@ class GoveeLanClient {
   log;
   onDiscovery = null;
   onStatus = null;
-  knownDevices = /* @__PURE__ */ new Map();
+  seenDeviceIps = /* @__PURE__ */ new Set();
   /**
    * @param log ioBroker logger
    * @param timers Timer adapter for setInterval/setTimeout
@@ -234,19 +233,6 @@ class GoveeLanClient {
     this.sendPtReal(ip, [buildGradientPacket(on)]);
   }
   /**
-   * Set segment color via ptReal BLE-passthrough.
-   * Encodes segments as two bitmask bytes (segments 0-7 → left, 8-15 → right).
-   *
-   * @param ip Device IP address
-   * @param segments Array of segment indices to color
-   * @param r Red channel 0-255
-   * @param g Green channel 0-255
-   * @param b Blue channel 0-255
-   */
-  setSegmentColor(ip, segments, r, g, b) {
-    this.sendPtReal(ip, [buildSegmentColorPacket(segments, r, g, b)]);
-  }
-  /**
    * Activate a DIY scene via ptReal BLE-passthrough.
    * Sends A1 multi-packet data (if provided) + activation command.
    *
@@ -342,12 +328,12 @@ class GoveeLanClient {
       device,
       sku
     };
-    const existing = this.knownDevices.get(device);
-    this.knownDevices.set(device, lanDevice);
-    if (!existing || existing.ip !== ip) {
+    const key = `${device}:${ip}`;
+    if (!this.seenDeviceIps.has(key)) {
+      this.seenDeviceIps.add(key);
       this.log.debug(`LAN: Found ${sku} (${device}) at ${ip}`);
-      (_a = this.onDiscovery) == null ? void 0 : _a.call(this, lanDevice);
     }
+    (_a = this.onDiscovery) == null ? void 0 : _a.call(this, lanDevice);
   }
   /**
    * Handle status response — matched to device by source IP
@@ -454,27 +440,12 @@ function buildMusicModePacket(subMode, r = 0, g = 0, b = 0) {
   }
   return Buffer.from(finishPacket(data)).toString("base64");
 }
-function buildSegmentColorPacket(segments, r, g, b) {
-  let leftMask = 0;
-  let rightMask = 0;
-  for (const seg of segments) {
-    if (seg < 8) {
-      leftMask |= 1 << seg;
-    } else if (seg < 16) {
-      rightMask |= 1 << seg - 8;
-    }
-  }
-  return Buffer.from(
-    finishPacket([51, 5, 11, r, g, b, leftMask, rightMask])
-  ).toString("base64");
-}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   GoveeLanClient,
   buildDiyPackets,
   buildGradientPacket,
   buildMusicModePacket,
-  buildScenePackets,
-  buildSegmentColorPacket
+  buildScenePackets
 });
 //# sourceMappingURL=govee-lan-client.js.map

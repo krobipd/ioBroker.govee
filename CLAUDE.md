@@ -7,7 +7,7 @@
 
 **ioBroker Govee Smart Adapter** — Steuert Govee Smart-Home-Geräte. LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig.
 
-- **Version:** 1.2.0 (April 2026)
+- **Version:** 1.3.0 (April 2026)
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** https://www.npmjs.com/package/iobroker.govee-smart
 - **Runtime-Deps:** `@iobroker/adapter-core`, `@iobroker/types`, `mqtt`, `node-forge`
@@ -47,17 +47,17 @@ Jeder Kanal hat genau eine Rolle. Kein Overlap.
 ## Architektur
 
 ```
-src/main.ts                   → Lifecycle, StateChange, Cloud State Loading, Local Snapshots, Dropdown-Reset (971 Zeilen)
-src/lib/device-manager.ts     → Device-Map, Cloud-Loading, LAN/MQTT Status Handling (876 Zeilen)
-src/lib/capability-mapper.ts  → Capability → State Definition + buildDeviceStateDefs + Quirks (785 Zeilen)
-src/lib/command-router.ts     → Command Routing LAN → Cloud + Segment Batch (616 Zeilen)
-src/lib/state-manager.ts      → State CRUD + Cleanup + Channel Routing + Groups Online (689 Zeilen)
-src/lib/govee-lan-client.ts   → LAN UDP (Discovery + Control + Status + ptReal BLE Packets) (581 Zeilen)
+src/main.ts                   → Lifecycle, StateChange, Cloud State Loading, Local Snapshots, Dropdown-Reset (984 Zeilen)
+src/lib/device-manager.ts     → Device-Map, Cloud-Loading, LAN/MQTT Status+Segment Handling (958 Zeilen)
+src/lib/capability-mapper.ts  → Capability → State Definition + buildDeviceStateDefs + Quirks (757 Zeilen)
+src/lib/command-router.ts     → Command Routing LAN → Cloud + Segment Batch (603 Zeilen)
+src/lib/state-manager.ts      → State CRUD + Cleanup + Channel Routing + Groups Online (678 Zeilen)
+src/lib/govee-lan-client.ts   ��� LAN UDP (Discovery + Control + Status + ptReal BLE Packets) (535 Zeilen)
 src/lib/govee-mqtt-client.ts  → AWS IoT MQTT (Auth + Status-Push, kein Command-Senden) (391 Zeilen)
-src/lib/types.ts              → Interfaces + Shared Utilities (rgbToHex, hexToRgb, classifyError) (448 Zeilen)
+src/lib/types.ts              → Interfaces + Shared Utilities (rgbToHex, hexToRgb, classifyError) (429 Zeilen)
 src/lib/govee-api-client.ts   → Undocumented API (Scene/Music/DIY Libraries, SKU Features) (237 Zeilen)
 src/lib/govee-cloud-client.ts → Cloud REST API v2 (Devices, Capabilities, Szenen+Snapshots, Control)
-src/lib/sku-cache.ts          → Persistent SKU cache (device data, scene/music/DIY libraries)
+src/lib/sku-cache.ts          → Persistent SKU cache (device data, scene/music/DIY libraries) (143 Zeilen)
 src/lib/rate-limiter.ts       → Rate-Limits für Cloud REST Calls
 src/lib/local-snapshots.ts    → Local Snapshot Store (LAN-based save/restore, JSON files)
 src/lib/device-quirks.ts      → SKU-specific overrides + community quirks (external JSON)
@@ -82,7 +82,6 @@ govee-smart.0.
 │       ├── control.gradient_toggle   (Boolean: Gradient ein/aus)
 │       ├── scenes.light_scene        (Dropdown: 78-237 Szenen, lokal via ptReal)
 │       ├── scenes.diy_scene          (Dropdown: User-DIY-Szenen, lokal via ptReal)
-│       ├── scenes.scene_speed        (Slider: Szenen-Geschwindigkeit)
 │       ├── music.music_mode / .music_sensitivity / .music_auto_color
 │       ├── snapshots.snapshot           (Dropdown: Cloud-Snapshots)
 │       ├── snapshots.snapshot_local     (Dropdown: Lokale Snapshots)
@@ -188,13 +187,14 @@ Single Page, drei Sektionen:
 28. **SKU Cache** — `sku-cache.ts` persistiert Device-Daten + Libraries lokal; nach erstem Start null Cloud-Calls nötig. `loadFromCache()` mergt in bereits vorhandene LAN-Geräte (Name, Capabilities, Szenen). Incomplete Cache (scenes=0 bei Lights) triggert automatisch Cloud re-fetch
 29. **Local Snapshots** — `local-snapshots.ts` speichert Gerätezustand per LAN als JSON; Restore replayed einzelne LAN-Commands
 30. **Device Quirks** — `device-quirks.ts` korrigiert falsche API-Daten (colorTemp-Ranges, brokenPlatformApi)
-31. **Scene Speed Infrastructure** — `sceneLibrary` enthält `speedInfo` (supSpeed, speedIndex, config); State + Routing fertig, Byte-Manipulation pending
+31. **Scene Speed nicht implementierbar** — `sceneLibrary` enthält `speedInfo`-Daten (supSpeed, config), aber Byte-Layout im scenceParam ist unbekannt (kein Projekt weltweit hat das reverse-engineered); Slider + Command-Routing entfernt, speedInfo bleibt als Daten in API/Cache/Diagnostik
 32. **Multi-Channel State Tree** — States aufgeteilt in 4 Channels: `control` (Basis), `scenes` (Szenen), `music` (Musik), `snapshots` (Aktionen); Routing über `def.channel` in StateDefinition, Pfad-Auflösung via `resolveStatePath()`
 33. **Groups minimal** — BaseGroup hat nur `info.name`, kein model/serial/ip/online; allgemeines `groups.info.online` = Cloud-Status
 34. **Dynamic Segments** — Segment-Anzahl aus Capability-Daten, überschüssige Segment-Channels werden gelöscht
 35. **Diagnostics Export** — `info.diagnostics_export` Button pro Gerät erzeugt strukturiertes JSON (Capabilities, Szenen, Libraries, Quirks, State) für GitHub Issues
 36. **Community Quirks** — `community-quirks.json` im Data-Dir (`iobroker-data/govee-smart.0/`) erlaubt User-beigetragene SKU-Korrekturen, persistent über Updates
 37. **Separated Concerns (seit 1.1.0)** — CommandRouter (Routing), GoveeApiClient (undoc API), http-client (shared HTTP), capability-mapper (State-Definitionen) als eigenständige Module
+38. **MQTT Segment State-Sync** — `parseMqttSegmentData()` dekodiert AA A5 BLE-Pakete aus `op.command` → Per-Segment Brightness+RGB in ioBroker States; nur bei Geräten mit `segmentCount > 0`, nur bei Gradient/Color-Modus (Scene/Music liefert keine AA A5)
 
 ## Logging-Philosophie (seit 0.9.4)
 
@@ -205,7 +205,7 @@ Single Page, drei Sektionen:
 - **info:** Nur Start, Verbindungen, Ready-Summary, Snapshot-Ops
 - **MQTT:** Erstverbindung = info, Reconnect-Versuche = debug, Restored = info
 
-## Tests (308)
+## Tests (314)
 
 ```
 test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping + Quirks (40 Tests)
@@ -213,7 +213,7 @@ test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping 
   - mapCapabilities branches: segment, dynamic_scene, music, work_mode, unknown, edge cases (10)
   - mapCloudStateValue: all types, null/undefined, unknown capability, edge cases (16)
   - applyQuirksToStates: known SKU, unknown SKU, non-colorTemp (3)
-test/testDeviceManager.ts    → Device Manager + CommandRouter (71 Tests)
+test/testDeviceManager.ts    → Device Manager + CommandRouter (83 Tests)
   - LAN discovery, IP update, MQTT status, unknown device/IP handling (7)
   - sendCommand channel routing: LAN→Cloud fallback, ptReal scene, segment→Cloud, gradient (10)
   - toCloudValue: power, brightness, color hex→int, scene/snapshot/diy index lookup, segments (14)
@@ -226,36 +226,36 @@ test/testDeviceManager.ts    → Device Manager + CommandRouter (71 Tests)
   - colorTemperature via LAN, no channel warning (2)
   - generateDiagnostics: all data, quirks (2)
   - toCloudValue bounds checks: NaN, zero, out-of-range (5)
+  - parseMqttSegmentData: single packet, multi-packet indices, segmentCount limit, non-AA-A5 filter, empty/zero/invalid, full 5-packet (8)
+  - handleMqttStatus segment sync: AA A5 callback, no segmentCount skip, no AA A5 skip (3)
 test/testDeviceQuirks.ts     → Device Quirks + Community Quirks (15 Tests)
   - getDeviceQuirks: known, case-insensitive, unknown, brokenPlatformApi, all broken (5)
   - applyColorTempQuirk: override, passthrough, no range, H6022, case-insensitive (5)
   - loadCommunityQuirks: load+override, add new, missing file, corrupt JSON, case-insensitive (5)
 test/testLocalSnapshots.ts   → Local Snapshots (10 Tests)
   - Create dir, empty device, save/retrieve, overwrite, multiple, delete, non-existent, per-device, corrupt, colorTemp
-test/testLanClient.ts        → LAN Client BLE Packet Builder (16 Tests)
+test/testLanClient.ts        → LAN Client BLE Packet Builder (11 Tests)
   - buildScenePackets: activation, little-endian, A3 data, XOR checksum, empty param (5)
   - buildGradientPacket: ON, OFF, checksum (3)
-  - buildSegmentColorPacket: single, multiple, all, overflow, checksum (5)
   - buildMusicModePacket: Energic, Spectrum, Rolling, Rhythm, checksum (5 → overlaps)
   - buildDiyPackets: activation-only, A1 data, checksums (3)
 test/testRateLimiter.ts      → Rate Limiter (9 Tests)
   - Limits, daily usage, queueing, priority sorting, stop/clear, counter tracking
 test/testSkuCache.ts         → SKU Cache (12 Tests)
-  - Create dir, null entry, save/load, overwrite, separate devices, same SKU, loadAll, clear, corrupt, normalized ID, libraries, null features
+  - Create dir, empty cache, save/loadAll, overwrite, separate devices, same SKU, loadAll, clear, corrupt, normalized ID, libraries, null features
 test/testTypes.ts            → Shared Utilities (29 Tests)
   - normalizeDeviceId: colons, lowercase, empty string (4)
   - rgbToHex: standard, padding, white (3)
   - hexToRgb: with #, without #, black, invalid (4)
   - rgbIntToHex: standard, zero, white (3)
   - classifyError: NETWORK, TIMEOUT, AUTH, RATE_LIMIT, UNKNOWN, string/non-Error, .code property (15)
-test/testStateManager.ts     → State Manager (41 Tests)
+test/testStateManager.ts     → State Manager (40 Tests)
   - devicePrefix: SKU+shortId, BaseGroup folder, special chars, colons (4)
   - createDeviceStates: device+info+control, native props, defaults, unit/min/max, no IP, BaseGroup no model/serial/ip/online (9)
   - createDeviceStates channels: scenes routing, music routing, snapshot routing, multi-channel (4)
   - createGroupsOnlineState: create + update (2)
   - resolveStatePath: control, scenes, music, snapshots, diagnostics, unknown→control (6)
   - updateDeviceState: power, multiple fields, online, undefined fields, missing object (5)
-  - removeDevice: recursive delete (1)
   - cleanupDevices: remove stale, keep existing (2)
   - cleanupAllChannelStates: remove stale, remove empty channel, migrate old→new channel, dropdown reset, dropdown keep (5)
   - createSegmentStates: per-segment states, default 15, excess cleanup, no fields (4)
@@ -266,11 +266,11 @@ test/testPackageFiles.ts     → @iobroker/testing (57 Tests)
 
 | Version | Highlights |
 |---------|------------|
+| 1.3.0 | MQTT Segment State-Sync, Scene Speed entfernt, Dead-Code-Audit (8 Findings), 314 Tests |
 | 1.2.0 | Fix Segment-Farben (ptReal→Cloud), Dropdown-Reset bei Moduswechsel, Groups Online vereinfacht, 308 Tests |
 | 1.1.2 | Dead MQTT command code entfernt, noMqtt quirk entfernt, dead CloudApiError export entfernt, inline hex→hexToRgb(), 304 Tests |
 | 1.1.1 | CI checkout entfernt, no-floating-promises, unused devDeps entfernt, doppelter news-Eintrag gefixt |
 | 1.1.0 | Diagnostics export, community quirks, R1-R8 refactoring, 309 Tests |
-| 1.0.1 | Segment capability matching, segment count, clearTimeout fixes |
 
 ## Befehle
 

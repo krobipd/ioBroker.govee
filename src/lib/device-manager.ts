@@ -17,6 +17,71 @@ import {
   type MqttStatusUpdate,
 } from "./types.js";
 
+/** Parsed per-segment data from MQTT BLE packets */
+export interface MqttSegmentData {
+  /** Segment index (0-based) */
+  index: number;
+  /** Per-segment brightness 0-100 */
+  brightness: number;
+  /** Red channel 0-255 */
+  r: number;
+  /** Green channel 0-255 */
+  g: number;
+  /** Blue channel 0-255 */
+  b: number;
+}
+
+/**
+ * Parse AA A5 BLE notification packets from MQTT op.command.
+ * 5 packets × 4 segment slots = max 20 segments.
+ * Format per slot: [Brightness 0-100] [R] [G] [B].
+ * Only returns segments up to segmentCount.
+ *
+ * @param commands Base64-encoded BLE packets from MQTT op.command
+ * @param segmentCount Device segment count (limits output)
+ */
+export function parseMqttSegmentData(
+  commands: string[],
+  segmentCount: number,
+): MqttSegmentData[] {
+  if (segmentCount <= 0) {
+    return [];
+  }
+
+  const segments: MqttSegmentData[] = [];
+
+  for (const cmd of commands) {
+    const bytes = Buffer.from(cmd, "base64");
+    // AA A5 packets are 20 bytes: AA A5 <packetNum> <4×4 bytes data> <checksum>
+    if (bytes.length < 20 || bytes[0] !== 0xaa || bytes[1] !== 0xa5) {
+      continue;
+    }
+
+    const packetNum = bytes[2]; // 01-05
+    if (packetNum < 1 || packetNum > 5) {
+      continue;
+    }
+
+    const baseIndex = (packetNum - 1) * 4;
+    for (let slot = 0; slot < 4; slot++) {
+      const segIdx = baseIndex + slot;
+      if (segIdx >= segmentCount) {
+        break;
+      }
+      const offset = 3 + slot * 4;
+      segments.push({
+        index: segIdx,
+        brightness: bytes[offset],
+        r: bytes[offset + 1],
+        g: bytes[offset + 2],
+        b: bytes[offset + 3],
+      });
+    }
+  }
+
+  return segments;
+}
+
 /**
  * Device manager — maintains unified device list and routes commands
  * through the fastest available channel: LAN → MQTT → Cloud.
@@ -558,6 +623,17 @@ export class DeviceManager {
     // Merge into device state
     Object.assign(device.state, state);
     this.onDeviceUpdate?.(device, state);
+
+    // Parse per-segment data from BLE notification packets (AA A5)
+    if (update.op?.command && device.segmentCount) {
+      const segData = parseMqttSegmentData(
+        update.op.command,
+        device.segmentCount,
+      );
+      if (segData.length > 0) {
+        this.onMqttSegmentUpdate?.(device, segData);
+      }
+    }
   }
 
   /**
@@ -664,6 +740,12 @@ export class DeviceManager {
 
   /** Callback when device LAN IP changes */
   onLanIpChanged?: (device: GoveeDevice, ip: string) => void;
+
+  /** Callback when MQTT delivers per-segment state data (AA A5 BLE packets) */
+  onMqttSegmentUpdate?: (
+    device: GoveeDevice,
+    segments: MqttSegmentData[],
+  ) => void;
 
   /**
    * Convert Cloud device to internal device model

@@ -422,16 +422,6 @@ class StateManager {
     await this.setStateIfExists("groups.info.online", online);
   }
   /**
-   * Remove all states for a device.
-   *
-   * @param device Govee device
-   */
-  async removeDevice(device) {
-    const prefix = this.devicePrefix(device);
-    await this.adapter.delObjectAsync(prefix, { recursive: true });
-    this.prefixMap.delete(this.deviceKey(device));
-  }
-  /**
    * Cleanup stale devices that no longer exist.
    *
    * @param currentDevices Current device list

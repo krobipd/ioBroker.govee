@@ -150,6 +150,21 @@ class GoveeAdapter extends utils.Adapter {
         }
       }
     };
+    this.deviceManager.onMqttSegmentUpdate = (device, segments) => {
+      const prefix = this.stateManager.devicePrefix(device);
+      for (const seg of segments) {
+        this.setStateAsync(`${prefix}.segments.${seg.index}.color`, {
+          val: (0, import_types.rgbToHex)(seg.r, seg.g, seg.b),
+          ack: true
+        }).catch(() => {
+        });
+        this.setStateAsync(`${prefix}.segments.${seg.index}.brightness`, {
+          val: seg.brightness,
+          ack: true
+        }).catch(() => {
+        });
+      }
+    };
     const startChannels = ["LAN"];
     if (config.apiKey) {
       startChannels.push("Cloud");
@@ -470,9 +485,10 @@ class GoveeAdapter extends utils.Adapter {
   }
   /** Update global info.connection */
   updateConnectionState() {
-    var _a, _b, _c, _d;
-    const hasDevices = ((_b = (_a = this.deviceManager) == null ? void 0 : _a.getDevices().length) != null ? _b : 0) > 0;
-    const anyOnline = (_d = (_c = this.deviceManager) == null ? void 0 : _c.getDevices().some((d) => d.state.online)) != null ? _d : false;
+    var _a, _b;
+    const devices = (_b = (_a = this.deviceManager) == null ? void 0 : _a.getDevices()) != null ? _b : [];
+    const hasDevices = devices.length > 0;
+    const anyOnline = devices.some((d) => d.state.online);
     const lanRunning = this.lanClient !== null;
     const connected = hasDevices ? anyOnline : lanRunning;
     this.setStateAsync("info.connection", { val: connected, ack: true }).catch(
@@ -636,9 +652,6 @@ class GoveeAdapter extends utils.Adapter {
     }
     if (suffix === "scenes.diy_scene") {
       return "diyScene";
-    }
-    if (suffix === "scenes.scene_speed") {
-      return "sceneSpeed";
     }
     if (suffix === "music.music_mode" || suffix === "music.music_sensitivity" || suffix === "music.music_auto_color") {
       return "music";

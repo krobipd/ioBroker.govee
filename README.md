@@ -111,8 +111,7 @@ govee-smart.0.
 │       │   └── gradient_toggle — Gradient on/off (boolean, writable) [Cloud]
 │       ├── scenes/
 │       │   ├── light_scene     — Light scene (dropdown, writable) [LAN ptReal]
-│       │   ├── diy_scene       — DIY scene (dropdown, writable) [LAN ptReal]
-│       │   └── scene_speed     — Scene speed (number, slider, writable) [LAN ptReal]
+│       │   └── diy_scene       — DIY scene (dropdown, writable) [LAN ptReal]
 │       ├── music/
 │       │   ├── music_mode      — Music effect (dropdown, writable) [LAN ptReal]
 │       │   ├── music_sensitivity — Sensitivity 0-100 (number, writable) [LAN ptReal]
@@ -126,8 +125,8 @@ govee-smart.0.
 │           ├── count           — Number of segments (number) [Cloud]
 │           ├── command         — Batch "1-5:#ff0000:20" (string, writable) [Cloud]
 │           └── {0..n}/
-│               ├── color       — Segment color "#RRGGBB" (writable) [Cloud]
-│               └── brightness  — Segment brightness 0-100% (writable) [Cloud]
+│               ├── color       — Segment color "#RRGGBB" (writable) [Cloud, MQTT sync]
+│               └── brightness  — Segment brightness 0-100% (writable) [Cloud, MQTT sync]
 └── groups/
     ├── info/
     │   └── online              — Cloud connection status (boolean) [Cloud]
@@ -195,10 +194,6 @@ The `scenes.light_scene` dropdown lists all available scenes for a device (78–
 ### DIY Scenes
 
 The `scenes.diy_scene` dropdown shows user-created scenes from the Govee Home app. These are also activated locally via ptReal.
-
-### Scene Speed
-
-Some scenes support speed adjustment via `scenes.scene_speed` (slider). Not all scenes support this — the slider has no effect on static scenes.
 
 ### Music Mode
 
@@ -378,6 +373,11 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### 1.3.0 (2026-04-12)
+- Add MQTT segment state sync — per-segment brightness and color updated in real-time via MQTT BLE notifications
+- Remove non-functional scene speed slider (byte layout unknown, no project worldwide implements this)
+- Remove dead code: unused types, methods, and write-only fields (comprehensive audit, 8 findings)
+
 ### 1.2.0 (2026-04-12)
 - Fix segment color commands not working (ptReal accepted but not rendered) — rerouted via Cloud API
 - Fix dropdown states not resetting on mode switch (scene/music/snapshot/color changes now reset all other dropdowns)
@@ -426,13 +426,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - Remove dead code: unused methods, config fields, LanDevice version fields
 - Dynamic segment count from capabilities, excess segments cleaned up on startup
 - Groups minimal: BaseGroup only has `info.name` + `info.online`
-
-### 0.9.6 (2026-04-11)
-- Fix scenes missing for most devices due to incomplete cache from rate-limited Cloud fetch
-- Fix MQTT "account abnormal" incorrectly treated as wrong credentials (keeps reconnecting instead of stopping)
-- Ready message now waits for LAN scan and state creation before logging
-- Remove per-device detail lines from ready summary (redundant with state tree)
-- Fill scenes from scene library when Cloud scenes are missing (ptReal fallback)
 
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

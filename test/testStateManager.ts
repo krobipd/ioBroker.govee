@@ -525,22 +525,6 @@ describe("StateManager", () => {
         });
     });
 
-    describe("removeDevice", () => {
-        it("should delete device recursively", async () => {
-            const { adapter, objects, calls } = createMockAdapter();
-            const sm = new StateManager(adapter as never);
-            const dev = createTestDevice();
-            await sm.createDeviceStates(dev, basicControlDefs());
-
-            expect(objects.size).to.be.greaterThan(0);
-
-            await sm.removeDevice(dev);
-
-            const delCalls = calls.filter((c) => c.method === "delObjectAsync" && c.args[0] === "devices.h6160_0011");
-            expect(delCalls.length).to.equal(1);
-        });
-    });
-
     describe("cleanupDevices", () => {
         it("should remove devices not in current list", async () => {
             const { adapter, calls } = createMockAdapter();

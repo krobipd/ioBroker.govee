@@ -71,27 +71,6 @@ export class SkuCache {
   }
 
   /**
-   * Load cached data for a specific device.
-   *
-   * @param sku Product model
-   * @param deviceId Device identifier
-   */
-  load(sku: string, deviceId: string): CachedDeviceData | null {
-    const file = this.cacheFile(sku, deviceId);
-    try {
-      if (fs.existsSync(file)) {
-        const raw = fs.readFileSync(file, "utf-8");
-        return JSON.parse(raw) as CachedDeviceData;
-      }
-    } catch (e) {
-      this.log.debug(
-        `Cache read failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`,
-      );
-    }
-    return null;
-  }
-
-  /**
    * Save device data to cache.
    *
    * @param data Device data to persist

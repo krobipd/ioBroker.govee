@@ -1,5 +1,12 @@
 # Older Changes
 
+## 0.9.6 (2026-04-11)
+- Fix scenes missing for most devices due to incomplete cache from rate-limited Cloud fetch
+- Fix MQTT "account abnormal" incorrectly treated as wrong credentials (keeps reconnecting instead of stopping)
+- Ready message now waits for LAN scan and state creation before logging
+- Remove per-device detail lines from ready summary (redundant with state tree)
+- Fill scenes from scene library when Cloud scenes are missing (ptReal fallback)
+
 ## 0.9.5 (2026-04-11)
 - Fix device names not updating from cache when LAN discovery runs first
 

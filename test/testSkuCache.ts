@@ -64,24 +64,25 @@ describe("SkuCache", () => {
     expect(fs.existsSync(path.join(dir, "cache"))).to.be.true;
   });
 
-  it("should return null for non-existent cache entry", () => {
+  it("should return empty for non-existent cache", () => {
     const cache = new SkuCache(dir, mockLog);
-    expect(cache.load("H61BE", "AA:BB:CC:DD:11:22:33:44")).to.be.null;
+    expect(cache.loadAll()).to.deep.equal([]);
   });
 
   it("should save and load a cache entry", () => {
     const cache = new SkuCache(dir, mockLog);
     const data = createTestData();
     cache.save(data);
-    const loaded = cache.load("H61BE", "AA:BB:CC:DD:11:22:33:44");
-    expect(loaded).to.not.be.null;
-    expect(loaded!.sku).to.equal("H61BE");
-    expect(loaded!.name).to.equal("Test Light");
-    expect(loaded!.scenes).to.have.length(1);
-    expect(loaded!.sceneLibrary).to.have.length(1);
-    expect(loaded!.musicLibrary).to.have.length(1);
-    expect(loaded!.diyLibrary).to.have.length(1);
-    expect(loaded!.skuFeatures).to.deep.equal({
+    const all = cache.loadAll();
+    expect(all).to.have.length(1);
+    const loaded = all[0];
+    expect(loaded.sku).to.equal("H61BE");
+    expect(loaded.name).to.equal("Test Light");
+    expect(loaded.scenes).to.have.length(1);
+    expect(loaded.sceneLibrary).to.have.length(1);
+    expect(loaded.musicLibrary).to.have.length(1);
+    expect(loaded.diyLibrary).to.have.length(1);
+    expect(loaded.skuFeatures).to.deep.equal({
       musicMode: true,
       gradient: true,
     });
@@ -94,9 +95,10 @@ describe("SkuCache", () => {
     data.name = "Updated Light";
     data.scenes.push({ name: "Aurora", value: { id: 2 } });
     cache.save(data);
-    const loaded = cache.load("H61BE", "AA:BB:CC:DD:11:22:33:44");
-    expect(loaded!.name).to.equal("Updated Light");
-    expect(loaded!.scenes).to.have.length(2);
+    const all = cache.loadAll();
+    expect(all).to.have.length(1);
+    expect(all[0].name).to.equal("Updated Light");
+    expect(all[0].scenes).to.have.length(2);
   });
 
   it("should store separate entries for different devices", () => {
@@ -136,16 +138,15 @@ describe("SkuCache", () => {
     const cacheDir = path.join(dir, "cache");
     fs.writeFileSync(path.join(cacheDir, "corrupt_1234.json"), "not json");
     expect(cache.loadAll()).to.deep.equal([]);
-    expect(cache.load("corrupt", "000000001234")).to.be.null;
   });
 
   it("should use normalized device ID for file naming", () => {
     const cache = new SkuCache(dir, mockLog);
     cache.save(createTestData("H61BE", "AA:BB:CC:DD:11:22:33:44"));
-    // Same device without colons should hit same file
-    const loaded = cache.load("H61BE", "aabbccdd11223344");
-    expect(loaded).to.not.be.null;
-    expect(loaded!.sku).to.equal("H61BE");
+    // Same device without colons should hit same file (loadAll finds the single entry)
+    const all = cache.loadAll();
+    expect(all).to.have.length(1);
+    expect(all[0].sku).to.equal("H61BE");
   });
 
   it("should preserve all library data types", () => {
@@ -159,7 +160,7 @@ describe("SkuCache", () => {
       { name: "My DIY", diyCode: 10, scenceParam: "BASE64DATA" },
     ];
     cache.save(data);
-    const loaded = cache.load(data.sku, data.deviceId)!;
+    const loaded = cache.loadAll()[0];
     expect(loaded.musicLibrary).to.have.length(2);
     expect(loaded.musicLibrary[0].scenceParam).to.equal("AQID");
     expect(loaded.musicLibrary[1].mode).to.equal(1);
@@ -171,7 +172,7 @@ describe("SkuCache", () => {
     const data = createTestData();
     data.skuFeatures = null;
     cache.save(data);
-    const loaded = cache.load(data.sku, data.deviceId)!;
+    const loaded = cache.loadAll()[0];
     expect(loaded.skuFeatures).to.be.null;
   });
 });
