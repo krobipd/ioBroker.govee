@@ -22,7 +22,7 @@ Control [Govee](https://www.govee.com/) smart lights via three seamless channels
 - **BLE-over-LAN Scenes** — 78-237 scenes per device activated locally via ptReal protocol (no Cloud needed)
 - **Music Mode** — Local BLE-over-LAN music reactive effects with sensitivity and auto-color control
 - **DIY Scenes** — User-created scenes activated locally via ptReal
-- **Local Snapshots** — Save and restore device state via LAN (independent of Govee Cloud)
+- **Local Snapshots** — Save and restore basic device state (power, brightness, color) via LAN — no Cloud needed, but limited to LAN-controllable states
 - **Scene Control** — Dropdown with all available scenes from Cloud API + local scene library
 - **Segment Control** — Per-segment color and brightness for LED strips
 - **SKU Cache** — Device data persisted locally, zero Cloud calls after first start
@@ -60,9 +60,9 @@ The adapter works with different levels of configuration. Each level unlocks add
 
 | Level | Credentials | Features |
 |-------|-------------|----------|
-| **LAN Only** | None | Power, brightness, color, color temperature via LAN |
-| **+ Cloud API** | API Key | Device names, capabilities, scenes, segments, cloud fallback |
-| **+ MQTT** | Email + Password | Real-time status push |
+| **LAN Only** | None | Power, brightness, color, color temperature, local snapshots |
+| **+ Cloud API** | API Key | + Device names, scenes (activated locally), segments, cloud snapshots, groups |
+| **+ MQTT** | Email + Password | + Real-time status push (no polling needed) |
 
 ### Getting a Govee API Key
 
@@ -85,7 +85,7 @@ The adapter works with different levels of configuration. Each level unlocks add
 
 Device folders use a stable `sku_shortId` naming (e.g., `h61be_1d6f`). The human-readable Cloud device name is stored in `common.name` and `info.name`. Groups (BaseGroup) are separated into a `groups/` folder.
 
-Channel indicators: **[LAN]** = LAN UDP, **[Cloud]** = Cloud REST API, **[MQTT]** = AWS IoT MQTT, **[local]** = adapter-internal.
+Channel indicators: **[LAN]** = LAN UDP control, **[LAN ptReal]** = BLE-over-LAN (scenes, music — activated locally but scene list comes from Cloud), **[Cloud]** = Cloud REST API, **[MQTT]** = AWS IoT MQTT status push, **[local]** = adapter-internal.
 
 ```
 govee-smart.0.
@@ -186,6 +186,96 @@ Segment indices start at 0. Values beyond the device's segment count are automat
 
 ---
 
+## Scenes & Music Mode
+
+### Light Scenes
+
+The `scenes.light_scene` dropdown lists all available scenes for a device (78–237 depending on model). Scenes are **loaded from the Cloud API** on first start (requires API key), then cached locally. Activation happens **locally via BLE-over-LAN** (ptReal protocol) — fast and without Cloud calls.
+
+### DIY Scenes
+
+The `scenes.diy_scene` dropdown shows user-created scenes from the Govee Home app. These are also activated locally via ptReal.
+
+### Scene Speed
+
+Some scenes support speed adjustment via `scenes.scene_speed` (slider). Not all scenes support this — the slider has no effect on static scenes.
+
+### Music Mode
+
+Music-reactive effects are activated via `music.music_mode` (dropdown). The device listens to ambient sound through its built-in microphone.
+
+| State | Description |
+|-------|-------------|
+| `music_mode` | Effect style (Energic, Spectrum, Rolling, Rhythm, etc.) |
+| `music_sensitivity` | Microphone sensitivity 0–100% |
+| `music_auto_color` | Automatic color cycling on/off |
+
+Music mode is activated **locally via BLE-over-LAN** — no Cloud needed after initial scene list load.
+
+### Dropdown Reset Behavior
+
+When switching between modes, all **other** mode dropdowns automatically reset to "---":
+
+- Selecting a **scene** resets music, snapshots, and DIY dropdowns
+- Selecting a **music mode** resets scene and snapshot dropdowns
+- Changing **color or color temperature** resets scene, music, and snapshot dropdowns
+
+This reflects reality — the device can only be in one mode at a time. If a dropdown shows "---", it means that mode is not currently active.
+
+---
+
+## Snapshots
+
+There are two types of snapshots — **Cloud snapshots** and **local snapshots**. They serve different purposes.
+
+### Cloud Snapshots (`snapshots.snapshot`)
+
+Cloud snapshots are created in the **Govee Home app** and stored on Govee's servers. They can capture the complete device state including scenes, segments, and effects. Selecting one sends a Cloud API command to restore it.
+
+- Requires **Cloud API key**
+- Created/managed in the Govee Home app only
+- Can restore any state the app can set
+
+### Local Snapshots (`snapshots.snapshot_local`)
+
+Local snapshots are created and stored **by the adapter** on your ioBroker server. They are independent of Govee Cloud but can only save what the LAN API can control.
+
+**What is saved:**
+- Power on/off
+- Brightness
+- Color (RGB)
+- Color temperature (Kelvin)
+
+**What is NOT saved:**
+- Scenes, DIY scenes
+- Music mode settings
+- Segment colors and brightness
+- Gradient toggle
+
+### Local Snapshot Workflow
+
+**Save:** Write a name into `snapshots.snapshot_save` (e.g., "Evening Warm"). The adapter reads the current device state and saves it locally. The name appears in the `snapshot_local` dropdown.
+
+**Restore:** Select a snapshot from the `snapshots.snapshot_local` dropdown. The adapter sends individual LAN commands for power, brightness, and color/colorTemp.
+
+**Delete:** Write the exact snapshot name into `snapshots.snapshot_delete`.
+
+**Tip:** If you want to save a complete setup with segments and scenes, use **Cloud snapshots** via the Govee Home app instead.
+
+---
+
+## Groups
+
+Groups are **Govee device groups** created in the Govee Home app (e.g., "All Living Room Lights"). They appear under the `groups/` folder.
+
+- Groups come exclusively from the **Cloud API** — they require an API key
+- You can control groups like regular devices (power, brightness, color, scenes)
+- The `groups.info.online` state reflects the Cloud connection — if Cloud is connected, all groups are available
+
+Groups do not have individual online states, model, serial, or IP information, since they are virtual collections of devices.
+
+---
+
 ## Diagnostics Export
 
 Each device has a **diagnostics export** button (`info.diagnostics_export`). Pressing it writes a structured JSON to `info.diagnostics_result` containing:
@@ -251,10 +341,28 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - Only devices with **LAN API support** are discovered — [Supported devices list](https://app-h5.govee.com/user-manual/wlan-guide)
 - Verify your lights have the latest firmware via the Govee Home app
 
-### Scenes/segments not available
+### Scenes dropdown is empty
 
-- An **API Key** is required for scene and segment control
-- Scenes are loaded from the Cloud API — check the API key is valid
+- An **API Key** is required — the scene list comes from the Cloud API
+- On first start, scenes are loaded from Cloud. After that, the SKU cache provides them without Cloud calls
+- If the cache is incomplete (e.g., after a rate-limited first start), restart the adapter
+
+### Segment colors don't change
+
+- Segment control requires a **Cloud API key** — segments are controlled exclusively via Cloud API
+- Check that `info.cloudConnected` is `true`
+- Make sure you're not exceeding the rate limit (10 commands/min per device)
+
+### Local snapshot doesn't restore my scene/segments
+
+- Local snapshots only save **basic LAN states**: power, brightness, color, color temperature
+- Scenes, segments, gradient, and music mode are **not included**
+- Use **Cloud snapshots** (via Govee Home app) to save complete device states including scenes and segments
+
+### Groups not showing
+
+- Groups are loaded from the **Cloud API** — an API key is required
+- Groups must be created in the **Govee Home app** first
 
 ### Status updates are delayed
 
