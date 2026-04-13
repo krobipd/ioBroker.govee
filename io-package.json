@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "news": {
+      "1.4.1": {
+        "en": "Fix group member resolution returning empty (API field name mismatch)\nAdd bearer token pre-check with descriptive log message\nAdd debug logging when group membership API returns no data",
+        "de": "Fix Gruppen-Mitglieder-Auflösung gibt leer zurück (API-Feldnamen-Fehler)\nBearer-Token-Vorabprüfung mit beschreibender Log-Meldung hinzugefügt\nDebug-Logging wenn Gruppen-API keine Daten liefert",
+        "ru": "Исправлено пустое разрешение участников группы (несоответствие имён полей API)\nДобавлена предварительная проверка bearer token с описательным сообщением\nДобавлено debug-логирование при пустом ответе API групп",
+        "pt": "Corrigida resolução de membros do grupo retornando vazio (incompatibilidade de nomes de campos API)\nAdicionada verificação prévia do bearer token com mensagem descritiva\nAdicionado logging debug quando API de grupos retorna vazio",
+        "nl": "Fix groepsleden-resolutie geeft leeg terug (API-veldnaam mismatch)\nBearer token voorcontrole met beschrijvende logmelding toegevoegd\nDebug-logging toegevoegd wanneer groepen-API geen data retourneert",
+        "fr": "Correction résolution membres du groupe retourne vide (incompatibilité noms de champs API)\nAjout vérification préalable du bearer token avec message descriptif\nAjout logging debug quand l'API des groupes ne retourne aucune donnée",
+        "it": "Fix risoluzione membri del gruppo restituisce vuoto (disallineamento nomi campi API)\nAggiunta verifica preliminare bearer token con messaggio descrittivo\nAggiunto logging debug quando API gruppi non restituisce dati",
+        "es": "Fix resolución de miembros del grupo retorna vacío (incompatibilidad de nombres de campos API)\nAñadida verificación previa del bearer token con mensaje descriptivo\nAñadido logging debug cuando API de grupos no retorna datos",
+        "pl": "Naprawiono pustą rozdzielczość członków grupy (niezgodność nazw pól API)\nDodano wstępne sprawdzanie bearer token z opisowym komunikatem\nDodano logowanie debug gdy API grup nie zwraca danych",
+        "uk": "Виправлено порожнє розв'язування учасників групи (невідповідність назв полів API)\nДодано попередню перевірку bearer token з описовим повідомленням\nДодано debug-логування коли API груп не повертає даних",
+        "zh-cn": "修复组成员解析返回空（API字段名不匹配）\n添加bearer token预检查及描述性日志消息\n添加组成员API返回空数据时的debug日志"
+      },
       "1.4.0": {
         "en": "Redesign group handling: fan-out commands to member devices via LAN/ptReal instead of Cloud\nGroup capabilities computed as intersection of member devices (power, brightness, color, scenes, music)\nAdd info.members state showing group member device IDs\nAdd dynamic info.membersUnreachable state (only when needed)\nRemove snapshots and diagnostics from groups (not applicable)\nUpdate undocumented API headers to match current Govee app version",
         "de": "Gruppen-Handling redesigned: Fan-Out-Befehle an Mitgliedsgeräte über LAN/ptReal statt Cloud\nGruppen-Capabilities berechnet als Schnittmenge der Mitgliedsgeräte (Power, Helligkeit, Farbe, Szenen, Musik)\ninfo.members State zeigt Gruppen-Mitglieds-IDs\nDynamischer info.membersUnreachable State (nur wenn nötig)\nSnapshots und Diagnostics aus Gruppen entfernt (nicht anwendbar)\nUndokumentierte API-Header auf aktuelle Govee-App-Version aktualisiert",
@@ -80,19 +93,6 @@
         "pl": "Eksport diagnostyki na urządzenie dla strukturalnych zgłoszeń GitHub\nBaza quirków społeczności (zewnętrzny JSON dla poprawek SKU użytkowników)\nNaprawiono sprawdzanie granic tablic w indeksach scen/DIY/snapshotów\nNaprawiono przypadki brzegowe parsowania segmentów wsadowych\nDuży wewnętrzny refaktoring: 8 ukierunkowanych refaktoringów\nPokrycie testami zwiększone do 309",
         "uk": "Експорт діагностики на пристрій для структурованих GitHub-звітів\nБаза квірків спільноти (зовнішній JSON для користувацьких коригувань SKU)\nВиправлено перевірки меж масивів для індексів сцен/DIY/знімків\nВиправлено граничні випадки парсингу пакетних сегментів\nМасштабний внутрішній рефакторинг: 8 цілеспрямованих рефакторингів\nПокриття тестами збільшено до 309",
         "zh-cn": "每设备诊断导出用于结构化GitHub问题提交\n社区怪癖数据库（外部JSON用于用户贡献的SKU修正）\n修复场景/DIY/快照索引数组边界检查\n修复段批量解析边缘情况\n大规模内部重构：8项针对性重构提升可维护性\n测试覆盖增加到309个"
-      },
-      "1.0.1": {
-        "en": "Fix segment capability matching: color and brightness commands now route to correct API capabilities\nFix segment count using maximum across all segment capabilities instead of first found\nFix hardcoded 15-segment fallback replaced with safe default\nFix missing clearTimeout for one-shot timers in onUnload",
-        "de": "Fix Segment-Capability-Zuordnung: Color- und Brightness-Commands werden jetzt an die richtige API-Capability geroutet\nFix Segment-Anzahl nutzt jetzt Maximum aller Segment-Capabilities statt dem ersten gefundenen\nFix hardcodierter 15-Segment-Fallback durch sicheren Default ersetzt\nFix fehlende clearTimeout für One-Shot-Timer in onUnload",
-        "ru": "Исправлено сопоставление возможностей сегментов: команды цвета и яркости теперь направляются к правильным API\nИсправлено определение количества сегментов — используется максимум всех возможностей\nИсправлен фиксированный откат на 15 сегментов, заменён безопасным значением\nИсправлено отсутствие clearTimeout для одноразовых таймеров в onUnload",
-        "pt": "Corrigido mapeamento de capabilities de segmento: comandos de cor e brilho agora direcionados corretamente\nCorrigida contagem de segmentos usando máximo de todas as capabilities\nCorrigido fallback fixo de 15 segmentos substituído por padrão seguro\nCorrigido clearTimeout ausente para timers únicos em onUnload",
-        "nl": "Fix segment capability matching: kleur- en helderheidscommando's gaan nu naar juiste API\nFix segmenttelling gebruikt nu maximum van alle segment capabilities\nFix hardcoded 15-segment fallback vervangen door veilige standaard\nFix ontbrekende clearTimeout voor eenmalige timers in onUnload",
-        "fr": "Correction du mappage des capabilities de segment : les commandes couleur et luminosité sont maintenant correctement dirigées\nCorrection du nombre de segments utilisant le maximum de toutes les capabilities\nCorrection du fallback fixe de 15 segments remplacé par une valeur sûre\nCorrection clearTimeout manquant pour les timers uniques dans onUnload",
-        "it": "Fix mappatura capabilities segmenti: comandi colore e luminosità ora indirizzati correttamente\nFix conteggio segmenti usa il massimo di tutte le capabilities\nFix fallback fisso 15 segmenti sostituito con default sicuro\nFix clearTimeout mancante per timer singoli in onUnload",
-        "es": "Fix mapeo de capabilities de segmento: comandos de color y brillo ahora se enrutan correctamente\nFix conteo de segmentos usa el máximo de todas las capabilities\nFix fallback fijo de 15 segmentos reemplazado por valor seguro\nFix clearTimeout faltante para timers únicos en onUnload",
-        "pl": "Naprawiono dopasowanie capabilities segmentów: komendy koloru i jasności kierowane do właściwych API\nNaprawiono liczenie segmentów — używa maksimum ze wszystkich capabilities\nNaprawiono zakodowany fallback 15 segmentów zastąpiony bezpieczną wartością\nNaprawiono brakujące clearTimeout dla jednorazowych timerów w onUnload",
-        "uk": "Виправлено зіставлення можливостей сегментів: команди кольору та яскравості тепер направляються правильно\nВиправлено підрахунок сегментів — використовує максимум усіх можливостей\nВиправлено фіксований відкат 15 сегментів замінено безпечним значенням\nВиправлено відсутній clearTimeout для одноразових таймерів в onUnload",
-        "zh-cn": "修复段能力匹配：颜色和亮度命令现在路由到正确的API能力\n修复段数量使用所有段能力的最大值而非第一个\n修复硬编码的15段回退替换为安全默认值\n修复onUnload中一次性定时器缺少clearTimeout"
       }
     },
     "titleLang": {

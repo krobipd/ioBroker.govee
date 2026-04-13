@@ -394,6 +394,11 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### 1.4.1 (2026-04-13)
+- Fix group member resolution returning empty (API field name mismatch: `gId`/`name` vs `groupId`/`groupName`)
+- Add bearer token pre-check with descriptive log message for group membership loading
+- Add debug logging when group membership API returns no data
+
 ### 1.4.0 (2026-04-13)
 - Redesign group handling: fan-out commands to member devices via LAN/ptReal instead of Cloud-only power toggle
 - Group capabilities computed as intersection of member devices (power, brightness, color, scenes, music)
@@ -442,12 +447,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
   - Channel field on `StateDefinition` replacing fragile Set-based routing
   - Consolidated rate-limiter pattern and split `loadFromCloud` into sub-methods
 - Test coverage increased to 309 tests (was 291)
-
-### 1.0.1 (2026-04-11)
-- Fix segment capability matching: color and brightness commands now route to correct API capabilities
-- Fix segment count using maximum across all segment capabilities instead of first found
-- Fix hardcoded 15-segment fallback replaced with safe default
-- Fix missing clearTimeout for one-shot timers in onUnload
 
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

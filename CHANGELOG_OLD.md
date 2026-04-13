@@ -1,5 +1,11 @@
 # Older Changes
 
+## 1.0.1 (2026-04-11)
+- Fix segment capability matching: color and brightness commands now route to correct API capabilities
+- Fix segment count using maximum across all segment capabilities instead of first found
+- Fix hardcoded 15-segment fallback replaced with safe default
+- Fix missing clearTimeout for one-shot timers in onUnload
+
 ## 1.0.0 (2026-04-11)
 - **BREAKING:** Multi-channel state tree — states split into `control`, `scenes`, `music`, `snapshots` channels
 - **BREAKING:** Removed `pollInterval` setting (Cloud polling was removed in 0.9.3)
