@@ -19,17 +19,16 @@ Control [Govee](https://www.govee.com/) smart lights via three seamless channels
 
 - **LAN First** — UDP multicast discovery and control for lowest latency
 - **Real-Time Status** — AWS IoT MQTT push updates (no polling)
-- **BLE-over-LAN Scenes** — All available scenes activated locally via ptReal protocol (loaded once from Cloud, then cached)
+- **Scenes** — All available scenes as dropdown, loaded once from Cloud then cached, activated locally via BLE-over-LAN (ptReal)
 - **Music Mode** — Local BLE-over-LAN music reactive effects with sensitivity and auto-color control
 - **DIY Scenes** — User-created scenes activated locally via ptReal
 - **Local Snapshots** — Save and restore basic device state (power, brightness, color) via LAN — no Cloud needed, but limited to LAN-controllable states
-- **Scene Control** — Dropdown with all available scenes from Cloud API + local scene library
 - **Segment Control** — Per-segment color and brightness for LED strips
 - **SKU Cache** — Device data persisted locally, zero Cloud calls after first start
 - **Device Quirks** — Automatic correction of wrong API data for specific SKUs
 - **Seamless Channel Routing** — Automatically uses the fastest available channel (LAN > Cloud)
 - **Graceful Degradation** — Works LAN-only without any credentials; each credential level unlocks more features
-- **Rate Limited** — Respects Govee API limits (10/min, 10,000/day) with priority queue
+- **Rate Limited** — Respects Govee Cloud API limits with priority queue
 
 ---
 
