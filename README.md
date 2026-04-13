@@ -61,8 +61,8 @@ The adapter works with different levels of configuration. Each level unlocks add
 | Level | Credentials | Features |
 |-------|-------------|----------|
 | **LAN Only** | None | Power, brightness, color, color temperature, local snapshots |
-| **+ Cloud API** | API Key | + Device names, scenes (activated locally), segments, cloud snapshots, groups |
-| **+ MQTT** | Email + Password | + Real-time status push (no polling needed) |
+| **+ Cloud API** | API Key | + Device names, scenes (activated locally), segments, cloud snapshots, groups (basic) |
+| **+ Govee Account** | Email + Password | + Real-time status push via MQTT, group fan-out control (scenes, music via member devices) |
 
 ### Getting a Govee API Key
 
@@ -131,8 +131,19 @@ govee-smart.0.
     ├── info/
     │   └── online              — Cloud connection status (boolean) [Cloud]
     └── basegroup_1280/         — Govee device groups
-        └── info/
-            └── name            — Group name (string) [Cloud]
+        ├── info/
+        │   ├── name            — Group name (string) [Cloud]
+        │   ├── members         — Member device IDs (string, read-only) [Cloud]
+        │   └── membersUnreachable — Unreachable members (string, dynamic) [local]
+        ├── control/
+        │   ├── power           — On/Off → fan-out to all members [LAN]
+        │   ├── brightness      — Brightness → fan-out to all members [LAN]
+        │   ├── colorRgb        — Color → fan-out to all members [LAN]
+        │   └── colorTemperature — Color temp → fan-out to all members [LAN]
+        ├── scenes/
+        │   └── light_scene     — Scene → fan-out by name matching [LAN ptReal]
+        └── music/
+            └── music_mode      — Music → fan-out by name matching [LAN ptReal]
 ```
 
 ---
@@ -263,11 +274,15 @@ Local snapshots are created and stored **by the adapter** on your ioBroker serve
 
 Groups are **Govee device groups** created in the Govee Home app (e.g., "All Living Room Lights"). They appear under the `groups/` folder.
 
-- Groups come exclusively from the **Cloud API** — they require an API key
-- You can control groups like regular devices (power, brightness, color, scenes)
-- The `groups.info.online` state reflects the Cloud connection — if Cloud is connected, all groups are available
+- Groups require an **API key** for basic visibility (name, folder)
+- Full group control (scenes, music) additionally requires **Email + Password** for member device resolution
+- Commands are **fanned out** to each member device individually via LAN/ptReal — not sent as a single Cloud command
+- Group capabilities are the **intersection** of all member devices (only states that all members support)
+- `info.members` shows which devices belong to the group
+- `info.membersUnreachable` appears dynamically when member devices are offline
+- `groups.info.online` reflects the Cloud connection status
 
-Groups do not have individual online states, model, serial, or IP information, since they are virtual collections of devices.
+Groups do not have model, serial, IP, snapshots, segments, or diagnostics — they are virtual collections that route commands to real devices.
 
 ---
 
@@ -358,6 +373,12 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 - Groups are loaded from the **Cloud API** — an API key is required
 - Groups must be created in the **Govee Home app** first
+
+### Group commands not working (only power toggle)
+
+- Full group fan-out (scenes, music, color) requires **Email + Password** for member device resolution
+- Without account credentials, only basic group info (name) is available from the Cloud API
+- Check that `info.members` is populated — if empty, the adapter could not resolve group membership
 
 ### Status updates are delayed
 
