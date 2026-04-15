@@ -1,5 +1,12 @@
 # Older Changes
 
+## 1.1.2 (2026-04-12)
+- Remove dead MQTT command code (MQTT is status-push only, never sent commands)
+- Remove `noMqtt` device quirk (no longer needed without MQTT commands)
+- Remove dead `CloudApiError` re-export
+- Replace inline hex parsing with shared `hexToRgb()` utility
+- Simplify LAN fallback to Cloud-only (was LAN → MQTT → Cloud)
+
 ## 1.1.1 (2026-04-12)
 - **BREAKING:** Move diagnostics states from `snapshots/` to `info/` channel (where device information belongs)
 - Fix community quirks loading from persistent data directory instead of adapter directory (survives updates)

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "news": {
+      "1.5.1": {
+        "en": "Fix device type matching — scenes only loaded via fallback because type comparison never matched Cloud API format\nAdd dynamic API rate limit sharing with other Govee adapters on the same account\nFilter non-light device types (heaters, fans, sensors etc.) — this adapter handles lights only\n354 tests (was 352)",
+        "de": "Fix Gerätetyp-Vergleich — Szenen wurden nur über Fallback geladen weil Typ-Vergleich nie mit Cloud-API-Format übereinstimmte\nDynamische API-Rate-Limit-Aufteilung mit anderen Govee-Adaptern auf demselben Account\nNicht-Licht-Gerätetypen gefiltert (Heizungen, Ventilatoren, Sensoren etc.) — dieser Adapter ist nur für Lichter\n354 Tests (vorher 352)",
+        "ru": "Исправлено сравнение типа устройства — сцены загружались только через запасной механизм из-за несоответствия формата Cloud API\nДинамическое разделение лимитов API с другими адаптерами Govee на том же аккаунте\nФильтрация не-световых типов устройств (обогреватели, вентиляторы, датчики) — этот адаптер только для света\n354 теста (было 352)",
+        "pt": "Corrigida comparação de tipo de dispositivo — cenas carregadas apenas via fallback devido a incompatibilidade com formato Cloud API\nCompartilhamento dinâmico de limite de taxa API com outros adaptadores Govee na mesma conta\nFiltrar tipos de dispositivos não-luz (aquecedores, ventiladores, sensores) — este adaptador é apenas para luzes\n354 testes (eram 352)",
+        "nl": "Fix apparaattype vergelijking — scènes alleen geladen via fallback vanwege mismatch met Cloud API formaat\nDynamisch API rate limit delen met andere Govee adapters op hetzelfde account\nNiet-licht apparaattypen gefilterd (verwarmers, ventilatoren, sensoren) — deze adapter is alleen voor lampen\n354 tests (was 352)",
+        "fr": "Correction comparaison type d'appareil — scènes chargées uniquement via fallback à cause d'incompatibilité avec format Cloud API\nPartage dynamique des limites de taux API avec d'autres adaptateurs Govee sur le même compte\nFiltrage des types d'appareils non-lumière (chauffages, ventilateurs, capteurs) — cet adaptateur est uniquement pour les lumières\n354 tests (était 352)",
+        "it": "Fix confronto tipo dispositivo — scene caricate solo via fallback per mancata corrispondenza con formato Cloud API\nCondivisione dinamica dei limiti API con altri adattatori Govee sullo stesso account\nFiltro tipi dispositivi non-luce (riscaldatori, ventilatori, sensori) — questo adattatore è solo per le luci\n354 test (erano 352)",
+        "es": "Fix comparación tipo de dispositivo — escenas cargadas solo vía fallback por incompatibilidad con formato Cloud API\nCompartición dinámica de límites de tasa API con otros adaptadores Govee en la misma cuenta\nFiltrar tipos de dispositivos no-luz (calentadores, ventiladores, sensores) — este adaptador es solo para luces\n354 pruebas (eran 352)",
+        "pl": "Naprawiono porównanie typu urządzenia — sceny ładowane tylko przez fallback z powodu niezgodności z formatem Cloud API\nDynamiczne współdzielenie limitów API z innymi adapterami Govee na tym samym koncie\nFiltrowanie typów urządzeń nie-świetlnych (grzejniki, wentylatory, czujniki) — ten adapter jest tylko dla lamp\n354 testy (było 352)",
+        "uk": "Виправлено порівняння типу пристрою — сцени завантажувалися лише через резервний механізм через невідповідність формату Cloud API\nДинамічний поділ лімітів API з іншими адаптерами Govee на тому ж акаунті\nФільтрація типів пристроїв не-світло (обігрівачі, вентилятори, датчики) — цей адаптер лише для світла\n354 тести (було 352)",
+        "zh-cn": "修复设备类型比较 — 场景仅通过备用机制加载因为类型比较从未匹配Cloud API格式\n与同账户其他Govee适配器动态共享API速率限制\n过滤非灯具设备类型（加热器、风扇、传感器等）— 此适配器仅处理灯具\n354个测试（原352个）"
+      },
       "1.5.0": {
         "en": "Add local segment control via BLE-over-LAN (ptReal) — segments now controlled locally instead of Cloud\nAdd scene variants — all light effects per scene (A/B/C/D) instead of only the first\nAdd local snapshot activation via ptReal BLE packets from Cloud endpoint\nAdd scene speed control — adjust speed for supported scenes via slider\nAdd per-segment color and brightness to local snapshots\n352 tests (was 327)",
         "de": "Lokale Segment-Steuerung via BLE-over-LAN (ptReal) — Segmente jetzt lokal statt über Cloud gesteuert\nSzenen-Varianten — alle Lichteffekte pro Szene (A/B/C/D) statt nur dem ersten\nLokale Snapshot-Aktivierung via ptReal BLE-Pakete vom Cloud-Endpoint\nSzenen-Geschwindigkeit — Speed für unterstützte Szenen per Slider einstellbar\nPer-Segment Farbe und Helligkeit in lokalen Snapshots\n352 Tests (vorher 327)",
@@ -96,17 +109,17 @@
       "zh-cn": "Govee Smart Lights"
     },
     "desc": {
-      "en": "Control Govee smart lights via LAN, MQTT and Cloud API",
-      "de": "Govee Smart Lights über LAN, MQTT und Cloud API steuern",
-      "ru": "Управление умными светильниками Govee через LAN, MQTT и Cloud API",
-      "pt": "Controle luzes inteligentes Govee via LAN, MQTT e Cloud API",
-      "nl": "Bedien Govee slimme verlichting via LAN, MQTT en Cloud API",
-      "fr": "Contrôlez les lumières intelligentes Govee via LAN, MQTT et Cloud API",
-      "it": "Controlla le luci intelligenti Govee tramite LAN, MQTT e Cloud API",
-      "es": "Controla las luces inteligentes Govee a través de LAN, MQTT y Cloud API",
-      "pl": "Steruj inteligentnymi lampami Govee przez LAN, MQTT i Cloud API",
-      "uk": "Керуйте розумними світильниками Govee через LAN, MQTT та Cloud API",
-      "zh-cn": "通过LAN、MQTT和Cloud API控制Govee智能灯"
+      "en": "Control Govee smart lights (LED strips, bulbs, panels) via LAN, MQTT and Cloud API — lights only, no appliances",
+      "de": "Govee Smart Lights (LED-Strips, Lampen, Panels) über LAN, MQTT und Cloud API steuern — nur Lichter, keine Haushaltsgeräte",
+      "ru": "Управление умными светильниками Govee (LED-ленты, лампы, панели) через LAN, MQTT и Cloud API — только свет, без бытовой техники",
+      "pt": "Controle luzes inteligentes Govee (fitas LED, lâmpadas, painéis) via LAN, MQTT e Cloud API — apenas luzes, sem eletrodomésticos",
+      "nl": "Bedien Govee slimme verlichting (LED-strips, lampen, panelen) via LAN, MQTT en Cloud API — alleen lampen, geen huishoudapparaten",
+      "fr": "Contrôlez les lumières intelligentes Govee (rubans LED, ampoules, panneaux) via LAN, MQTT et Cloud API — lumières uniquement, pas d'appareils ménagers",
+      "it": "Controlla le luci intelligenti Govee (strisce LED, lampadine, pannelli) tramite LAN, MQTT e Cloud API — solo luci, nessun elettrodomestico",
+      "es": "Controla las luces inteligentes Govee (tiras LED, bombillas, paneles) a través de LAN, MQTT y Cloud API — solo luces, sin electrodomésticos",
+      "pl": "Steruj inteligentnymi lampami Govee (taśmy LED, żarówki, panele) przez LAN, MQTT i Cloud API — tylko lampy, bez urządzeń domowych",
+      "uk": "Керуйте розумними світильниками Govee (LED-стрічки, лампи, панелі) через LAN, MQTT та Cloud API — лише світло, без побутової техніки",
+      "zh-cn": "通过LAN、MQTT和Cloud API控制Govee智能灯（LED灯带、灯泡、面板）— 仅灯具，不含家电"
     },
     "authors": [
       "krobi <krobi@power-dreams.com>"

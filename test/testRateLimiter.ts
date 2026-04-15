@@ -110,4 +110,32 @@ describe("RateLimiter", () => {
         await rl.tryExecute(async () => {});
         expect(rl.canMakeCall()).to.be.false;
     });
+
+    it("should update limits dynamically", async () => {
+        const rl = new RateLimiter(mockLog, mockTimers, 2, 100);
+        let called = 0;
+
+        await rl.tryExecute(async () => { called++; });
+        await rl.tryExecute(async () => { called++; });
+        expect(rl.canMakeCall()).to.be.false;
+
+        // Increase limit — should allow more calls
+        rl.updateLimits(4, 100);
+        expect(rl.canMakeCall()).to.be.true;
+
+        await rl.tryExecute(async () => { called++; });
+        expect(called).to.equal(3);
+    });
+
+    it("should reduce limits dynamically", async () => {
+        const rl = new RateLimiter(mockLog, mockTimers, 10, 100);
+        let called = 0;
+
+        await rl.tryExecute(async () => { called++; });
+        await rl.tryExecute(async () => { called++; });
+
+        // Reduce to 2/min — should now be blocked
+        rl.updateLimits(2, 100);
+        expect(rl.canMakeCall()).to.be.false;
+    });
 });

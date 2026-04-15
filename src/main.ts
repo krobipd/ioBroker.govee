@@ -28,6 +28,11 @@ import {
   type GoveeDevice,
 } from "./lib/types.js";
 
+/** Rate limit defaults */
+const FULL_LIMITS = { perMinute: 8, perDay: 9000 };
+const SHARED_LIMITS = { perMinute: 4, perDay: 4500 };
+const SIBLING_ALIVE_ID = "system.adapter.govee-appliances.0.alive";
+
 class GoveeAdapter extends utils.Adapter {
   private deviceManager: DeviceManager | null = null;
   private stateManager: StateManager | null = null;
@@ -42,6 +47,7 @@ class GoveeAdapter extends utils.Adapter {
   private cloudInitDone = false;
   private lanScanDone = false;
   private statesReady = false;
+  private siblingActive = false;
   private stateCreationQueue: Promise<void>[] = [];
   private lanScanTimer: ioBroker.Timeout | undefined;
   private cleanupTimer: ioBroker.Timeout | undefined;
@@ -242,9 +248,17 @@ class GoveeAdapter extends utils.Adapter {
       this.cloudClient = new GoveeCloudClient(config.apiKey, this.log);
       this.deviceManager.setCloudClient(this.cloudClient);
 
-      this.rateLimiter = new RateLimiter(this.log, this);
+      this.rateLimiter = new RateLimiter(
+        this.log,
+        this,
+        FULL_LIMITS.perMinute,
+        FULL_LIMITS.perDay,
+      );
       this.rateLimiter.start();
       this.deviceManager.setRateLimiter(this.rateLimiter);
+
+      // Detect sibling adapter (govee-appliances) for shared rate limits
+      await this.detectSiblingAdapter();
 
       if (!cachedOk) {
         // No cache — first start, fetch from Cloud once
@@ -341,6 +355,12 @@ class GoveeAdapter extends utils.Adapter {
     id: string,
     state: ioBroker.State | null | undefined,
   ): Promise<void> {
+    // Sibling adapter alive state change (foreign state, always ack)
+    if (id === SIBLING_ALIVE_ID) {
+      this.applySiblingLimits(state?.val === true);
+      return;
+    }
+
     if (!state || state.ack || !this.deviceManager || !this.stateManager) {
       return;
     }
@@ -842,6 +862,48 @@ class GoveeAdapter extends utils.Adapter {
     this.setStateAsync("info.connection", { val: connected, ack: true }).catch(
       () => {},
     );
+  }
+
+  /**
+   * Detect if sibling adapter (govee-appliances) is running and adjust rate limits.
+   * Subscribes to alive state for dynamic updates.
+   */
+  private async detectSiblingAdapter(): Promise<void> {
+    try {
+      const alive = await this.getForeignStateAsync(SIBLING_ALIVE_ID);
+      this.applySiblingLimits(alive?.val === true);
+      await this.subscribeForeignStatesAsync(SIBLING_ALIVE_ID);
+    } catch {
+      // Sibling not installed — use full limits
+      this.applySiblingLimits(false);
+    }
+  }
+
+  /**
+   * Apply rate limits based on sibling adapter presence.
+   *
+   * @param siblingAlive Whether the sibling adapter is running
+   */
+  private applySiblingLimits(siblingAlive: boolean): void {
+    if (!this.rateLimiter || this.siblingActive === siblingAlive) {
+      return;
+    }
+    this.siblingActive = siblingAlive;
+
+    if (siblingAlive) {
+      this.rateLimiter.updateLimits(
+        SHARED_LIMITS.perMinute,
+        SHARED_LIMITS.perDay,
+      );
+      this.log.info(
+        `govee-appliances detected — sharing API budget (${SHARED_LIMITS.perMinute}/min, ${SHARED_LIMITS.perDay}/day)`,
+      );
+    } else {
+      this.rateLimiter.updateLimits(FULL_LIMITS.perMinute, FULL_LIMITS.perDay);
+      this.log.info(
+        `govee-appliances not active — using full API budget (${FULL_LIMITS.perMinute}/min, ${FULL_LIMITS.perDay}/day)`,
+      );
+    }
   }
 
   /**

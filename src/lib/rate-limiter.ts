@@ -23,9 +23,9 @@ export class RateLimiter {
   private dayResetTimer: ioBroker.Interval | undefined = undefined;
 
   /** Max calls per minute */
-  private readonly perMinuteLimit: number;
+  private perMinuteLimit: number;
   /** Max calls per day (with safety buffer) */
-  private readonly perDayLimit: number;
+  private perDayLimit: number;
 
   /**
    * @param log ioBroker logger
@@ -41,6 +41,17 @@ export class RateLimiter {
   ) {
     this.log = log;
     this.timers = timers;
+    this.perMinuteLimit = perMinuteLimit;
+    this.perDayLimit = perDayLimit;
+  }
+
+  /**
+   * Update rate limits dynamically (e.g. when sibling adapter starts/stops).
+   *
+   * @param perMinuteLimit Max calls per minute
+   * @param perDayLimit Max calls per day
+   */
+  updateLimits(perMinuteLimit: number, perDayLimit: number): void {
     this.perMinuteLimit = perMinuteLimit;
     this.perDayLimit = perDayLimit;
   }

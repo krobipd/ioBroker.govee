@@ -13,6 +13,8 @@
 
 Control [Govee](https://www.govee.com/) smart lights via three seamless channels: **LAN** (fastest, primary), **AWS IoT MQTT** (real-time status push), and **Cloud API v2** (scenes, segments, capabilities).
 
+> **Lights only!** This adapter handles Govee LED strips, bulbs, and light panels. Heaters, humidifiers, fans, air purifiers, sensors, and other non-light devices are not supported.
+
 ---
 
 ## Features
@@ -407,6 +409,12 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### 1.5.1 (2026-04-15)
+- Fix device type matching — scenes only loaded via fallback because type comparison never matched Cloud API format
+- Add dynamic API rate limit sharing with other Govee adapters on the same account
+- Filter non-light device types (heaters, fans, sensors etc.) — this adapter handles lights only
+- 354 tests (was 352)
+
 ### 1.5.0 (2026-04-14)
 - Add local segment control via BLE-over-LAN (ptReal) — segments now controlled locally (~100ms) instead of Cloud (5-10s)
 - Add scene variants — all light effects per scene (A/B/C/D) instead of only the first variant
@@ -440,13 +448,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - Replace individual group online states with single `groups.info.online` reflecting Cloud connection status
 - Add channel annotations to state tree documentation
 - Add acknowledgments for govee2mqtt project
-
-### 1.1.2 (2026-04-12)
-- Remove dead MQTT command code (MQTT is status-push only, never sent commands)
-- Remove `noMqtt` device quirk (no longer needed without MQTT commands)
-- Remove dead `CloudApiError` re-export
-- Replace inline hex parsing with shared `hexToRgb()` utility
-- Simplify LAN fallback to Cloud-only (was LAN → MQTT → Cloud)
 
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

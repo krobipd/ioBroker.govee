@@ -46,6 +46,16 @@ class RateLimiter {
     this.perMinuteLimit = perMinuteLimit;
     this.perDayLimit = perDayLimit;
   }
+  /**
+   * Update rate limits dynamically (e.g. when sibling adapter starts/stops).
+   *
+   * @param perMinuteLimit Max calls per minute
+   * @param perDayLimit Max calls per day
+   */
+  updateLimits(perMinuteLimit, perDayLimit) {
+    this.perMinuteLimit = perMinuteLimit;
+    this.perDayLimit = perDayLimit;
+  }
   /** Start the rate limiter — resets counters periodically */
   start() {
     this.minuteResetTimer = this.timers.setInterval(() => {

@@ -10,7 +10,7 @@ export interface CachedDeviceData {
   deviceId: string;
   /** Display name */
   name: string;
-  /** Device type (e.g. "light") */
+  /** Device type (e.g. "devices.types.light") */
   type: string;
   /** Cloud API capabilities */
   capabilities: CloudCapability[];

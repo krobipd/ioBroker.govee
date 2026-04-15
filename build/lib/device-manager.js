@@ -25,6 +25,19 @@ module.exports = __toCommonJS(device_manager_exports);
 var import_command_router = require("./command-router.js");
 var import_device_quirks = require("./device-quirks.js");
 var import_types = require("./types.js");
+const APPLIANCE_TYPES = /* @__PURE__ */ new Set([
+  "devices.types.heater",
+  "devices.types.humidifier",
+  "devices.types.air_purifier",
+  "devices.types.fan",
+  "devices.types.dehumidifier",
+  "devices.types.thermometer",
+  "devices.types.sensor",
+  "devices.types.socket",
+  "devices.types.ice_maker",
+  "devices.types.aroma_diffuser",
+  "devices.types.kettle"
+]);
 function parseMqttSegmentData(commands, segmentCount) {
   if (segmentCount <= 0) {
     return [];
@@ -167,7 +180,7 @@ class DeviceManager {
       this.log.info(`Loaded ${cached.length} device(s) from cache`);
     }
     const incomplete = Array.from(this.devices.values()).some(
-      (d) => d.scenes.length === 0 && d.sceneLibrary.length > 0 && d.type === "light"
+      (d) => d.scenes.length === 0 && d.sceneLibrary.length > 0 && d.type === "devices.types.light"
     );
     if (incomplete) {
       this.log.info(
@@ -196,7 +209,7 @@ class DeviceManager {
       const cloudDevices = await this.cloudClient.getDevices();
       let changed = this.mergeCloudDevices(cloudDevices);
       for (const cd of cloudDevices) {
-        if (cd.type === "light" || cd.capabilities.some((c) => c.type.includes("dynamic_scene"))) {
+        if (cd.type === "devices.types.light" || cd.capabilities.some((c) => c.type.includes("dynamic_scene"))) {
           const device = this.devices.get(this.deviceKey(cd.sku, cd.device));
           if (device) {
             if (await this.loadDeviceScenes(device, cd)) {
@@ -232,6 +245,9 @@ class DeviceManager {
   mergeCloudDevices(cloudDevices) {
     let changed = false;
     for (const cd of cloudDevices) {
+      if (APPLIANCE_TYPES.has(cd.type)) {
+        continue;
+      }
       const existing = this.devices.get(this.deviceKey(cd.sku, cd.device));
       if (existing) {
         existing.name = cd.deviceName || existing.name;
@@ -476,7 +492,7 @@ class DeviceManager {
     let cachedCount = 0;
     let skippedCount = 0;
     for (const device of this.devices.values()) {
-      const isLight = device.type === "light";
+      const isLight = device.type === "devices.types.light";
       const scenesIncomplete = isLight && device.scenes.length === 0 && device.capabilities.length > 0;
       if (scenesIncomplete) {
         skippedCount++;
@@ -532,7 +548,7 @@ class DeviceManager {
         sku: lanDevice.sku,
         deviceId: lanDevice.device,
         name: `${lanDevice.sku}_${shortId}`,
-        type: "light",
+        type: "devices.types.light",
         lanIp: lanDevice.ip,
         capabilities: [],
         scenes: [],

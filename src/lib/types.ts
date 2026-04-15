@@ -20,7 +20,7 @@ export interface CloudDevice {
   device: string;
   /** User-assigned device name */
   deviceName: string;
-  /** Device category (e.g. "light") */
+  /** Device category (e.g. "devices.types.light") */
   type: string;
   /** Device capabilities from Cloud API */
   capabilities: CloudCapability[];
@@ -233,7 +233,7 @@ export interface GoveeDevice {
   deviceId: string;
   /** Display name (from Cloud or SKU fallback) */
   name: string;
-  /** Device type from Cloud (e.g. "light") */
+  /** Device type from Cloud (e.g. "devices.types.light") */
   type: string;
   /** LAN IP address if discovered */
   lanIp?: string;

@@ -575,7 +575,7 @@ describe("CapabilityMapper", () => {
                 sku: "H61BE",
                 deviceId: "AABBCCDDEEFF0011",
                 name: "Test Light",
-                type: "light",
+                type: "devices.types.light",
                 lanIp: "192.168.1.100",
                 capabilities: [],
                 scenes: [

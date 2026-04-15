@@ -17,6 +17,21 @@ import {
   type MqttStatusUpdate,
 } from "./types.js";
 
+/** Appliance device types — filtered out (handled by govee-appliances adapter) */
+const APPLIANCE_TYPES = new Set([
+  "devices.types.heater",
+  "devices.types.humidifier",
+  "devices.types.air_purifier",
+  "devices.types.fan",
+  "devices.types.dehumidifier",
+  "devices.types.thermometer",
+  "devices.types.sensor",
+  "devices.types.socket",
+  "devices.types.ice_maker",
+  "devices.types.aroma_diffuser",
+  "devices.types.kettle",
+]);
+
 /** Parsed per-segment data from MQTT BLE packets */
 export interface MqttSegmentData {
   /** Segment index (0-based) */
@@ -218,7 +233,7 @@ export class DeviceManager {
       (d) =>
         d.scenes.length === 0 &&
         d.sceneLibrary.length > 0 &&
-        d.type === "light",
+        d.type === "devices.types.light",
     );
     if (incomplete) {
       this.log.info(
@@ -256,7 +271,7 @@ export class DeviceManager {
       // Step 2: Load scenes, snapshots, and libraries for light devices
       for (const cd of cloudDevices) {
         if (
-          cd.type === "light" ||
+          cd.type === "devices.types.light" ||
           cd.capabilities.some((c) => c.type.includes("dynamic_scene"))
         ) {
           const device = this.devices.get(this.deviceKey(cd.sku, cd.device));
@@ -299,6 +314,10 @@ export class DeviceManager {
   private mergeCloudDevices(cloudDevices: CloudDevice[]): boolean {
     let changed = false;
     for (const cd of cloudDevices) {
+      // Skip appliance types — handled by govee-appliances adapter
+      if (APPLIANCE_TYPES.has(cd.type)) {
+        continue;
+      }
       const existing = this.devices.get(this.deviceKey(cd.sku, cd.device));
       if (existing) {
         existing.name = cd.deviceName || existing.name;
@@ -599,7 +618,7 @@ export class DeviceManager {
     let cachedCount = 0;
     let skippedCount = 0;
     for (const device of this.devices.values()) {
-      const isLight = device.type === "light";
+      const isLight = device.type === "devices.types.light";
       const scenesIncomplete =
         isLight && device.scenes.length === 0 && device.capabilities.length > 0;
       if (scenesIncomplete) {
@@ -663,7 +682,7 @@ export class DeviceManager {
         sku: lanDevice.sku,
         deviceId: lanDevice.device,
         name: `${lanDevice.sku}_${shortId}`,
-        type: "light",
+        type: "devices.types.light",
         lanIp: lanDevice.ip,
         capabilities: [],
         scenes: [],

@@ -5,9 +5,9 @@
 
 ## Projekt
 
-**ioBroker Govee Smart Adapter** — Steuert Govee Smart-Home-Geräte. LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig.
+**ioBroker Govee Smart Adapter** — Steuert Govee Smart Lights (LED-Strips, Lampen, Panels). LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig. Nur Lichter, keine Haushaltsgeräte.
 
-- **Version:** 1.5.0 (April 2026)
+- **Version:** 1.5.1 (April 2026)
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** https://www.npmjs.com/package/iobroker.govee-smart
 - **Runtime-Deps:** `@iobroker/adapter-core`, `@iobroker/types`, `mqtt`, `node-forge`
@@ -34,7 +34,16 @@ Jeder Kanal hat genau eine Rolle. Kein Overlap.
 
 > **MQTT ist nur Status-Push.** Commands werden über LAN oder Cloud gesendet, nie über MQTT.
 
-**Nur Lights!** Keine Appliances, Sensoren, Plugs — dafür ggf. eigener Adapter. Nur Geräte mit lokaler API. Siehe [Supported devices](https://app-h5.govee.com/user-manual/wlan-guide).
+**Nur Lights!** Keine Appliances, Sensoren, Plugs — dafür govee-appliances Adapter.
+
+## Koexistenz mit govee-appliances!
+
+Gleicher API Key → gleiches 10.000/Tag Budget. **Dynamische Erkennung** via `system.adapter.govee-appliances.0.alive`:
+- **Allein:** 8/min, 9000/day (volle Limits)
+- **Beide aktiv:** 4/min, 4500/day je Adapter (automatisch per subscribeForeignStatesAsync)
+- MQTT nutzt unique Client-IDs → parallele Verbindungen funktionieren
+- **APPLIANCE_TYPES** in device-manager.ts filtert Appliance-Geräte raus (Heater, Fan, etc.)
+- **Device Type Format:** Immer `"devices.types.light"` (mit Prefix), nie `"light"` allein
 
 ## Credential-Stufen (graceful degradation)
 
@@ -212,7 +221,7 @@ Single Page, drei Sektionen:
 - **info:** Nur Start, Verbindungen, Ready-Summary, Snapshot-Ops
 - **MQTT:** Erstverbindung = info, Reconnect-Versuche = debug, Restored = info
 
-## Tests (352)
+## Tests (354)
 
 ```
 test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping + Quirks + Groups (48 Tests)
@@ -252,7 +261,7 @@ test/testLanClient.ts        → LAN Client BLE Packet Builder (33 Tests)
   - buildSegmentColorPacket: header, verified segment 5 green, segments 3+4+5 blue, segments 10+11+12 red, checksum (5)
   - buildSegmentBrightnessPacket: header, verified segment 5 30%, clamp, checksum (4)
   - applySceneSpeed: single page, multi-page, no match, empty/invalid, out-of-range (5)
-test/testRateLimiter.ts      → Rate Limiter (9 Tests)
+test/testRateLimiter.ts      → Rate Limiter (11 Tests)
   - Limits, daily usage, queueing, priority sorting, stop/clear, counter tracking
 test/testSkuCache.ts         → SKU Cache (12 Tests)
   - Create dir, empty cache, save/loadAll, overwrite, separate devices, same SKU, loadAll, clear, corrupt, normalized ID, libraries, null features
@@ -281,11 +290,11 @@ test/testPackageFiles.ts     → @iobroker/testing (57 Tests)
 
 | Version | Highlights |
 |---------|------------|
+| 1.5.1 | Fix Device-Type-Matching (Szenen nur via Fallback geladen), dynamische Rate-Limit-Aufteilung, Non-Light-Filter, 354 Tests |
 | 1.5.0 | Lokale Segment-Steuerung (ptReal 33 05 15), Scene Variants (A/B/C/D), Snapshot ptReal, Scene Speed, Local Snapshot Segments, 352 Tests |
 | 1.4.1 | Fix fetchGroupMembers API-Feldnamen (gId/name statt groupId/groupName), Bearer-Token Pre-Check |
 | 1.4.0 | Group Fan-Out Redesign (LAN/ptReal statt Cloud), info.members, membersUnreachable, 327 Tests |
 | 1.3.0 | MQTT Segment State-Sync, Scene Speed entfernt, Dead-Code-Audit (8 Findings), 314 Tests |
-| 1.2.0 | Fix Segment-Farben (ptReal→Cloud), Dropdown-Reset bei Moduswechsel, Groups Online vereinfacht, 308 Tests |
 
 ## Befehle
 

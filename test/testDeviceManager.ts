@@ -33,7 +33,7 @@ function createTestDevice(overrides: Partial<GoveeDevice> = {}): GoveeDevice {
         sku: "H6160",
         deviceId: "AABBCCDDEEFF0011",
         name: "Test Light",
-        type: "light",
+        type: "devices.types.light",
         lanIp: "192.168.1.100",
         capabilities: lightCapabilities(),
         scenes: [

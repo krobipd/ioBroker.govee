@@ -21,7 +21,7 @@ function createTestData(
     sku,
     deviceId,
     name: "Test Light",
-    type: "light",
+    type: "devices.types.light",
     capabilities: [
       {
         type: "devices.capabilities.on_off",
