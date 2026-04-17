@@ -117,9 +117,9 @@ export class GoveeCloudClient {
 
     for (const cap of resp.payload?.capabilities ?? []) {
       this.log.debug(
-        `Scenes endpoint: instance=${cap.instance}, options=${cap.parameters.options?.length ?? 0}`,
+        `Scenes endpoint: instance=${cap.instance}, options=${cap.parameters?.options?.length ?? 0}`,
       );
-      const opts = cap.parameters.options ?? [];
+      const opts = cap.parameters?.options ?? [];
       const mapped: CloudScene[] = opts
         .filter(
           (o): o is { name: string; value: Record<string, unknown> } =>
@@ -161,9 +161,9 @@ export class GoveeCloudClient {
     const scenes: CloudScene[] = [];
     for (const cap of resp.payload?.capabilities ?? []) {
       this.log.debug(
-        `DIY-Scenes endpoint: instance=${cap.instance}, options=${cap.parameters.options?.length ?? 0}`,
+        `DIY-Scenes endpoint: instance=${cap.instance}, options=${cap.parameters?.options?.length ?? 0}`,
       );
-      const opts = cap.parameters.options ?? [];
+      const opts = cap.parameters?.options ?? [];
       scenes.push(
         ...opts
           .filter(

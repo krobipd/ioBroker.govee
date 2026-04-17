@@ -141,7 +141,9 @@ export class LocalSnapshotStore {
    * @param deviceId Device identifier
    */
   private snapshotFile(sku: string, deviceId: string): string {
-    const shortId = deviceId.replace(/:/g, "").toLowerCase().slice(-4);
-    return path.join(this.dir, `${sku.toLowerCase()}_${shortId}.json`);
+    const safeSku = typeof sku === "string" ? sku : "";
+    const safeId = typeof deviceId === "string" ? deviceId : "";
+    const shortId = safeId.replace(/:/g, "").toLowerCase().slice(-4);
+    return path.join(this.dir, `${safeSku.toLowerCase()}_${shortId}.json`);
   }
 }

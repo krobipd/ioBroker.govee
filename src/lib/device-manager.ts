@@ -270,9 +270,15 @@ export class DeviceManager {
 
       // Step 2: Load scenes, snapshots, and libraries for light devices
       for (const cd of cloudDevices) {
+        const caps = Array.isArray(cd.capabilities) ? cd.capabilities : [];
         if (
           cd.type === "devices.types.light" ||
-          cd.capabilities.some((c) => c.type.includes("dynamic_scene"))
+          caps.some(
+            (c) =>
+              c &&
+              typeof c.type === "string" &&
+              c.type.includes("dynamic_scene"),
+          )
         ) {
           const device = this.devices.get(this.deviceKey(cd.sku, cd.device));
           if (device) {
@@ -313,7 +319,14 @@ export class DeviceManager {
    */
   private mergeCloudDevices(cloudDevices: CloudDevice[]): boolean {
     let changed = false;
+    if (!Array.isArray(cloudDevices)) {
+      return false;
+    }
     for (const cd of cloudDevices) {
+      // Defensive guard against malformed cloud entries
+      if (!cd || typeof cd.sku !== "string" || typeof cd.device !== "string") {
+        continue;
+      }
       // Skip appliance types — handled by govee-appliances adapter
       if (APPLIANCE_TYPES.has(cd.type)) {
         continue;
@@ -321,7 +334,9 @@ export class DeviceManager {
       const existing = this.devices.get(this.deviceKey(cd.sku, cd.device));
       if (existing) {
         existing.name = cd.deviceName || existing.name;
-        existing.capabilities = cd.capabilities;
+        existing.capabilities = Array.isArray(cd.capabilities)
+          ? cd.capabilities
+          : [];
         existing.type = cd.type;
         existing.channels.cloud = true;
       } else {
@@ -399,16 +414,19 @@ export class DeviceManager {
 
     // Snapshots from device capabilities (fallback)
     if (device.snapshots.length === 0) {
-      const snapCap = cd.capabilities.find(
+      const caps = Array.isArray(cd.capabilities) ? cd.capabilities : [];
+      const snapCap = caps.find(
         (c) =>
+          c &&
           c.type === "devices.capabilities.dynamic_scene" &&
           c.instance === "snapshot" &&
-          c.parameters.options,
+          Array.isArray(c.parameters?.options),
       );
-      if (snapCap?.parameters.options) {
+      if (snapCap?.parameters?.options) {
         device.snapshots = snapCap.parameters.options
           .filter(
             (o) =>
+              o &&
               typeof o.name === "string" &&
               o.value !== undefined &&
               o.value !== null,
@@ -870,7 +888,7 @@ export class DeviceManager {
       deviceId: cd.device,
       name: cd.deviceName || cd.sku,
       type: cd.type || "unknown",
-      capabilities: cd.capabilities,
+      capabilities: Array.isArray(cd.capabilities) ? cd.capabilities : [],
       scenes: [],
       diyScenes: [],
       snapshots: [],

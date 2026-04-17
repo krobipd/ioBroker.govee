@@ -18,6 +18,23 @@ describe("Types utilities", () => {
         it("should handle empty string", () => {
             expect(normalizeDeviceId("")).to.equal("");
         });
+
+        it("should return empty string for undefined input", () => {
+            expect(normalizeDeviceId(undefined as unknown as string)).to.equal("");
+        });
+
+        it("should return empty string for null input", () => {
+            expect(normalizeDeviceId(null as unknown as string)).to.equal("");
+        });
+
+        it("should return empty string for number input", () => {
+            expect(normalizeDeviceId(12345 as unknown as string)).to.equal("");
+        });
+
+        it("should not throw on object input", () => {
+            expect(() => normalizeDeviceId({} as unknown as string)).to.not.throw();
+            expect(normalizeDeviceId({} as unknown as string)).to.equal("");
+        });
     });
 
     describe("rgbToHex", () => {

@@ -27,8 +27,26 @@ __export(capability_mapper_exports, {
 module.exports = __toCommonJS(capability_mapper_exports);
 var import_types = require("./types.js");
 var import_device_quirks = require("./device-quirks.js");
+function coerceBool(v) {
+  return v === true || v === 1 || v === "1" || v === "true";
+}
+function coerceNum(v) {
+  if (typeof v === "number" && Number.isFinite(v)) {
+    return v;
+  }
+  if (typeof v === "string" && v.trim() !== "") {
+    const n = Number(v);
+    if (Number.isFinite(n)) {
+      return n;
+    }
+  }
+  return null;
+}
 function mapCapabilities(capabilities) {
   const states = [];
+  if (!Array.isArray(capabilities)) {
+    return states;
+  }
   for (const cap of capabilities) {
     const mapped = mapSingleCapability(cap);
     if (mapped) {
@@ -88,6 +106,9 @@ function getDefaultLanStates() {
   ];
 }
 function mapSingleCapability(cap) {
+  if (!cap || typeof cap.type !== "string" || typeof cap.instance !== "string") {
+    return null;
+  }
   const shortType = cap.type.replace("devices.capabilities.", "");
   switch (shortType) {
     case "on_off":
@@ -163,8 +184,8 @@ function mapSingleCapability(cap) {
   }
 }
 function mapRange(cap) {
-  var _a, _b, _c;
-  const range = cap.parameters.range;
+  var _a, _b, _c, _d, _e;
+  const range = (_a = cap.parameters) == null ? void 0 : _a.range;
   const isBrightness = cap.instance.toLowerCase().includes("brightness");
   return [
     {
@@ -173,17 +194,17 @@ function mapRange(cap) {
       type: "number",
       role: isBrightness ? "level.brightness" : "level",
       write: true,
-      min: (_a = range == null ? void 0 : range.min) != null ? _a : 0,
-      max: (_b = range == null ? void 0 : range.max) != null ? _b : 100,
-      unit: normalizeUnit(cap.parameters.unit),
-      def: (_c = range == null ? void 0 : range.min) != null ? _c : 0,
+      min: (_b = range == null ? void 0 : range.min) != null ? _b : 0,
+      max: (_c = range == null ? void 0 : range.max) != null ? _c : 100,
+      unit: normalizeUnit((_d = cap.parameters) == null ? void 0 : _d.unit),
+      def: (_e = range == null ? void 0 : range.min) != null ? _e : 0,
       capabilityType: cap.type,
       capabilityInstance: cap.instance
     }
   ];
 }
 function mapColorSetting(cap) {
-  var _a, _b, _c;
+  var _a, _b, _c, _d;
   if (cap.instance === "colorRgb") {
     return [
       {
@@ -199,7 +220,7 @@ function mapColorSetting(cap) {
     ];
   }
   if (cap.instance === "colorTemperatureK" || cap.instance.includes("colorTem")) {
-    const range = cap.parameters.range;
+    const range = (_a = cap.parameters) == null ? void 0 : _a.range;
     return [
       {
         id: "colorTemperature",
@@ -207,10 +228,10 @@ function mapColorSetting(cap) {
         type: "number",
         role: "level.color.temperature",
         write: true,
-        min: (_a = range == null ? void 0 : range.min) != null ? _a : 2e3,
-        max: (_b = range == null ? void 0 : range.max) != null ? _b : 9e3,
+        min: (_b = range == null ? void 0 : range.min) != null ? _b : 2e3,
+        max: (_c = range == null ? void 0 : range.max) != null ? _c : 9e3,
         unit: "K",
-        def: (_c = range == null ? void 0 : range.min) != null ? _c : 2e3,
+        def: (_d = range == null ? void 0 : range.min) != null ? _d : 2e3,
         capabilityType: cap.type,
         capabilityInstance: cap.instance
       }
@@ -219,11 +240,15 @@ function mapColorSetting(cap) {
   return [];
 }
 function mapMode(cap) {
-  if (cap.instance !== "presetScene" || !cap.parameters.options) {
+  var _a;
+  if (cap.instance !== "presetScene" || !Array.isArray((_a = cap.parameters) == null ? void 0 : _a.options)) {
     return [];
   }
   const states = {};
   for (const opt of cap.parameters.options) {
+    if (!opt || typeof opt.name !== "string") {
+      continue;
+    }
     const val = typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value);
     states[val] = opt.name;
   }
@@ -242,7 +267,7 @@ function mapMode(cap) {
   ];
 }
 function mapProperty(cap) {
-  var _a;
+  var _a, _b;
   const instance = cap.instance.toLowerCase();
   let role = "value";
   let unit;
@@ -266,22 +291,28 @@ function mapProperty(cap) {
       type: "number",
       role,
       write: false,
-      unit: (_a = normalizeUnit(cap.parameters.unit)) != null ? _a : unit,
+      unit: (_b = normalizeUnit((_a = cap.parameters) == null ? void 0 : _a.unit)) != null ? _b : unit,
       capabilityType: cap.type,
       capabilityInstance: cap.instance
     }
   ];
 }
 function mapMusicSetting(cap) {
-  const fields = cap.parameters.fields;
-  if (!fields || fields.length === 0) {
+  var _a;
+  const fields = (_a = cap.parameters) == null ? void 0 : _a.fields;
+  if (!Array.isArray(fields) || fields.length === 0) {
     return [];
   }
   const states = [];
-  const modeField = fields.find((f) => f.fieldName === "musicMode");
-  if ((modeField == null ? void 0 : modeField.options) && modeField.options.length > 0) {
+  const modeField = fields.find(
+    (f) => f && typeof f.fieldName === "string" && f.fieldName === "musicMode"
+  );
+  if ((modeField == null ? void 0 : modeField.options) && Array.isArray(modeField.options) && modeField.options.length > 0) {
     const modeStates = { 0: "---" };
     for (const opt of modeField.options) {
+      if (!opt || typeof opt.name !== "string") {
+        continue;
+      }
       modeStates[typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value)] = opt.name;
     }
     states.push({
@@ -296,7 +327,9 @@ function mapMusicSetting(cap) {
       capabilityInstance: cap.instance
     });
   }
-  const sensField = fields.find((f) => f.fieldName === "sensitivity");
+  const sensField = fields.find(
+    (f) => f && typeof f.fieldName === "string" && f.fieldName === "sensitivity"
+  );
   if (sensField == null ? void 0 : sensField.range) {
     states.push({
       id: "music_sensitivity",
@@ -312,7 +345,9 @@ function mapMusicSetting(cap) {
       capabilityInstance: cap.instance
     });
   }
-  const autoColorField = fields.find((f) => f.fieldName === "autoColor");
+  const autoColorField = fields.find(
+    (f) => f && typeof f.fieldName === "string" && f.fieldName === "autoColor"
+  );
   if (autoColorField) {
     states.push({
       id: "music_auto_color",
@@ -361,7 +396,10 @@ function humanize(str) {
   return str.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 function mapCloudStateValue(cap) {
-  var _a;
+  var _a, _b;
+  if (!cap || typeof cap.type !== "string" || typeof cap.instance !== "string") {
+    return null;
+  }
   const shortType = cap.type.replace("devices.capabilities.", "");
   const raw = (_a = cap.state) == null ? void 0 : _a.value;
   if (raw === void 0 || raw === null) {
@@ -369,23 +407,32 @@ function mapCloudStateValue(cap) {
   }
   switch (shortType) {
     case "on_off":
-      return { stateId: "power", value: raw === 1 };
-    case "range":
-      return { stateId: sanitizeId(cap.instance), value: raw };
+      return { stateId: "power", value: coerceBool(raw) };
+    case "range": {
+      const n = coerceNum(raw);
+      if (n === null) {
+        return null;
+      }
+      return { stateId: sanitizeId(cap.instance), value: n };
+    }
     case "color_setting":
       if (cap.instance === "colorRgb") {
-        const num = typeof raw === "number" ? raw : 0;
+        const num = (_b = coerceNum(raw)) != null ? _b : 0;
         return {
           stateId: "colorRgb",
           value: (0, import_types.rgbToHex)(num >> 16 & 255, num >> 8 & 255, num & 255)
         };
       }
       if (cap.instance.includes("colorTem")) {
-        return { stateId: "colorTemperature", value: raw };
+        const n = coerceNum(raw);
+        if (n === null) {
+          return null;
+        }
+        return { stateId: "colorTemperature", value: n };
       }
       return null;
     case "toggle":
-      return { stateId: sanitizeId(cap.instance), value: raw === 1 };
+      return { stateId: sanitizeId(cap.instance), value: coerceBool(raw) };
     case "mode":
       if (cap.instance === "presetScene") {
         return {
@@ -404,15 +451,20 @@ function mapCloudStateValue(cap) {
     case "music_setting":
       if (typeof raw === "object" && raw !== null) {
         const struct = raw;
-        const mode = struct.musicMode;
+        const mode = coerceNum(struct.musicMode);
         return {
           stateId: "music_mode",
-          value: typeof mode === "number" ? String(mode) : "0"
+          value: mode !== null ? String(mode) : "0"
         };
       }
       return null;
-    case "property":
-      return { stateId: sanitizeId(cap.instance), value: raw };
+    case "property": {
+      const n = coerceNum(raw);
+      if (n === null) {
+        return null;
+      }
+      return { stateId: sanitizeId(cap.instance), value: n };
+    }
     default:
       return null;
   }
@@ -592,20 +644,23 @@ function memberHasControlState(member, stateId) {
   if (member.lanIp) {
     return true;
   }
+  const caps = Array.isArray(member.capabilities) ? member.capabilities : [];
   switch (stateId) {
     case "power":
-      return member.capabilities.some((c) => c.type.endsWith("on_off"));
+      return caps.some(
+        (c) => c && typeof c.type === "string" && c.type.endsWith("on_off")
+      );
     case "brightness":
-      return member.capabilities.some(
-        (c) => c.type.endsWith("range") && c.instance === "brightness"
+      return caps.some(
+        (c) => c && typeof c.type === "string" && typeof c.instance === "string" && c.type.endsWith("range") && c.instance === "brightness"
       );
     case "colorRgb":
-      return member.capabilities.some(
-        (c) => c.type.endsWith("color_setting") && c.instance === "colorRgb"
+      return caps.some(
+        (c) => c && typeof c.type === "string" && typeof c.instance === "string" && c.type.endsWith("color_setting") && c.instance === "colorRgb"
       );
     case "colorTemperature":
-      return member.capabilities.some(
-        (c) => c.type.endsWith("color_setting") && (c.instance === "colorTem" || c.instance === "colorTemperatureK")
+      return caps.some(
+        (c) => c && typeof c.type === "string" && typeof c.instance === "string" && c.type.endsWith("color_setting") && (c.instance === "colorTem" || c.instance === "colorTemperatureK")
       );
     default:
       return false;

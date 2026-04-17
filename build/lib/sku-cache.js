@@ -109,8 +109,10 @@ class SkuCache {
    * @param deviceId Device identifier
    */
   cacheFile(sku, deviceId) {
-    const shortId = deviceId.replace(/:/g, "").toLowerCase().slice(-4);
-    return path.join(this.cacheDir, `${sku.toLowerCase()}_${shortId}.json`);
+    const safeSku = typeof sku === "string" ? sku : "";
+    const safeId = typeof deviceId === "string" ? deviceId : "";
+    const shortId = safeId.replace(/:/g, "").toLowerCase().slice(-4);
+    return path.join(this.cacheDir, `${safeSku.toLowerCase()}_${shortId}.json`);
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

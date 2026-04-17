@@ -209,7 +209,10 @@ class DeviceManager {
       const cloudDevices = await this.cloudClient.getDevices();
       let changed = this.mergeCloudDevices(cloudDevices);
       for (const cd of cloudDevices) {
-        if (cd.type === "devices.types.light" || cd.capabilities.some((c) => c.type.includes("dynamic_scene"))) {
+        const caps = Array.isArray(cd.capabilities) ? cd.capabilities : [];
+        if (cd.type === "devices.types.light" || caps.some(
+          (c) => c && typeof c.type === "string" && c.type.includes("dynamic_scene")
+        )) {
           const device = this.devices.get(this.deviceKey(cd.sku, cd.device));
           if (device) {
             if (await this.loadDeviceScenes(device, cd)) {
@@ -244,14 +247,20 @@ class DeviceManager {
    */
   mergeCloudDevices(cloudDevices) {
     let changed = false;
+    if (!Array.isArray(cloudDevices)) {
+      return false;
+    }
     for (const cd of cloudDevices) {
+      if (!cd || typeof cd.sku !== "string" || typeof cd.device !== "string") {
+        continue;
+      }
       if (APPLIANCE_TYPES.has(cd.type)) {
         continue;
       }
       const existing = this.devices.get(this.deviceKey(cd.sku, cd.device));
       if (existing) {
         existing.name = cd.deviceName || existing.name;
-        existing.capabilities = cd.capabilities;
+        existing.capabilities = Array.isArray(cd.capabilities) ? cd.capabilities : [];
         existing.type = cd.type;
         existing.channels.cloud = true;
       } else {
@@ -277,6 +286,7 @@ class DeviceManager {
    * @returns true if any scene data changed
    */
   async loadDeviceScenes(device, cd) {
+    var _a;
     let changed = false;
     const loadScenes = async () => {
       try {
@@ -310,12 +320,16 @@ class DeviceManager {
       await this.commandRouter.executeRateLimited(loadDiy, 2);
     }
     if (device.snapshots.length === 0) {
-      const snapCap = cd.capabilities.find(
-        (c) => c.type === "devices.capabilities.dynamic_scene" && c.instance === "snapshot" && c.parameters.options
+      const caps = Array.isArray(cd.capabilities) ? cd.capabilities : [];
+      const snapCap = caps.find(
+        (c) => {
+          var _a2;
+          return c && c.type === "devices.capabilities.dynamic_scene" && c.instance === "snapshot" && Array.isArray((_a2 = c.parameters) == null ? void 0 : _a2.options);
+        }
       );
-      if (snapCap == null ? void 0 : snapCap.parameters.options) {
+      if ((_a = snapCap == null ? void 0 : snapCap.parameters) == null ? void 0 : _a.options) {
         device.snapshots = snapCap.parameters.options.filter(
-          (o) => typeof o.name === "string" && o.value !== void 0 && o.value !== null
+          (o) => o && typeof o.name === "string" && o.value !== void 0 && o.value !== null
         ).map((o) => ({
           name: o.name,
           value: typeof o.value === "number" ? o.value : o.value
@@ -694,7 +708,7 @@ class DeviceManager {
       deviceId: cd.device,
       name: cd.deviceName || cd.sku,
       type: cd.type || "unknown",
-      capabilities: cd.capabilities,
+      capabilities: Array.isArray(cd.capabilities) ? cd.capabilities : [],
       scenes: [],
       diyScenes: [],
       snapshots: [],

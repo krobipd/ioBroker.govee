@@ -175,4 +175,18 @@ describe("SkuCache", () => {
     const loaded = cache.loadAll()[0];
     expect(loaded.skuFeatures).to.be.null;
   });
+
+  it("should not throw when deviceId is non-string", () => {
+    const cache = new SkuCache(dir, mockLog);
+    const data = createTestData();
+    (data as unknown as { deviceId: unknown }).deviceId = 12345;
+    expect(() => cache.save(data)).to.not.throw();
+  });
+
+  it("should not throw when sku is non-string", () => {
+    const cache = new SkuCache(dir, mockLog);
+    const data = createTestData();
+    (data as unknown as { sku: unknown }).sku = null;
+    expect(() => cache.save(data)).to.not.throw();
+  });
 });

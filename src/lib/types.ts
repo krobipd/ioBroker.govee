@@ -32,8 +32,8 @@ export interface CloudCapability {
   type: string;
   /** Capability instance (e.g. "powerSwitch", "brightness") */
   instance: string;
-  /** Parameter definition for this capability */
-  parameters: CapabilityParameters;
+  /** Parameter definition for this capability (optional — API can omit it) */
+  parameters?: CapabilityParameters;
 }
 
 /** Parameter definition for a capability */
@@ -322,11 +322,15 @@ export interface DeviceState {
 }
 
 /**
- * Normalize device ID — remove colons, lowercase
+ * Normalize device ID — remove colons, lowercase.
+ * Returns empty string if input is not a string (defensive against malformed API data).
  *
  * @param id Raw device identifier
  */
 export function normalizeDeviceId(id: string): string {
+  if (typeof id !== "string") {
+    return "";
+  }
   return id.replace(/:/g, "").toLowerCase();
 }
 

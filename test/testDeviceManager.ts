@@ -777,6 +777,75 @@ describe("DeviceManager", () => {
             const result = (dm as any).commandRouter.findCapabilityForCommand(emptyDevice, "power");
             expect(result).to.be.undefined;
         });
+
+        it("should not throw when capabilities is non-array", () => {
+            const badDevice = createTestDevice({
+                capabilities: undefined as unknown as CloudCapability[],
+            });
+            expect(() => (dm as any).commandRouter.findCapabilityForCommand(badDevice, "power")).to.not.throw();
+            const result = (dm as any).commandRouter.findCapabilityForCommand(badDevice, "power");
+            expect(result).to.be.undefined;
+        });
+
+        it("should skip malformed capability entries", () => {
+            const badDevice = createTestDevice({
+                capabilities: [
+                    null,
+                    { type: null, instance: "foo" },
+                    { type: "devices.capabilities.on_off", instance: 42 },
+                    { type: "devices.capabilities.on_off", instance: "powerSwitch", parameters: { dataType: "ENUM" } },
+                ] as unknown as CloudCapability[],
+            });
+            expect(() => (dm as any).commandRouter.findCapabilityForCommand(badDevice, "power")).to.not.throw();
+            const result = (dm as any).commandRouter.findCapabilityForCommand(badDevice, "power");
+            expect(result).to.not.be.undefined;
+            expect(result.instance).to.equal("powerSwitch");
+        });
+    });
+
+    describe("Drift: malformed cloud device list", () => {
+        it("mergeCloudDevices should skip devices with non-string sku", () => {
+            const bad = [
+                { sku: null, device: "abc", deviceName: "x", type: "devices.types.light", capabilities: [] },
+                { sku: "H6160", device: "good123", deviceName: "Good", type: "devices.types.light", capabilities: [] },
+            ];
+            expect(() => (dm as any).mergeCloudDevices(bad)).to.not.throw();
+            (dm as any).mergeCloudDevices(bad);
+            const devices = dm.getDevices();
+            const skus = devices.map((d) => d.sku);
+            expect(skus).to.include("H6160");
+            expect(skus).to.not.include(null);
+        });
+
+        it("mergeCloudDevices should skip devices with non-string device id", () => {
+            const bad = [
+                { sku: "H6160", device: 123, deviceName: "x", type: "devices.types.light", capabilities: [] },
+            ];
+            expect(() => (dm as any).mergeCloudDevices(bad)).to.not.throw();
+        });
+
+        it("mergeCloudDevices should not throw when capabilities is non-array", () => {
+            const bad = [
+                { sku: "H6160", device: "abc", deviceName: "x", type: "devices.types.light", capabilities: "oops" },
+            ];
+            expect(() => (dm as any).mergeCloudDevices(bad)).to.not.throw();
+            const devices = dm.getDevices();
+            const dev = devices.find((d) => d.sku === "H6160");
+            if (dev) {
+                expect(Array.isArray(dev.capabilities)).to.be.true;
+            }
+        });
+
+        it("mergeCloudDevices should not throw when cloudDevices is non-array", () => {
+            expect(() => (dm as any).mergeCloudDevices(null)).to.not.throw();
+            expect(() => (dm as any).mergeCloudDevices(undefined)).to.not.throw();
+            expect(() => (dm as any).mergeCloudDevices({} as any)).to.not.throw();
+        });
+
+        it("mergeCloudDevices should skip null entries", () => {
+            const bad = [null, undefined, { sku: "H6160", device: "abc", deviceName: "x", type: "devices.types.light", capabilities: [] }];
+            expect(() => (dm as any).mergeCloudDevices(bad)).to.not.throw();
+        });
     });
 
     describe("logDedup", () => {

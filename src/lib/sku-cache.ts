@@ -139,7 +139,9 @@ export class SkuCache {
    * @param deviceId Device identifier
    */
   private cacheFile(sku: string, deviceId: string): string {
-    const shortId = deviceId.replace(/:/g, "").toLowerCase().slice(-4);
-    return path.join(this.cacheDir, `${sku.toLowerCase()}_${shortId}.json`);
+    const safeSku = typeof sku === "string" ? sku : "";
+    const safeId = typeof deviceId === "string" ? deviceId : "";
+    const shortId = safeId.replace(/:/g, "").toLowerCase().slice(-4);
+    return path.join(this.cacheDir, `${safeSku.toLowerCase()}_${shortId}.json`);
   }
 }

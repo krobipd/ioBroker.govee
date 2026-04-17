@@ -92,7 +92,7 @@ class GoveeCloudClient {
    * @param device Device identifier
    */
   async getScenes(sku, device) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g;
     const resp = await this.request(
       "POST",
       "/router/api/v1/device/scenes",
@@ -106,9 +106,9 @@ class GoveeCloudClient {
     const snapshots = [];
     for (const cap of (_b = (_a = resp.payload) == null ? void 0 : _a.capabilities) != null ? _b : []) {
       this.log.debug(
-        `Scenes endpoint: instance=${cap.instance}, options=${(_d = (_c = cap.parameters.options) == null ? void 0 : _c.length) != null ? _d : 0}`
+        `Scenes endpoint: instance=${cap.instance}, options=${(_e = (_d = (_c = cap.parameters) == null ? void 0 : _c.options) == null ? void 0 : _d.length) != null ? _e : 0}`
       );
-      const opts = (_e = cap.parameters.options) != null ? _e : [];
+      const opts = (_g = (_f = cap.parameters) == null ? void 0 : _f.options) != null ? _g : [];
       const mapped = opts.filter(
         (o) => typeof o.name === "string" && typeof o.value === "object"
       ).map((o) => ({
@@ -132,7 +132,7 @@ class GoveeCloudClient {
    * @param device Device identifier
    */
   async getDiyScenes(sku, device) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g;
     const resp = await this.request(
       "POST",
       "/router/api/v1/device/diy-scenes",
@@ -144,9 +144,9 @@ class GoveeCloudClient {
     const scenes = [];
     for (const cap of (_b = (_a = resp.payload) == null ? void 0 : _a.capabilities) != null ? _b : []) {
       this.log.debug(
-        `DIY-Scenes endpoint: instance=${cap.instance}, options=${(_d = (_c = cap.parameters.options) == null ? void 0 : _c.length) != null ? _d : 0}`
+        `DIY-Scenes endpoint: instance=${cap.instance}, options=${(_e = (_d = (_c = cap.parameters) == null ? void 0 : _c.options) == null ? void 0 : _d.length) != null ? _e : 0}`
       );
-      const opts = (_e = cap.parameters.options) != null ? _e : [];
+      const opts = (_g = (_f = cap.parameters) == null ? void 0 : _f.options) != null ? _g : [];
       scenes.push(
         ...opts.filter(
           (o) => typeof o.name === "string" && typeof o.value === "object"

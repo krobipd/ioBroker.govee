@@ -720,4 +720,307 @@ describe("CapabilityMapper", () => {
             expect(result).to.have.lengthOf(0);
         });
     });
+
+    describe("Drift: API schema violations", () => {
+        describe("mapCapabilities non-array / malformed input", () => {
+            it("should return empty for non-array input", () => {
+                const result = mapCapabilities(undefined as unknown as CloudCapability[]);
+                expect(result).to.deep.equal([]);
+            });
+
+            it("should return empty for null input", () => {
+                const result = mapCapabilities(null as unknown as CloudCapability[]);
+                expect(result).to.deep.equal([]);
+            });
+
+            it("should return empty for object-instead-of-array", () => {
+                const result = mapCapabilities({} as unknown as CloudCapability[]);
+                expect(result).to.deep.equal([]);
+            });
+
+            it("should skip capability with non-string type", () => {
+                const caps = [
+                    { type: null, instance: "foo", parameters: {} },
+                ] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                expect(mapCapabilities(caps)).to.deep.equal([]);
+            });
+
+            it("should skip capability with non-string instance", () => {
+                const caps = [
+                    { type: "devices.capabilities.on_off", instance: 42, parameters: {} },
+                ] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                expect(mapCapabilities(caps)).to.deep.equal([]);
+            });
+
+            it("should skip null/undefined capability entries", () => {
+                const caps = [null, undefined] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                expect(mapCapabilities(caps)).to.deep.equal([]);
+            });
+        });
+
+        describe("missing parameters field (Cloud API drift)", () => {
+            it("mapRange should not throw when parameters is missing", () => {
+                const caps = [
+                    { type: "devices.capabilities.range", instance: "brightness" },
+                ] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                const result = mapCapabilities(caps);
+                expect(result).to.have.lengthOf(1);
+                expect(result[0].min).to.equal(0);
+                expect(result[0].max).to.equal(100);
+            });
+
+            it("mapColorSetting colorTem should not throw when parameters is missing", () => {
+                const caps = [
+                    { type: "devices.capabilities.color_setting", instance: "colorTemperatureK" },
+                ] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                const result = mapCapabilities(caps);
+                expect(result).to.have.lengthOf(1);
+                expect(result[0].min).to.equal(2000);
+                expect(result[0].max).to.equal(9000);
+            });
+
+            it("mapMode should return empty when parameters is missing", () => {
+                const caps = [
+                    { type: "devices.capabilities.mode", instance: "presetScene" },
+                ] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                expect(mapCapabilities(caps)).to.deep.equal([]);
+            });
+
+            it("mapMode should return empty when options is not an array", () => {
+                const caps = [
+                    {
+                        type: "devices.capabilities.mode",
+                        instance: "presetScene",
+                        parameters: { dataType: "ENUM", options: "not-an-array" },
+                    },
+                ] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                expect(mapCapabilities(caps)).to.deep.equal([]);
+            });
+
+            it("mapProperty should not throw when parameters is missing", () => {
+                const caps = [
+                    { type: "devices.capabilities.property", instance: "sensorTemperature" },
+                ] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                const result = mapCapabilities(caps);
+                expect(result).to.have.lengthOf(1);
+                expect(result[0].unit).to.equal("°C");
+            });
+
+            it("mapMusicSetting should return empty when parameters is missing", () => {
+                const caps = [
+                    { type: "devices.capabilities.music_setting", instance: "musicMode" },
+                ] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                expect(mapCapabilities(caps)).to.deep.equal([]);
+            });
+
+            it("mapMusicSetting should return empty when fields is non-array", () => {
+                const caps = [
+                    {
+                        type: "devices.capabilities.music_setting",
+                        instance: "musicMode",
+                        parameters: { dataType: "STRUCT", fields: "oops" },
+                    },
+                ] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                expect(mapCapabilities(caps)).to.deep.equal([]);
+            });
+
+            it("mapMusicSetting should skip fields with non-string fieldName", () => {
+                const caps = [
+                    {
+                        type: "devices.capabilities.music_setting",
+                        instance: "musicMode",
+                        parameters: {
+                            dataType: "STRUCT",
+                            fields: [
+                                { fieldName: null, options: [{ name: "x", value: 1 }] },
+                                { fieldName: 123, range: { min: 0, max: 100, precision: 1 } },
+                            ],
+                        },
+                    },
+                ] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                expect(mapCapabilities(caps)).to.deep.equal([]);
+            });
+
+            it("mapMode should skip options with non-string name", () => {
+                const caps = [
+                    {
+                        type: "devices.capabilities.mode",
+                        instance: "presetScene",
+                        parameters: {
+                            dataType: "ENUM",
+                            options: [
+                                { name: "Valid", value: 1 },
+                                { name: 999, value: 2 },
+                                { name: null, value: 3 },
+                            ],
+                        },
+                    },
+                ] as unknown as CloudCapability[];
+                expect(() => mapCapabilities(caps)).to.not.throw();
+                const result = mapCapabilities(caps);
+                expect(result).to.have.lengthOf(1);
+                expect(Object.values(result[0].states!)).to.include("Valid");
+                expect(Object.values(result[0].states!)).to.not.include("999");
+            });
+        });
+
+        describe("mapCloudStateValue coercion and drift", () => {
+            it("should coerce on_off raw='1' (string) to true", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.on_off",
+                    instance: "powerSwitch",
+                    state: { value: "1" as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result!.value).to.be.true;
+            });
+
+            it("should coerce on_off raw='true' to true", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.on_off",
+                    instance: "powerSwitch",
+                    state: { value: "true" as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result!.value).to.be.true;
+            });
+
+            it("should coerce on_off raw='0' to false", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.on_off",
+                    instance: "powerSwitch",
+                    state: { value: "0" as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result!.value).to.be.false;
+            });
+
+            it("should coerce toggle raw='1' to true", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.toggle",
+                    instance: "gradientToggle",
+                    state: { value: "1" as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result!.value).to.be.true;
+            });
+
+            it("should coerce range numeric-string to number", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.range",
+                    instance: "brightness",
+                    state: { value: "75" as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result!.value).to.equal(75);
+            });
+
+            it("should return null for range non-numeric string", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.range",
+                    instance: "brightness",
+                    state: { value: "abc" as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result).to.be.null;
+            });
+
+            it("should coerce colorTemperature numeric-string to number", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.color_setting",
+                    instance: "colorTemperatureK",
+                    state: { value: "5000" as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result!.value).to.equal(5000);
+            });
+
+            it("should coerce property numeric-string to number", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.property",
+                    instance: "sensorTemperature",
+                    state: { value: "22.5" as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result!.value).to.equal(22.5);
+            });
+
+            it("should return null for property garbage string", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.property",
+                    instance: "sensorTemperature",
+                    state: { value: "garbage" as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result).to.be.null;
+            });
+
+            it("should return null when cap.type is non-string", () => {
+                const cap = {
+                    type: null,
+                    instance: "powerSwitch",
+                    state: { value: 1 },
+                } as unknown as CloudStateCapability;
+                expect(() => mapCloudStateValue(cap)).to.not.throw();
+                expect(mapCloudStateValue(cap)).to.be.null;
+            });
+
+            it("should return null when cap.instance is non-string", () => {
+                const cap = {
+                    type: "devices.capabilities.on_off",
+                    instance: 42,
+                    state: { value: 1 },
+                } as unknown as CloudStateCapability;
+                expect(() => mapCloudStateValue(cap)).to.not.throw();
+                expect(mapCloudStateValue(cap)).to.be.null;
+            });
+
+            it("should not throw on undefined cap", () => {
+                expect(() => mapCloudStateValue(undefined as unknown as CloudStateCapability)).to.not.throw();
+                expect(mapCloudStateValue(undefined as unknown as CloudStateCapability)).to.be.null;
+            });
+
+            it("should coerce music_setting mode when musicMode is string", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.music_setting",
+                    instance: "musicMode",
+                    state: { value: { musicMode: "7" } as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result!.stateId).to.equal("music_mode");
+                expect(result!.value).to.equal("7");
+            });
+
+            it("should default music_setting to '0' when musicMode is garbage", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.music_setting",
+                    instance: "musicMode",
+                    state: { value: { musicMode: "abc" } as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result!.value).to.equal("0");
+            });
+
+            it("should coerce colorRgb numeric-string to hex", () => {
+                const cap: CloudStateCapability = {
+                    type: "devices.capabilities.color_setting",
+                    instance: "colorRgb",
+                    state: { value: String(0xff8000) as unknown as number },
+                };
+                const result = mapCloudStateValue(cap);
+                expect(result!.value).to.equal("#ff8000");
+            });
+        });
+    });
 });

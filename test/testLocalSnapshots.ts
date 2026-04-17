@@ -254,4 +254,16 @@ describe("LocalSnapshotStore", () => {
         const result = store.getSnapshots("H6160", "AABBCCDDEEFF0011");
         expect(result[0].colorTemperature).to.equal(3200);
     });
+
+    it("should not throw when deviceId is non-string", () => {
+        expect(() =>
+            store.getSnapshots("H6160", 12345 as unknown as string),
+        ).to.not.throw();
+    });
+
+    it("should not throw when sku is non-string", () => {
+        expect(() =>
+            store.getSnapshots(null as unknown as string, "AABBCCDDEEFF0011"),
+        ).to.not.throw();
+    });
 });

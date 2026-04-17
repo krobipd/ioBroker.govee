@@ -26,6 +26,9 @@ __export(types_exports, {
 });
 module.exports = __toCommonJS(types_exports);
 function normalizeDeviceId(id) {
+  if (typeof id !== "string") {
+    return "";
+  }
   return id.replace(/:/g, "").toLowerCase();
 }
 function classifyError(err) {

@@ -254,8 +254,14 @@ export class CommandRouter {
     }
 
     if (parsed.brightness !== undefined) {
-      const brightCap = device.capabilities.find(
+      const caps = Array.isArray(device.capabilities)
+        ? device.capabilities
+        : [];
+      const brightCap = caps.find(
         (c) =>
+          c &&
+          typeof c.type === "string" &&
+          typeof c.instance === "string" &&
           c.type.includes("segment_color_setting") &&
           c.instance.toLowerCase().includes("brightness"),
       );
@@ -433,7 +439,15 @@ export class CommandRouter {
     device: GoveeDevice,
     command: string,
   ): { type: string; instance: string } | undefined {
-    for (const cap of device.capabilities) {
+    const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
+    for (const cap of caps) {
+      if (
+        !cap ||
+        typeof cap.type !== "string" ||
+        typeof cap.instance !== "string"
+      ) {
+        continue;
+      }
       const shortType = cap.type.replace("devices.capabilities.", "");
       if (command === "power" && shortType === "on_off") {
         return cap;

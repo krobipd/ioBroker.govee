@@ -275,8 +275,9 @@ class StateManager {
       native: {}
     });
     let segmentCount = 0;
-    for (const c of device.capabilities) {
-      if (c.type.includes("segment_color_setting")) {
+    const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
+    for (const c of caps) {
+      if (c && typeof c.type === "string" && c.type.includes("segment_color_setting")) {
         const count = this.getSegmentCount(c);
         if (count > segmentCount) {
           segmentCount = count;

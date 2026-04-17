@@ -7,7 +7,7 @@
 
 **ioBroker Govee Smart Adapter** — Steuert Govee Smart Lights (LED-Strips, Lampen, Panels). LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig. Nur Lichter, keine Haushaltsgeräte.
 
-- **Version:** 1.5.1 (April 2026)
+- **Version:** 1.5.2 (April 2026)
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** https://www.npmjs.com/package/iobroker.govee-smart
 - **Runtime-Deps:** `@iobroker/adapter-core`, `@iobroker/types`, `mqtt`, `node-forge`
@@ -221,21 +221,23 @@ Single Page, drei Sektionen:
 - **info:** Nur Start, Verbindungen, Ready-Summary, Snapshot-Ops
 - **MQTT:** Erstverbindung = info, Reconnect-Versuche = debug, Restored = info
 
-## Tests (354)
+## Tests (399)
 
 ```
-test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping + Quirks + Groups (48 Tests)
+test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping + Quirks + Groups + Drift (80 Tests)
   - mapCapabilities: on_off, range, color, scenes, property, toggle, LAN defaults (11)
   - mapCapabilities branches: segment, dynamic_scene, music, work_mode, unknown, edge cases (10)
   - mapCloudStateValue: all types, null/undefined, unknown capability, edge cases (16)
   - applyQuirksToStates: known SKU, unknown SKU, non-colorTemp (3)
   - buildDeviceStateDefs groups: no members, control intersection, no snapshots/diag, scene/music intersection, Cloud-only caps, unreachable (8)
-test/testDeviceManager.ts    → Device Manager + CommandRouter (87 Tests)
+  - Drift: API schema violations (30) — mapCapabilities non-array/malformed/null/undefined, missing `parameters`, non-string cap.type/instance, non-array options/fields, mapCloudStateValue string coercion (boolean-strings, numeric-strings, out-of-range), returns null on coercion failure
+test/testDeviceManager.ts    → Device Manager + CommandRouter + Drift (93 Tests)
   - LAN discovery, IP update, MQTT status, unknown device/IP handling (7)
   - sendCommand channel routing: LAN→Cloud fallback, ptReal scene, segment→LAN ptReal, gradient, snapshot ptReal (14)
   - toCloudValue: power, brightness, color hex→int, scene/snapshot/diy index lookup, segments (14)
   - parseSegmentBatch: range, all, comma, brightness-only, clamp, invalid, mixed (10)
-  - findCapabilityForCommand: all command types, unknown, empty capabilities (11)
+  - findCapabilityForCommand: all command types, unknown, empty capabilities, non-array, malformed entries (13)
+  - Drift: malformed cloud device list (5) — non-string sku/device, non-array capabilities, non-array input, null entries
   - logDedup: category tracking, warn vs debug (1+assertions)
   - handleMqttStatus edge cases: partial update, colorTemp, mqtt channel, empty state (4)
   - handleLanStatus edge cases: zero brightness, colorTemInKelvin 0 (2)
@@ -249,9 +251,10 @@ test/testDeviceQuirks.ts     → Device Quirks + Community Quirks (15 Tests)
   - getDeviceQuirks: known, case-insensitive, unknown, brokenPlatformApi, all broken (5)
   - applyColorTempQuirk: override, passthrough, no range, H6022, case-insensitive (5)
   - loadCommunityQuirks: load+override, add new, missing file, corrupt JSON, case-insensitive (5)
-test/testLocalSnapshots.ts   → Local Snapshots (13 Tests)
+test/testLocalSnapshots.ts   → Local Snapshots + Drift (15 Tests)
   - Create dir, empty device, save/retrieve, overwrite, multiple, delete, non-existent, per-device, corrupt, colorTemp
   - Segment data: save/retrieve with segments, backwards compat without segments, overwrite segment data
+  - Drift: non-string deviceId/sku must not throw (2)
 test/testLanClient.ts        → LAN Client BLE Packet Builder (33 Tests)
   - buildScenePackets: activation, little-endian, A3 data, XOR checksum, empty param (5)
   - buildGradientPacket: ON, OFF, checksum (3)
@@ -263,10 +266,11 @@ test/testLanClient.ts        → LAN Client BLE Packet Builder (33 Tests)
   - applySceneSpeed: single page, multi-page, no match, empty/invalid, out-of-range (5)
 test/testRateLimiter.ts      → Rate Limiter (11 Tests)
   - Limits, daily usage, queueing, priority sorting, stop/clear, counter tracking
-test/testSkuCache.ts         → SKU Cache (12 Tests)
+test/testSkuCache.ts         → SKU Cache + Drift (14 Tests)
   - Create dir, empty cache, save/loadAll, overwrite, separate devices, same SKU, loadAll, clear, corrupt, normalized ID, libraries, null features
-test/testTypes.ts            → Shared Utilities (29 Tests)
-  - normalizeDeviceId: colons, lowercase, empty string (4)
+  - Drift: non-string deviceId/sku must not throw (2)
+test/testTypes.ts            → Shared Utilities + Drift (33 Tests)
+  - normalizeDeviceId: colons, lowercase, empty string, undefined/null/number/object safe returns (9)
   - rgbToHex: standard, padding, white (3)
   - hexToRgb: with #, without #, black, invalid (4)
   - rgbIntToHex: standard, zero, white (3)
@@ -290,11 +294,11 @@ test/testPackageFiles.ts     → @iobroker/testing (57 Tests)
 
 | Version | Highlights |
 |---------|------------|
+| 1.5.2 | API-Drift-Härtung: alle Cloud-Boundaries mit typeof/Array.isArray + String-Coercion, 45 neue Regression-Tests (399 total), `parameters` als optional |
 | 1.5.1 | Fix Device-Type-Matching (Szenen nur via Fallback geladen), dynamische Rate-Limit-Aufteilung, Non-Light-Filter, 354 Tests |
 | 1.5.0 | Lokale Segment-Steuerung (ptReal 33 05 15), Scene Variants (A/B/C/D), Snapshot ptReal, Scene Speed, Local Snapshot Segments, 352 Tests |
 | 1.4.1 | Fix fetchGroupMembers API-Feldnamen (gId/name statt groupId/groupName), Bearer-Token Pre-Check |
 | 1.4.0 | Group Fan-Out Redesign (LAN/ptReal statt Cloud), info.members, membersUnreachable, 327 Tests |
-| 1.3.0 | MQTT Segment State-Sync, Scene Speed entfernt, Dead-Code-Audit (8 Findings), 314 Tests |
 
 ## Befehle
 

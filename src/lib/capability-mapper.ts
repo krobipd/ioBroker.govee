@@ -37,6 +37,33 @@ export interface StateDefinition {
 }
 
 /**
+ * Coerce arbitrary value to boolean. Accepts true/1/"1"/"true" as truthy.
+ *
+ * @param v Raw value from API
+ */
+function coerceBool(v: unknown): boolean {
+  return v === true || v === 1 || v === "1" || v === "true";
+}
+
+/**
+ * Coerce arbitrary value to finite number, or null if not parseable.
+ *
+ * @param v Raw value from API
+ */
+function coerceNum(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) {
+    return v;
+  }
+  if (typeof v === "string" && v.trim() !== "") {
+    const n = Number(v);
+    if (Number.isFinite(n)) {
+      return n;
+    }
+  }
+  return null;
+}
+
+/**
  * Maps Govee Cloud API capabilities to ioBroker state definitions.
  * Pure function — no side effects, easily testable.
  *
@@ -46,6 +73,10 @@ export function mapCapabilities(
   capabilities: CloudCapability[],
 ): StateDefinition[] {
   const states: StateDefinition[] = [];
+
+  if (!Array.isArray(capabilities)) {
+    return states;
+  }
 
   for (const cap of capabilities) {
     const mapped = mapSingleCapability(cap);
@@ -118,6 +149,13 @@ export function getDefaultLanStates(): StateDefinition[] {
  * @param cap Cloud capability to map
  */
 function mapSingleCapability(cap: CloudCapability): StateDefinition[] | null {
+  if (
+    !cap ||
+    typeof cap.type !== "string" ||
+    typeof cap.instance !== "string"
+  ) {
+    return null;
+  }
   const shortType = cap.type.replace("devices.capabilities.", "");
 
   switch (shortType) {
@@ -218,7 +256,7 @@ function mapSingleCapability(cap: CloudCapability): StateDefinition[] | null {
  * @param cap Cloud range capability
  */
 function mapRange(cap: CloudCapability): StateDefinition[] {
-  const range = cap.parameters.range;
+  const range = cap.parameters?.range;
   const isBrightness = cap.instance.toLowerCase().includes("brightness");
 
   return [
@@ -230,7 +268,7 @@ function mapRange(cap: CloudCapability): StateDefinition[] {
       write: true,
       min: range?.min ?? 0,
       max: range?.max ?? 100,
-      unit: normalizeUnit(cap.parameters.unit),
+      unit: normalizeUnit(cap.parameters?.unit),
       def: range?.min ?? 0,
       capabilityType: cap.type,
       capabilityInstance: cap.instance,
@@ -263,7 +301,7 @@ function mapColorSetting(cap: CloudCapability): StateDefinition[] {
     cap.instance === "colorTemperatureK" ||
     cap.instance.includes("colorTem")
   ) {
-    const range = cap.parameters.range;
+    const range = cap.parameters?.range;
     return [
       {
         id: "colorTemperature",
@@ -290,12 +328,18 @@ function mapColorSetting(cap: CloudCapability): StateDefinition[] {
  * @param cap Cloud mode capability
  */
 function mapMode(cap: CloudCapability): StateDefinition[] {
-  if (cap.instance !== "presetScene" || !cap.parameters.options) {
+  if (
+    cap.instance !== "presetScene" ||
+    !Array.isArray(cap.parameters?.options)
+  ) {
     return [];
   }
 
   const states: Record<string, string> = {};
   for (const opt of cap.parameters.options) {
+    if (!opt || typeof opt.name !== "string") {
+      continue;
+    }
     const val =
       typeof opt.value === "object"
         ? JSON.stringify(opt.value)
@@ -349,7 +393,7 @@ function mapProperty(cap: CloudCapability): StateDefinition[] {
       type: "number",
       role,
       write: false,
-      unit: normalizeUnit(cap.parameters.unit) ?? unit,
+      unit: normalizeUnit(cap.parameters?.unit) ?? unit,
       capabilityType: cap.type,
       capabilityInstance: cap.instance,
     },
@@ -363,8 +407,8 @@ function mapProperty(cap: CloudCapability): StateDefinition[] {
  * @param cap Cloud music_setting capability
  */
 function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
-  const fields = cap.parameters.fields;
-  if (!fields || fields.length === 0) {
+  const fields = cap.parameters?.fields;
+  if (!Array.isArray(fields) || fields.length === 0) {
     // No field details from API — can't create usable states
     return [];
   }
@@ -372,10 +416,19 @@ function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
   const states: StateDefinition[] = [];
 
   // Mode dropdown — only if API provides actual mode options
-  const modeField = fields.find((f) => f.fieldName === "musicMode");
-  if (modeField?.options && modeField.options.length > 0) {
+  const modeField = fields.find(
+    (f) => f && typeof f.fieldName === "string" && f.fieldName === "musicMode",
+  );
+  if (
+    modeField?.options &&
+    Array.isArray(modeField.options) &&
+    modeField.options.length > 0
+  ) {
     const modeStates: Record<string, string> = { 0: "---" };
     for (const opt of modeField.options) {
+      if (!opt || typeof opt.name !== "string") {
+        continue;
+      }
       modeStates[
         typeof opt.value === "object"
           ? JSON.stringify(opt.value)
@@ -396,7 +449,10 @@ function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
   }
 
   // Sensitivity slider
-  const sensField = fields.find((f) => f.fieldName === "sensitivity");
+  const sensField = fields.find(
+    (f) =>
+      f && typeof f.fieldName === "string" && f.fieldName === "sensitivity",
+  );
   if (sensField?.range) {
     states.push({
       id: "music_sensitivity",
@@ -414,7 +470,9 @@ function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
   }
 
   // Auto color toggle
-  const autoColorField = fields.find((f) => f.fieldName === "autoColor");
+  const autoColorField = fields.find(
+    (f) => f && typeof f.fieldName === "string" && f.fieldName === "autoColor",
+  );
   if (autoColorField) {
     states.push({
       id: "music_auto_color",
@@ -522,6 +580,13 @@ export interface CloudStateValue {
 export function mapCloudStateValue(
   cap: CloudStateCapability,
 ): CloudStateValue | null {
+  if (
+    !cap ||
+    typeof cap.type !== "string" ||
+    typeof cap.instance !== "string"
+  ) {
+    return null;
+  }
   const shortType = cap.type.replace("devices.capabilities.", "");
   const raw = cap.state?.value;
   if (raw === undefined || raw === null) {
@@ -530,26 +595,35 @@ export function mapCloudStateValue(
 
   switch (shortType) {
     case "on_off":
-      return { stateId: "power", value: raw === 1 };
+      return { stateId: "power", value: coerceBool(raw) };
 
-    case "range":
-      return { stateId: sanitizeId(cap.instance), value: raw as number };
+    case "range": {
+      const n = coerceNum(raw);
+      if (n === null) {
+        return null;
+      }
+      return { stateId: sanitizeId(cap.instance), value: n };
+    }
 
     case "color_setting":
       if (cap.instance === "colorRgb") {
-        const num = typeof raw === "number" ? raw : 0;
+        const num = coerceNum(raw) ?? 0;
         return {
           stateId: "colorRgb",
           value: rgbToHex((num >> 16) & 0xff, (num >> 8) & 0xff, num & 0xff),
         };
       }
       if (cap.instance.includes("colorTem")) {
-        return { stateId: "colorTemperature", value: raw as number };
+        const n = coerceNum(raw);
+        if (n === null) {
+          return null;
+        }
+        return { stateId: "colorTemperature", value: n };
       }
       return null;
 
     case "toggle":
-      return { stateId: sanitizeId(cap.instance), value: raw === 1 };
+      return { stateId: sanitizeId(cap.instance), value: coerceBool(raw) };
 
     case "mode":
       if (cap.instance === "presetScene") {
@@ -578,16 +652,21 @@ export function mapCloudStateValue(
       // Extract mode value from STRUCT state
       if (typeof raw === "object" && raw !== null) {
         const struct = raw as Record<string, unknown>;
-        const mode = struct.musicMode;
+        const mode = coerceNum(struct.musicMode);
         return {
           stateId: "music_mode",
-          value: typeof mode === "number" ? String(mode) : "0",
+          value: mode !== null ? String(mode) : "0",
         };
       }
       return null;
 
-    case "property":
-      return { stateId: sanitizeId(cap.instance), value: raw as number };
+    case "property": {
+      const n = coerceNum(raw);
+      if (n === null) {
+        return null;
+      }
+      return { stateId: sanitizeId(cap.instance), value: n };
+    }
 
     default:
       return null;
@@ -807,20 +886,36 @@ function memberHasControlState(member: GoveeDevice, stateId: string): boolean {
   if (member.lanIp) {
     return true;
   }
+  const caps = Array.isArray(member.capabilities) ? member.capabilities : [];
   switch (stateId) {
     case "power":
-      return member.capabilities.some((c) => c.type.endsWith("on_off"));
+      return caps.some(
+        (c) => c && typeof c.type === "string" && c.type.endsWith("on_off"),
+      );
     case "brightness":
-      return member.capabilities.some(
-        (c) => c.type.endsWith("range") && c.instance === "brightness",
+      return caps.some(
+        (c) =>
+          c &&
+          typeof c.type === "string" &&
+          typeof c.instance === "string" &&
+          c.type.endsWith("range") &&
+          c.instance === "brightness",
       );
     case "colorRgb":
-      return member.capabilities.some(
-        (c) => c.type.endsWith("color_setting") && c.instance === "colorRgb",
+      return caps.some(
+        (c) =>
+          c &&
+          typeof c.type === "string" &&
+          typeof c.instance === "string" &&
+          c.type.endsWith("color_setting") &&
+          c.instance === "colorRgb",
       );
     case "colorTemperature":
-      return member.capabilities.some(
+      return caps.some(
         (c) =>
+          c &&
+          typeof c.type === "string" &&
+          typeof c.instance === "string" &&
           c.type.endsWith("color_setting") &&
           (c.instance === "colorTem" || c.instance === "colorTemperatureK"),
       );
