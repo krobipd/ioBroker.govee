@@ -6,6 +6,12 @@
     "name": "krobi",
     "email": "krobi@power-dreams.com"
   },
+  "contributors": [
+    {
+      "name": "Claude (Anthropic)",
+      "role": "Coding assistance"
+    }
+  ],
   "homepage": "https://github.com/krobipd/ioBroker.govee-smart",
   "license": "MIT",
   "keywords": [
