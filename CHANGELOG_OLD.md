@@ -1,5 +1,11 @@
 # Older Changes
 
+## 1.5.2 (2026-04-17)
+- Harden all Cloud API boundaries against schema drift — `typeof`/`Array.isArray` guards and string coercion on every external field access (sku, device, capabilities, parameters, type, instance)
+- Type `CloudCapability.parameters` is now optional — API may omit it even when docs require it
+- `normalizeDeviceId` and cache file naming safe against non-string input
+- 45 new regression tests covering API drift scenarios (399 tests total)
+
 ## 1.5.1 (2026-04-15)
 - Fix device type matching — scenes only loaded via fallback because type comparison never matched Cloud API format
 - Add dynamic API rate limit sharing with other Govee adapters on the same account

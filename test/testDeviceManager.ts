@@ -1334,56 +1334,71 @@ describe("DeviceManager", () => {
                 [100, 255, 0, 0],   // seg 0: brightness 100, red
                 [50, 0, 255, 0],    // seg 1: brightness 50, green
                 [75, 0, 0, 255],    // seg 2: brightness 75, blue
-                [0, 128, 128, 128], // seg 3: brightness 0, grey
+                [1, 128, 128, 128], // seg 3: brightness 1 (not padding), grey
             ]);
-            const result = parseMqttSegmentData([pkt], 15);
+            const result = parseMqttSegmentData([pkt]);
             expect(result).to.have.lengthOf(4);
             expect(result[0]).to.deep.equal({ index: 0, brightness: 100, r: 255, g: 0, b: 0 });
             expect(result[1]).to.deep.equal({ index: 1, brightness: 50, r: 0, g: 255, b: 0 });
             expect(result[2]).to.deep.equal({ index: 2, brightness: 75, r: 0, g: 0, b: 255 });
-            expect(result[3]).to.deep.equal({ index: 3, brightness: 0, r: 128, g: 128, b: 128 });
+            expect(result[3]).to.deep.equal({ index: 3, brightness: 1, r: 128, g: 128, b: 128 });
         });
 
         it("should parse multiple packets and compute correct segment indices", () => {
             const pkt1 = buildAaA5Packet(1, [[100, 255, 0, 0], [100, 0, 255, 0], [100, 0, 0, 255], [100, 255, 255, 0]]);
             const pkt2 = buildAaA5Packet(2, [[80, 10, 20, 30], [60, 40, 50, 60], [40, 70, 80, 90], [20, 100, 110, 120]]);
-            const result = parseMqttSegmentData([pkt1, pkt2], 15);
+            const result = parseMqttSegmentData([pkt1, pkt2]);
             expect(result).to.have.lengthOf(8);
             // Packet 2 starts at segment index 4
             expect(result[4]).to.deep.equal({ index: 4, brightness: 80, r: 10, g: 20, b: 30 });
             expect(result[7]).to.deep.equal({ index: 7, brightness: 20, r: 100, g: 110, b: 120 });
         });
 
-        it("should limit segments to segmentCount", () => {
-            const pkt = buildAaA5Packet(1, [[100, 255, 0, 0], [50, 0, 255, 0], [75, 0, 0, 255], [25, 1, 2, 3]]);
-            const result = parseMqttSegmentData([pkt], 2);
+        it("should trim trailing all-zero padding slots from the final packet", () => {
+            // Packet with 2 real segments + 2 padding slots (Govee often pads
+            // a short final packet to 4 slots with zero bytes). The parser
+            // must NOT advertise 4 segments here — only 2.
+            const pkt = buildAaA5Packet(1, [
+                [100, 255, 0, 0],
+                [50, 0, 255, 0],
+                [0, 0, 0, 0], // padding
+                [0, 0, 0, 0], // padding
+            ]);
+            const result = parseMqttSegmentData([pkt]);
             expect(result).to.have.lengthOf(2);
             expect(result[0].index).to.equal(0);
             expect(result[1].index).to.equal(1);
         });
 
+        it("should keep zero-slots that have real data AFTER them", () => {
+            // A lit segment followed by an unlit (genuine) segment followed
+            // by a lit one — the middle zero slot must not be trimmed.
+            const pkt = buildAaA5Packet(1, [
+                [100, 255, 0, 0],
+                [0, 0, 0, 0],      // genuine off segment
+                [100, 0, 255, 0],
+                [1, 128, 128, 128], // non-padding last
+            ]);
+            const result = parseMqttSegmentData([pkt]);
+            expect(result).to.have.lengthOf(4);
+            expect(result[1]).to.deep.equal({ index: 1, brightness: 0, r: 0, g: 0, b: 0 });
+        });
+
         it("should ignore non-AA-A5 packets", () => {
-            // AA 05 mode packet (not segment data)
             const modeBytes = new Uint8Array(20);
             modeBytes[0] = 0xAA;
             modeBytes[1] = 0x05;
             modeBytes[2] = 0x15;
             const modePkt = Buffer.from(modeBytes).toString("base64");
 
-            const segPkt = buildAaA5Packet(1, [[100, 255, 0, 0], [50, 0, 255, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
-            const result = parseMqttSegmentData([modePkt, segPkt], 15);
+            const segPkt = buildAaA5Packet(1, [[100, 255, 0, 0], [50, 0, 255, 0], [75, 128, 128, 128], [1, 1, 1, 1]]);
+            const result = parseMqttSegmentData([modePkt, segPkt]);
             expect(result).to.have.lengthOf(4);
             expect(result[0].index).to.equal(0);
         });
 
-        it("should return empty array for zero segmentCount", () => {
-            const pkt = buildAaA5Packet(1, [[100, 255, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
-            const result = parseMqttSegmentData([pkt], 0);
-            expect(result).to.have.lengthOf(0);
-        });
-
         it("should return empty array for empty commands", () => {
-            const result = parseMqttSegmentData([], 15);
+            const result = parseMqttSegmentData([]);
             expect(result).to.have.lengthOf(0);
         });
 
@@ -1393,7 +1408,7 @@ describe("DeviceManager", () => {
             bytes[1] = 0xA5;
             bytes[2] = 6; // invalid: must be 1-5
             const pkt = Buffer.from(bytes).toString("base64");
-            const result = parseMqttSegmentData([pkt], 15);
+            const result = parseMqttSegmentData([pkt]);
             expect(result).to.have.lengthOf(0);
         });
 
@@ -1403,17 +1418,17 @@ describe("DeviceManager", () => {
             shortBytes[1] = 0xA5;
             shortBytes[2] = 1;
             const pkt = Buffer.from(shortBytes).toString("base64");
-            const result = parseMqttSegmentData([pkt], 15);
+            const result = parseMqttSegmentData([pkt]);
             expect(result).to.have.lengthOf(0);
         });
 
-        it("should handle all 5 packets for 20 segments", () => {
+        it("should decode all 5 packets for a 20-segment strip", () => {
             // 0x64 = 100 decimal brightness, warm white: FF CA 91
             const pkts = [];
             for (let p = 1; p <= 5; p++) {
                 pkts.push(buildAaA5Packet(p, [[0x64, 0xFF, 0xCA, 0x91], [0x64, 0xFF, 0xCA, 0x91], [0x64, 0xFF, 0xCA, 0x91], [0x64, 0xFF, 0xCA, 0x91]]));
             }
-            const result = parseMqttSegmentData(pkts, 20);
+            const result = parseMqttSegmentData(pkts);
             expect(result).to.have.lengthOf(20);
             expect(result[0].index).to.equal(0);
             expect(result[19].index).to.equal(19);
@@ -1426,31 +1441,27 @@ describe("DeviceManager", () => {
         });
 
         // Drift guards — MQTT payload structure could change unexpectedly.
-        // parseMqttSegmentData is called with update.op?.command which is typed
-        // as string[] but the wire-format is untrusted.
         it("should return [] for non-array commands input", () => {
-            const result = parseMqttSegmentData(null as unknown as string[], 15);
+            const result = parseMqttSegmentData(null as unknown as string[]);
             expect(result).to.deep.equal([]);
         });
 
         it("should return [] for undefined commands input", () => {
-            const result = parseMqttSegmentData(undefined as unknown as string[], 15);
+            const result = parseMqttSegmentData(undefined as unknown as string[]);
             expect(result).to.deep.equal([]);
         });
 
         it("should return [] for object instead of array", () => {
-            const result = parseMqttSegmentData({} as unknown as string[], 15);
+            const result = parseMqttSegmentData({} as unknown as string[]);
             expect(result).to.deep.equal([]);
         });
 
         it("should skip non-string entries in commands array", () => {
-            const goodPkt = buildAaA5Packet(1, [[0x50, 0xFF, 0x00, 0x00], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
+            const goodPkt = buildAaA5Packet(1, [[0x50, 0xFF, 0x00, 0x00], [0x10, 0x00, 0xFF, 0x00], [0x10, 0x00, 0x00, 0xFF], [0x10, 0xFF, 0xFF, 0x00]]);
             const result = parseMqttSegmentData(
                 [null as unknown as string, 42 as unknown as string, goodPkt, {} as unknown as string],
-                15,
             );
-            // Only the valid AA A5 packet should be decoded
-            expect(result.length).to.equal(4); // one packet = 4 slots
+            expect(result.length).to.equal(4);
             expect(result[0].index).to.equal(0);
             expect(result[0].r).to.equal(255);
         });
@@ -1487,7 +1498,8 @@ describe("DeviceManager", () => {
             });
 
             expect(segmentUpdates).to.not.be.null;
-            expect(segmentUpdates).to.have.lengthOf(4);
+            // Trailing zero slots (slots 2-3) are trimmed as packet padding.
+            expect(segmentUpdates).to.have.lengthOf(2);
             expect(segmentUpdates![0]).to.deep.equal({ index: 0, brightness: 100, r: 255, g: 0, b: 0 });
             expect(segmentUpdates![1]).to.deep.equal({ index: 1, brightness: 50, r: 0, g: 255, b: 0 });
         });

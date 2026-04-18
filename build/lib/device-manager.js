@@ -40,11 +40,12 @@ const APPLIANCE_TYPES = /* @__PURE__ */ new Set([
   "devices.types.aroma_diffuser",
   "devices.types.kettle"
 ]);
-function parseMqttSegmentData(commands, segmentCount) {
-  if (segmentCount <= 0 || !Array.isArray(commands)) {
+function parseMqttSegmentData(commands) {
+  if (!Array.isArray(commands)) {
     return [];
   }
   const segments = [];
+  let highestPacket = 0;
   for (const cmd of commands) {
     if (typeof cmd !== "string") {
       continue;
@@ -57,12 +58,12 @@ function parseMqttSegmentData(commands, segmentCount) {
     if (packetNum < 1 || packetNum > 5) {
       continue;
     }
+    if (packetNum > highestPacket) {
+      highestPacket = packetNum;
+    }
     const baseIndex = (packetNum - 1) * 4;
     for (let slot = 0; slot < 4; slot++) {
       const segIdx = baseIndex + slot;
-      if (segIdx >= segmentCount) {
-        break;
-      }
       const offset = 3 + slot * 4;
       segments.push({
         index: segIdx,
@@ -71,6 +72,14 @@ function parseMqttSegmentData(commands, segmentCount) {
         g: bytes[offset + 2],
         b: bytes[offset + 3]
       });
+    }
+  }
+  while (segments.length > 0) {
+    const tail = segments[segments.length - 1];
+    if (tail.brightness === 0 && tail.r === 0 && tail.g === 0 && tail.b === 0) {
+      segments.pop();
+    } else {
+      break;
     }
   }
   return segments;
@@ -635,7 +644,7 @@ class DeviceManager {
    * @param update MQTT status message
    */
   handleMqttStatus(update) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     const device = this.findDeviceBySkuAndId(update.sku, update.device);
     if (!device) {
       this.log.debug(`MQTT: Unknown device ${update.sku} ${update.device}`);
@@ -662,13 +671,20 @@ class DeviceManager {
     Object.assign(device.state, state);
     (_a = this.onDeviceUpdate) == null ? void 0 : _a.call(this, device, state);
     if (((_b = update.op) == null ? void 0 : _b.command) && device.segmentCount) {
-      const segData = parseMqttSegmentData(
-        update.op.command,
-        device.segmentCount
-      );
+      const segData = parseMqttSegmentData(update.op.command);
+      if (segData.length > 0) {
+        const maxSeen = Math.max(...segData.map((s) => s.index)) + 1;
+        if (maxSeen > ((_c = device.segmentCount) != null ? _c : 0)) {
+          this.log.info(
+            `${device.name}: MQTT shows ${maxSeen} segments (Cloud reported ${device.segmentCount}) \u2014 updating state tree`
+          );
+          device.segmentCount = maxSeen;
+          (_d = this.onSegmentCountGrown) == null ? void 0 : _d.call(this, device);
+        }
+      }
       const filtered = device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0 ? segData.filter((s) => device.manualSegments.includes(s.index)) : segData;
       if (filtered.length > 0) {
-        (_c = this.onMqttSegmentUpdate) == null ? void 0 : _c.call(this, device, filtered);
+        (_e = this.onMqttSegmentUpdate) == null ? void 0 : _e.call(this, device, filtered);
       }
     }
   }
@@ -749,6 +765,13 @@ class DeviceManager {
   onLanIpChanged;
   /** Callback when MQTT delivers per-segment state data (AA A5 BLE packets) */
   onMqttSegmentUpdate;
+  /**
+   * Callback when the device's physical segment count turns out to be
+   * larger than the Cloud-reported value (observed via MQTT AA A5 stream).
+   * The adapter rebuilds the state tree in response so the extra indices
+   * appear as datapoints.
+   */
+  onSegmentCountGrown;
   /**
    * Convert Cloud device to internal device model
    *

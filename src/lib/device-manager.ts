@@ -50,45 +50,48 @@ export interface MqttSegmentData {
 
 /**
  * Parse AA A5 BLE notification packets from MQTT op.command.
- * 5 packets × 4 segment slots = max 20 segments.
+ * 5 packets × 4 segment slots = max 20 segments per push. The device sends
+ * exactly as many packets as it has physical segments — so parsing out all
+ * slots (and filtering empty-slot padding) gives us a reliable count of
+ * what actually exists on the strip.
+ *
  * Format per slot: [Brightness 0-100] [R] [G] [B].
- * Only returns segments up to segmentCount.
+ *
+ * An "empty" slot (brightness = 0 AND r = g = b = 0) is treated as padding
+ * in a partially-filled final packet, not as a real unlit segment — this
+ * matters for devices that don't pad their last packet to 4 slots.
  *
  * @param commands Base64-encoded BLE packets from MQTT op.command
- * @param segmentCount Device segment count (limits output)
  */
-export function parseMqttSegmentData(
-  commands: string[],
-  segmentCount: number,
-): MqttSegmentData[] {
-  if (segmentCount <= 0 || !Array.isArray(commands)) {
+export function parseMqttSegmentData(commands: string[]): MqttSegmentData[] {
+  if (!Array.isArray(commands)) {
     return [];
   }
 
   const segments: MqttSegmentData[] = [];
+  // Track the highest packetNum seen so we know where real data ends.
+  let highestPacket = 0;
 
   for (const cmd of commands) {
-    // Defensive — MQTT can push non-string entries; Buffer.from would throw.
     if (typeof cmd !== "string") {
       continue;
     }
     const bytes = Buffer.from(cmd, "base64");
-    // AA A5 packets are 20 bytes: AA A5 <packetNum> <4×4 bytes data> <checksum>
     if (bytes.length < 20 || bytes[0] !== 0xaa || bytes[1] !== 0xa5) {
       continue;
     }
 
-    const packetNum = bytes[2]; // 01-05
+    const packetNum = bytes[2];
     if (packetNum < 1 || packetNum > 5) {
       continue;
+    }
+    if (packetNum > highestPacket) {
+      highestPacket = packetNum;
     }
 
     const baseIndex = (packetNum - 1) * 4;
     for (let slot = 0; slot < 4; slot++) {
       const segIdx = baseIndex + slot;
-      if (segIdx >= segmentCount) {
-        break;
-      }
       const offset = 3 + slot * 4;
       segments.push({
         index: segIdx,
@@ -97,6 +100,19 @@ export function parseMqttSegmentData(
         g: bytes[offset + 2],
         b: bytes[offset + 3],
       });
+    }
+  }
+
+  // Trim trailing padding slots from the highest packet: Govee pads short
+  // packets with 0x00 bytes, so a run of all-zero slots at the end is not
+  // real segment data but filler. Keep any zero-slots that are followed by
+  // a real one — they're legitimately-unlit middle segments.
+  while (segments.length > 0) {
+    const tail = segments[segments.length - 1];
+    if (tail.brightness === 0 && tail.r === 0 && tail.g === 0 && tail.b === 0) {
+      segments.pop();
+    } else {
+      break;
     }
   }
 
@@ -843,14 +859,29 @@ export class DeviceManager {
     Object.assign(device.state, state);
     this.onDeviceUpdate?.(device, state);
 
-    // Parse per-segment data from BLE notification packets (AA A5)
+    // Parse per-segment data from BLE notification packets (AA A5).
+    // The parser returns every real segment it sees — we don't cap by
+    // device.segmentCount here because Cloud under-reports (user's 20 m
+    // strip: Cloud says 15, device actually pushes 20 slots via AA A5).
     if (update.op?.command && device.segmentCount) {
-      const segData = parseMqttSegmentData(
-        update.op.command,
-        device.segmentCount,
-      );
-      // Filter by manual-segments override if active — ignore indices the user
-      // has declared as "not physically present" (cut strip).
+      const segData = parseMqttSegmentData(update.op.command);
+
+      if (segData.length > 0) {
+        // Discovery: if MQTT shows more segments than the Cloud said,
+        // trust the device. Bump segmentCount, rebuild the state tree so
+        // the extra segments get their datapoints.
+        const maxSeen = Math.max(...segData.map((s) => s.index)) + 1;
+        if (maxSeen > (device.segmentCount ?? 0)) {
+          this.log.info(
+            `${device.name}: MQTT shows ${maxSeen} segments (Cloud reported ${device.segmentCount}) — updating state tree`,
+          );
+          device.segmentCount = maxSeen;
+          this.onSegmentCountGrown?.(device);
+        }
+      }
+
+      // Filter by manual-segments override if active — ignore indices the
+      // user has declared as "not physically present" (cut strip).
       const filtered =
         device.manualMode &&
         Array.isArray(device.manualSegments) &&
@@ -974,6 +1005,14 @@ export class DeviceManager {
     device: GoveeDevice,
     segments: MqttSegmentData[],
   ) => void;
+
+  /**
+   * Callback when the device's physical segment count turns out to be
+   * larger than the Cloud-reported value (observed via MQTT AA A5 stream).
+   * The adapter rebuilds the state tree in response so the extra indices
+   * appear as datapoints.
+   */
+  onSegmentCountGrown?: (device: GoveeDevice) => void;
 
   /**
    * Convert Cloud device to internal device model

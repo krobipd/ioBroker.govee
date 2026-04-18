@@ -268,22 +268,29 @@ class StateManager {
    * @param device Govee device
    */
   async createSegmentStates(device) {
+    var _a;
     const prefix = this.devicePrefix(device);
     await this.adapter.extendObjectAsync(`${prefix}.segments`, {
       type: "channel",
       common: { name: "LED Segments" },
       native: {}
     });
-    let segmentCount = 0;
+    let capabilityCount = 0;
     const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
     for (const c of caps) {
       if (c && typeof c.type === "string" && c.type.includes("segment_color_setting")) {
         const count = this.getSegmentCount(c);
-        if (count > segmentCount) {
-          segmentCount = count;
+        if (count > capabilityCount) {
+          capabilityCount = count;
         }
       }
     }
+    const manualMax = Array.isArray(device.manualSegments) && device.manualSegments.length > 0 ? Math.max(...device.manualSegments) + 1 : 0;
+    const segmentCount = Math.max(
+      capabilityCount,
+      (_a = device.segmentCount) != null ? _a : 0,
+      manualMax
+    );
     device.segmentCount = segmentCount;
     const validIndices = device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0 ? device.manualSegments.slice().sort((a, b) => a - b) : Array.from({ length: segmentCount }, (_, i) => i);
     const reportedCount = validIndices.length;

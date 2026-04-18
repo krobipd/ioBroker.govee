@@ -317,8 +317,11 @@ export class StateManager {
       native: {},
     });
 
-    // Determine segment count from capability parameters (use max across all segment capabilities)
-    let segmentCount = 0;
+    // Determine segment count: take the max of capability-reported, any
+    // already-discovered count (Cloud under-reports, MQTT reveals more),
+    // and the highest index in a manual override list. Capabilities are
+    // the Cloud's claim — we trust other sources if they report more.
+    let capabilityCount = 0;
     const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
     for (const c of caps) {
       if (
@@ -327,11 +330,20 @@ export class StateManager {
         c.type.includes("segment_color_setting")
       ) {
         const count = this.getSegmentCount(c);
-        if (count > segmentCount) {
-          segmentCount = count;
+        if (count > capabilityCount) {
+          capabilityCount = count;
         }
       }
     }
+    const manualMax =
+      Array.isArray(device.manualSegments) && device.manualSegments.length > 0
+        ? Math.max(...device.manualSegments) + 1
+        : 0;
+    const segmentCount = Math.max(
+      capabilityCount,
+      device.segmentCount ?? 0,
+      manualMax,
+    );
     device.segmentCount = segmentCount;
 
     // Effective segment list — honor manual override if active (cut-strip support)

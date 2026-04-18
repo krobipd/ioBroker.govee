@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "govee-smart",
-        "version": "1.6.5",
+        "version": "1.6.6",
         "news": {
+            "1.6.6": {
+                "en": "Fix under-reporting of segment count from Cloud — when MQTT AA A5 packets reveal more physical segments than Cloud advertised, bump segmentCount and rebuild state tree so datapoints appear for ALL segments\nparseMqttSegmentData no longer caps at Cloud segmentCount, returns every real segment it sees; trailing all-zero padding slots are still stripped\nflashSingleSegment dims segments 0-55 (Govee bitmask maximum) instead of capping at segmentCount, so under-reported strips cannot leave extra segments lit during wizard runs\nmanual_list validation accepts indices up to 55 instead of capping at Cloud segmentCount",
+                "de": "Fix Under-Reporting der Segmentzahl von der Cloud — wenn MQTT AA A5 mehr echte Segmente zeigt als Cloud meldet, wird segmentCount hochgezählt und der State-Tree neu gebaut, Datenpunkte erscheinen für ALLE Segmente\nparseMqttSegmentData cappt nicht mehr bei Cloud segmentCount, gibt jedes echte Segment zurück; trailing all-zero Padding-Slots werden trotzdem entfernt\nflashSingleSegment dimmt Segmente 0-55 (Govee-Bitmask-Max) statt bei segmentCount zu cappen, damit unter-gemeldete Strips keine hellen Restsegmente mehr zurücklassen\nmanual_list-Validierung akzeptiert Indizes bis 55 statt bei Cloud segmentCount zu cappen",
+                "ru": "Исправлено занижение числа сегментов облаком — MQTT AA A5 показывает реальное число, сегменты добавляются в дерево состояний автоматически",
+                "pt": "Corrigido sub-relato de contagem de segmentos pela Cloud — MQTT AA A5 mostra contagem real, árvore de estado é reconstruída automaticamente",
+                "nl": "Onderrapportage van segmentaantal door Cloud opgelost — MQTT AA A5 toont echt aantal, state-tree wordt automatisch herbouwd",
+                "fr": "Sous-signalement du nombre de segments par le Cloud corrigé — MQTT AA A5 indique le vrai nombre, arborescence reconstruite automatiquement",
+                "it": "Risolto sotto-reporting del conteggio segmenti dalla Cloud — MQTT AA A5 mostra il numero reale, state tree ricostruito automaticamente",
+                "es": "Corregido sub-reporte del recuento de segmentos por la Cloud — MQTT AA A5 muestra el número real, árbol de estado reconstruido automáticamente",
+                "pl": "Naprawiono zaniżanie liczby segmentów przez Cloud — MQTT AA A5 pokazuje rzeczywistą liczbę, drzewo stanu odbudowywane automatycznie",
+                "uk": "Виправлено заниження кількості сегментів Cloud — MQTT AA A5 показує реальну кількість, дерево станів перебудовується автоматично",
+                "zh-cn": "修复 Cloud 报告分段数量偏低 — MQTT AA A5 包显示真实数量, 状态树自动重建"
+            },
             "1.6.5": {
                 "en": "Fix Wizard flash — all three BLE packets (others dim + target color + target brightness) now bundled in one ptReal UDP datagram, no more dropped packets on Govee back-pressure\nBefore flashing: set power ON + global brightness 100 so user sees the strip regardless of previous dim state\nLive status via state — new info.wizardStatus state written on every wizard step, admin panel uses type:\"state\" to show it live (Admin 7.1+)",
                 "de": "Fix Wizard-Flash — alle drei BLE-Pakete (others dim + target color + target brightness) jetzt in einem ptReal-UDP gebündelt, keine verschluckten Pakete mehr bei Govee-Rückstau\nVor dem Flash: Power AN + globale Helligkeit 100, damit der Strip sichtbar ist egal wie er vorher gedimmt war\nLive-Status via State — neuer info.wizardStatus wird bei jedem Schritt geschrieben, Admin-Panel zeigt ihn live via type:\"state\" (Admin 7.1+)",
@@ -80,19 +93,6 @@
                 "pl": "Ręczne zastąpienie segmentów dla przyciętych taśm LED + kreator wykrywania w admin + pętla ponownego łączenia z chmurą",
                 "uk": "Ручне перевизначення сегментів для обрізаних LED-стрічок + майстер виявлення в admin + цикл повторного підключення до хмари",
                 "zh-cn": "为裁剪的 LED 灯带添加手动分段覆盖 + 管理界面检测向导 + 云重连循环"
-            },
-            "1.5.2": {
-                "en": "Harden Cloud API drift — capabilities without parameters field, non-string type/instance, malformed device entries no longer crash the adapter\nCoerce string-valued booleans (\"1\"/\"true\") and numeric strings (\"75\") from Cloud API to correct types — previously silently wrong state values\nAdd 45 regression tests for API-drift scenarios — 399 tests total",
-                "de": "Cloud API gehärtet — Capabilities ohne parameters-Feld, non-string type/instance und defekte Device-Einträge lassen den Adapter nicht mehr crashen\nString-Booleans (\"1\"/\"true\") und numerische Strings (\"75\") aus Cloud API werden jetzt korrekt zu Typen konvertiert — vorher stille Fehlwerte\n45 Regression-Tests für API-Drift-Szenarien ergänzt — 399 Tests gesamt",
-                "ru": "Усилена защита от дрейфа Cloud API — возможности без поля parameters, не-строковые type/instance, некорректные записи устройств больше не роняют адаптер\nСтроковые булевы (\"1\"/\"true\") и числовые строки (\"75\") из Cloud API теперь корректно конвертируются — раньше тихо приводили к неверным значениям\n45 регрессионных тестов для сценариев дрейфа API — всего 399 тестов",
-                "pt": "Reforço contra deriva da Cloud API — capacidades sem campo parameters, type/instance não-string e entradas de dispositivo malformadas já não travam o adaptador\nBooleanos em string (\"1\"/\"true\") e strings numéricas (\"75\") da Cloud API agora são convertidos corretamente — antes valores de estado silenciosamente errados\n45 testes de regressão para cenários de deriva de API — total 399 testes",
-                "nl": "Cloud API gehard — capabilities zonder parameters-veld, non-string type/instance en misvormde device-entries laten de adapter niet meer crashen\nString-booleans (\"1\"/\"true\") en numerieke strings (\"75\") van Cloud API worden nu correct geconverteerd — voorheen stille verkeerde waarden\n45 regressietests voor API-drift-scenario's toegevoegd — 399 tests totaal",
-                "fr": "Durcissement contre la dérive de l'API Cloud — capacités sans champ parameters, type/instance non-string et entrées d'appareils malformées ne font plus planter l'adaptateur\nBooléens sous forme de string (\"1\"/\"true\") et strings numériques (\"75\") de l'API Cloud correctement convertis — auparavant valeurs silencieusement erronées\n45 tests de régression pour scénarios de dérive API — 399 tests au total",
-                "it": "Rafforzata protezione contro drift Cloud API — capability senza campo parameters, type/instance non-string e voci dispositivo malformate non fanno più crashare l'adattatore\nBooleani-stringa (\"1\"/\"true\") e stringhe numeriche (\"75\") dalla Cloud API ora convertiti correttamente — prima valori silenziosamente errati\n45 test di regressione per scenari di drift API — 399 test totali",
-                "es": "Endurecimiento contra deriva de Cloud API — capacidades sin campo parameters, type/instance no-string y entradas de dispositivo malformadas ya no hacen crashear el adaptador\nBooleanos en string (\"1\"/\"true\") y strings numéricas (\"75\") de Cloud API ahora convertidos correctamente — antes valores silenciosamente erróneos\n45 pruebas de regresión para escenarios de deriva de API — 399 pruebas en total",
-                "pl": "Wzmocniono odporność na dryf Cloud API — capabilities bez pola parameters, nie-tekstowe type/instance i zniekształcone wpisy urządzeń nie powodują już awarii adaptera\nWartości logiczne jako string (\"1\"/\"true\") i stringi liczbowe (\"75\") z Cloud API są teraz poprawnie konwertowane — wcześniej cichy błędny stan\nDodano 45 testów regresyjnych dla scenariuszy dryfu API — łącznie 399 testów",
-                "uk": "Підсилено захист від дрейфу Cloud API — можливості без поля parameters, не-рядкові type/instance і неправильні записи пристроїв більше не крешать адаптер\nРядкові булеві (\"1\"/\"true\") та числові рядки (\"75\") з Cloud API тепер коректно конвертуються — раніше тихо давали неправильні значення\nДодано 45 регресійних тестів для сценаріїв дрейфу API — всього 399 тестів",
-                "zh-cn": "加固Cloud API抗漂移能力 — 缺少parameters字段的能力、非字符串type/instance和格式错误的设备条目不再导致适配器崩溃\n来自Cloud API的字符串布尔值(\"1\"/\"true\")和数值字符串(\"75\")现在正确转换 — 之前静默产生错误状态值\n新增45个API漂移场景回归测试 — 共399个测试"
             }
         },
         "titleLang": {

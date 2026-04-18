@@ -207,6 +207,16 @@ class GoveeAdapter extends utils.Adapter {
         });
       }
     };
+    this.deviceManager.onSegmentCountGrown = (device) => {
+      if (!this.stateManager) {
+        return;
+      }
+      this.stateManager.createSegmentStates(device).catch((e) => {
+        this.log.warn(
+          `Failed to rebuild segment tree for ${device.name} after count growth: ${e instanceof Error ? e.message : String(e)}`
+        );
+      });
+    };
     const startChannels = ["LAN"];
     if (config.apiKey) {
       startChannels.push("Cloud");
@@ -1030,7 +1040,7 @@ class GoveeAdapter extends utils.Adapter {
    * @param newValue Written value
    */
   async handleManualSegmentsChange(device, suffix, newValue) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c;
     if (!this.stateManager) {
       return;
     }
@@ -1051,8 +1061,8 @@ class GoveeAdapter extends utils.Adapter {
       await this.stateManager.createSegmentStates(device);
       return;
     }
-    const maxIdx = Math.max(0, ((_d = device.segmentCount) != null ? _d : 0) - 1);
-    const parsed = (0, import_types.parseSegmentList)(listVal, maxIdx);
+    const SEGMENT_HARD_MAX = 55;
+    const parsed = (0, import_types.parseSegmentList)(listVal, SEGMENT_HARD_MAX);
     if (parsed.error) {
       this.log.warn(
         `${device.name}: manual_list invalid (${parsed.error}) \u2014 disabling manual mode`

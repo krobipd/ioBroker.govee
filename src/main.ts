@@ -213,6 +213,19 @@ class GoveeAdapter extends utils.Adapter {
       }
     };
 
+    // When MQTT reveals more segments than the Cloud advertised, rebuild
+    // the device's state tree so the extra segments get their datapoints.
+    this.deviceManager.onSegmentCountGrown = (device) => {
+      if (!this.stateManager) {
+        return;
+      }
+      this.stateManager.createSegmentStates(device).catch((e) => {
+        this.log.warn(
+          `Failed to rebuild segment tree for ${device.name} after count growth: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      });
+    };
+
     // Log startup with configured channels
     const startChannels: string[] = ["LAN"];
     if (config.apiKey) {
@@ -1298,9 +1311,13 @@ class GoveeAdapter extends utils.Adapter {
       return;
     }
 
-    // Manual mode on: parse list, validate against device.segmentCount
-    const maxIdx = Math.max(0, (device.segmentCount ?? 0) - 1);
-    const parsed = parseSegmentList(listVal, maxIdx);
+    // Manual mode on: parse list, validate against the Govee protocol's
+    // hard upper bound (55, i.e. 7-byte bitmask × 8 bits − 1). We can't
+    // cap at device.segmentCount because that's the Cloud-reported count,
+    // which may under-report (user sees more physical segments than the
+    // API admits — 20 m strip, ~20 segments, Cloud says 15).
+    const SEGMENT_HARD_MAX = 55;
+    const parsed = parseSegmentList(listVal, SEGMENT_HARD_MAX);
     if (parsed.error) {
       this.log.warn(
         `${device.name}: manual_list invalid (${parsed.error}) — disabling manual mode`,

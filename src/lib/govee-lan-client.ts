@@ -310,29 +310,35 @@ export class GoveeLanClient {
    * atomic ptReal transmission. All three required BLE packets are bundled
    * into a single UDP datagram so the device cannot drop intermediate steps.
    *
+   * The "dim everything else" packet targets the full bitmask width (56
+   * segments — the Govee protocol's upper bound: 7 bytes × 8 bits). This
+   * covers under-report cases where the Cloud says "15 segments" but the
+   * strip physically has more. Without this the unreported segments keep
+   * shining at whatever brightness they had before the wizard started.
+   *
    * Packet order:
-   *   1. All other segments → brightness 0 (turn them off visually)
+   *   1. All segments except idx (up to idx 55) → brightness 0
    *   2. Target segment → color 0xFFFFFF (full white)
    *   3. Target segment → brightness 100 (make it bright)
    *
    * @param ip Device IP address
-   * @param total Total number of segments on the device
+   * @param total Unused — kept for backwards compatibility, see note above
    * @param idx Target segment index (0-based) to flash white
    */
   flashSingleSegment(ip: string, total: number, idx: number): void {
-    if (total <= 0 || idx < 0 || idx >= total) {
+    void total; // intentionally unused — see JSDoc
+    if (idx < 0 || idx >= 56) {
       return;
     }
-    const others = Array.from({ length: total }, (_, i) => i).filter(
+    const MAX_SEGMENTS = 56;
+    const others = Array.from({ length: MAX_SEGMENTS }, (_, i) => i).filter(
       (i) => i !== idx,
     );
-    const packets: string[] = [];
-    if (others.length > 0) {
-      packets.push(buildSegmentBrightnessPacket(0, others));
-    }
-    packets.push(buildSegmentColorPacket(0xff, 0xff, 0xff, [idx]));
-    packets.push(buildSegmentBrightnessPacket(100, [idx]));
-    this.sendPtReal(ip, packets);
+    this.sendPtReal(ip, [
+      buildSegmentBrightnessPacket(0, others),
+      buildSegmentColorPacket(0xff, 0xff, 0xff, [idx]),
+      buildSegmentBrightnessPacket(100, [idx]),
+    ]);
   }
 
   /**
