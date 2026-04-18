@@ -992,16 +992,9 @@ class GoveeAdapter extends utils.Adapter {
     }
 
     this.updateConnectionState();
-
-    // After the state tree is built, persist any segmentCount changes that
-    // resolveSegmentCount just applied (e.g. H70D1 collapsing from Cloud's
-    // misreported 15 to the real 10). Without this the cache would still
-    // hold the outdated value and the migration would repeat on every start.
-    Promise.all(this.stateCreationQueue)
-      .then(() => this.deviceManager?.saveDevicesToCache())
-      .catch(() => {
-        /* persist errors already logged by SkuCache */
-      });
+    // Cache sync happens once after the initial setup completes (see
+    // checkAllReady) — triggering here would fire on every device update
+    // and spam the log.
   }
 
   /** Update global info.connection */
@@ -1084,6 +1077,10 @@ class GoveeAdapter extends utils.Adapter {
     }
     this.readyLogged = true;
     this.logDeviceSummary();
+    // Persist any learned changes from the initial load (e.g. resolveSegmentCount
+    // collapsing Cloud's 15 to the real 10 on H70D1). One-shot on first ready;
+    // subsequent mutations persist themselves (MQTT bumps, wizard, manual-mode).
+    this.deviceManager?.saveDevicesToCache();
   }
 
   /**

@@ -804,14 +804,15 @@ export class DeviceManager {
         cachedCount++;
       }
     }
+    // Routine persistence — debug level only. Users don't need a play-by-play
+    // for every cache write. Significant events (scenes fetched, MQTT bumps)
+    // log themselves elsewhere.
     if (skippedCount > 0) {
-      this.log.info(
-        `Cached ${cachedCount} device(s), skipped ${skippedCount} not yet checked — will confirm next start`,
+      this.log.debug(
+        `Cached ${cachedCount} device(s), skipped ${skippedCount} not yet checked`,
       );
     } else {
-      this.log.info(
-        `Cached ${cachedCount} device(s) — next start uses cache, no Cloud needed`,
-      );
+      this.log.debug(`Cached ${cachedCount} device(s) — next start uses cache`);
     }
   }
 

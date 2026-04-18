@@ -607,13 +607,11 @@ class DeviceManager {
       }
     }
     if (skippedCount > 0) {
-      this.log.info(
-        `Cached ${cachedCount} device(s), skipped ${skippedCount} not yet checked \u2014 will confirm next start`
+      this.log.debug(
+        `Cached ${cachedCount} device(s), skipped ${skippedCount} not yet checked`
       );
     } else {
-      this.log.info(
-        `Cached ${cachedCount} device(s) \u2014 next start uses cache, no Cloud needed`
-      );
+      this.log.debug(`Cached ${cachedCount} device(s) \u2014 next start uses cache`);
     }
   }
   /**

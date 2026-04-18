@@ -792,11 +792,6 @@ class GoveeAdapter extends utils.Adapter {
       this.stateCreationQueue.push(p);
     }
     this.updateConnectionState();
-    Promise.all(this.stateCreationQueue).then(() => {
-      var _a2;
-      return (_a2 = this.deviceManager) == null ? void 0 : _a2.saveDevicesToCache();
-    }).catch(() => {
-    });
   }
   /** Update global info.connection */
   updateConnectionState() {
@@ -854,6 +849,7 @@ class GoveeAdapter extends utils.Adapter {
    * Called from MQTT onConnection callback and end of onReady.
    */
   checkAllReady() {
+    var _a;
     if (this.readyLogged) {
       return;
     }
@@ -871,6 +867,7 @@ class GoveeAdapter extends utils.Adapter {
     }
     this.readyLogged = true;
     this.logDeviceSummary();
+    (_a = this.deviceManager) == null ? void 0 : _a.saveDevicesToCache();
   }
   /**
    * Log final ready message with device/group/channel summary.
