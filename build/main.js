@@ -1083,7 +1083,7 @@ class GoveeAdapter extends utils.Adapter {
           value: this.deviceKeyFor(d),
           label: `${d.name} (${d.sku}, ${d.segmentCount} segs)`
         }));
-        this.sendMessageResponse(obj, { list });
+        this.sendMessageResponse(obj, list);
         return;
       }
       if (obj.command === "segmentWizard") {
@@ -1106,7 +1106,12 @@ class GoveeAdapter extends utils.Adapter {
   }
   sendMessageResponse(obj, data) {
     if (obj.callback && obj.from) {
-      this.sendTo(obj.from, obj.command, data, obj.callback);
+      this.sendTo(
+        obj.from,
+        obj.command,
+        data,
+        obj.callback
+      );
     }
   }
   /**

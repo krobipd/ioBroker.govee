@@ -197,8 +197,8 @@ Single Page, drei Sektionen:
 24. **info.ip State** — LAN IP-Adresse pro Gerät unter `info.ip`, auto-aktualisiert bei LAN-Discovery via `onLanIpChanged` Callback
 25. **Network Interface Selection** — `networkInterface` Config (IP-Selector im Admin), bindet Multicast + Listen auf gewähltes Interface; Ports fix (Govee-Protokoll)
 26. **MQTT before Cloud** — MQTT wird vor Cloud initialisiert, damit Scene Library beim ersten loadFromCloud verfügbar ist
-27. **Ready-Message Ordering** — `checkAllReady()` prüft MQTT+Cloud bevor Ready geloggt wird; Safety-Timeout 30s
-28. **SKU Cache** — `sku-cache.ts` persistiert Device-Daten + Libraries lokal; nach erstem Start null Cloud-Calls nötig. `loadFromCache()` mergt in bereits vorhandene LAN-Geräte (Name, Capabilities, Szenen). Incomplete Cache (scenes=0 bei Lights) triggert automatisch Cloud re-fetch
+27. **Ready-Message Ordering** — `checkAllReady()` prüft MQTT+Cloud bevor Ready geloggt wird; Safety-Timeout **60s** (seit v1.6.0, war 30s) mit ehrlicher "noch im Aufbau"-Meldung für nicht-bereite Channels
+28. **SKU Cache** — `sku-cache.ts` persistiert Device-Daten + Libraries lokal; nach erstem Start null Cloud-Calls nötig. `loadFromCache()` mergt in bereits vorhandene LAN-Geräte (Name, Capabilities, Szenen). **Seit v1.6.0:** `scenesChecked`-Flag verhindert Endlos-Refetch bei legitim leeren Scenes; `lastSeenOnNetwork`-Timestamp + `pruneStale(14)` entfernt stale Einträge; Hard-Filter bei Cloud-Load überspringt Einträge ohne capabilities
 29. **Local Snapshots** — `local-snapshots.ts` speichert Gerätezustand per LAN als JSON inkl. Per-Segment Color+Brightness; Restore replayed einzelne LAN-Commands (power, brightness, color, colorTemp, segmentColor:N, segmentBrightness:N)
 30. **Device Quirks** — `device-quirks.ts` korrigiert falsche API-Daten (colorTemp-Ranges, brokenPlatformApi)
 31. **Scene Speed** — `sceneLibrary` enthält `speedInfo` mit `moveIn[]`-Arrays; Speed-Byte steht an Position `pageLength - 5` im scenceParam; `applySceneSpeed()` ersetzt Speed-Bytes vor dem Senden; `scenes.scene_speed` State (0-N) wird auf nächste Scene-Aktivierung angewendet
@@ -211,6 +211,9 @@ Single Page, drei Sektionen:
 38. **MQTT Segment State-Sync** — `parseMqttSegmentData()` dekodiert AA A5 BLE-Pakete aus `op.command` → Per-Segment Brightness+RGB in ioBroker States; nur bei Geräten mit `segmentCount > 0`, nur bei Gradient/Color-Modus (Scene/Music liefert keine AA A5)
 39. **Snapshot ptReal** — `fetchSnapshots()` holt BLE-Pakete von `/bff-app/v1/devices/snapshots`, gespeichert als `snapshotBleCmds` auf Device + SKU-Cache; Aktivierung lokal via `sendPtReal()`, Cloud-Fallback wenn keine BLE-Daten
 40. **Scene Variants** — `fetchSceneLibrary()` iteriert alle `lightEffects` pro Szene (nicht nur [0]); Multi-Varianten werden als "Name-Suffix" gespeichert (z.B. "Aurora-A", "Aurora-B"); bestehende Name-Matching-Logik mit Suffix-Stripping funktioniert weiterhin
+41. **Manual Segments (v1.6.0)** — `segments.manual_mode` + `segments.manual_list` pro Gerät für gekürzte LED-Strips. `parseSegmentList()` in types.ts akzeptiert `"0-9"`, `"0-8,10-14"`, Kommas, whitespace; validiert primär gegen device.segmentCount-1, Backstop 0-99. Toggle-Change triggert `handleManualSegmentsChange` in main.ts → `createSegmentStates` baut Segment-Tree neu, löscht überflüssige States. `parseSegmentBatch "all"` und `parseMqttSegmentData`-Filter honor `device.manualSegments` wenn manualMode=true
+42. **Segment Detection Wizard (v1.6.0)** — jsonConfig `tabs`-Layout mit Tab "Segment-Erkennung": selectSendTo-Dropdown + sendTo-Buttons. `onMessage`-Handler routet `getSegmentDevices` / `segmentWizard` (start/yes/no/abort). In-Memory `SegmentWizardSession`, Baseline-Capture, flashSegment(idx) bright-white, 5-Min-Idle-Timeout, globaler Session-Lock. Am Ende: schreibt `manual_list` + `manual_mode=true` → triggert Rekonfig
+43. **Cloud-Retry-Loop (v1.6.0)** — `CloudLoadResult` union type (`ok`/`transient`/`rate-limited`/`auth-failed`). Bei Fail: `handleCloudFailure` entscheidet — Auth-Fail stoppt permanent, Rate-Limit wartet Retry-After, transient 5min. Retry ruft `retryCloudOnce` auf, "Govee Cloud connection restored"-Log bei Erfolg. Cloud-Init via Promise.race 60s-Timeout
 
 ## Logging-Philosophie (seit 0.9.4)
 
@@ -221,7 +224,7 @@ Single Page, drei Sektionen:
 - **info:** Nur Start, Verbindungen, Ready-Summary, Snapshot-Ops
 - **MQTT:** Erstverbindung = info, Reconnect-Versuche = debug, Restored = info
 
-## Tests (399)
+## Tests (427)
 
 ```
 test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping + Quirks + Groups + Drift (80 Tests)
@@ -294,6 +297,7 @@ test/testPackageFiles.ts     → @iobroker/testing (57 Tests)
 
 | Version | Highlights |
 |---------|------------|
+| 1.6.0 | Manual Segments für cut strips (`segments.manual_mode`/`manual_list`) + Admin-UI-Wizard (Segment-Flash + Ja/Nein), 60s Startup-Grace für MQTT+Cloud, Cloud-Retry-Loop mit Rate-Limit-Handling, SKU-Cache-Pruning (14-Tage-Aging + `scenesChecked`-Flag + Hard-Filter stale Cloud-Einträge), info.mqttConnected-Fix, 427 Tests |
 | 1.5.2 | API-Drift-Härtung: alle Cloud-Boundaries mit typeof/Array.isArray + String-Coercion, 45 neue Regression-Tests (399 total), `parameters` als optional |
 | 1.5.1 | Fix Device-Type-Matching (Szenen nur via Fallback geladen), dynamische Rate-Limit-Aufteilung, Non-Light-Filter, 354 Tests |
 | 1.5.0 | Lokale Segment-Steuerung (ptReal 33 05 15), Scene Variants (A/B/C/D), Snapshot ptReal, Scene Speed, Local Snapshot Segments, 352 Tests |

@@ -1369,7 +1369,8 @@ class GoveeAdapter extends utils.Adapter {
             value: this.deviceKeyFor(d),
             label: `${d.name} (${d.sku}, ${d.segmentCount} segs)`,
           }));
-        this.sendMessageResponse(obj, { list });
+        // selectSendTo expects the array directly, not wrapped in an object
+        this.sendMessageResponse(obj, list);
         return;
       }
       if (obj.command === "segmentWizard") {
@@ -1394,12 +1395,14 @@ class GoveeAdapter extends utils.Adapter {
     }
   }
 
-  private sendMessageResponse(
-    obj: ioBroker.Message,
-    data: Record<string, unknown>,
-  ): void {
+  private sendMessageResponse(obj: ioBroker.Message, data: unknown): void {
     if (obj.callback && obj.from) {
-      this.sendTo(obj.from, obj.command, data, obj.callback);
+      this.sendTo(
+        obj.from,
+        obj.command,
+        data as Record<string, unknown>,
+        obj.callback,
+      );
     }
   }
 
