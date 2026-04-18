@@ -294,6 +294,8 @@ class GoveeLanClient {
    * shining at whatever brightness they had before the wizard started.
    *
    * Packet order:
+   *   0. `colorwc` — force static-color mode (segment_color_setting packets
+   *      are ignored while the device is in Scene/Gradient/Music mode)
    *   1. All segments except idx (up to idx 55) → brightness 0
    *   2. Target segment → color 0xFFFFFF (full white)
    *   3. Target segment → brightness 100 (make it bright)
@@ -311,11 +313,15 @@ class GoveeLanClient {
     const others = Array.from({ length: MAX_SEGMENTS }, (_, i) => i).filter(
       (i) => i !== idx
     );
-    this.sendPtReal(ip, [
-      buildSegmentBrightnessPacket(0, others),
-      buildSegmentColorPacket(255, 255, 255, [idx]),
-      buildSegmentBrightnessPacket(100, [idx])
-    ]);
+    this.setColor(ip, 255, 255, 255);
+    const delayMs = 150;
+    setTimeout(() => {
+      this.sendPtReal(ip, [
+        buildSegmentBrightnessPacket(0, others),
+        buildSegmentColorPacket(255, 255, 255, [idx]),
+        buildSegmentBrightnessPacket(100, [idx])
+      ]);
+    }, delayMs);
   }
   /**
    * Restore a segment strip to a uniform color + brightness in one atomic

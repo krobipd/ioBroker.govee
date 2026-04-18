@@ -317,6 +317,8 @@ export class GoveeLanClient {
    * shining at whatever brightness they had before the wizard started.
    *
    * Packet order:
+   *   0. `colorwc` — force static-color mode (segment_color_setting packets
+   *      are ignored while the device is in Scene/Gradient/Music mode)
    *   1. All segments except idx (up to idx 55) → brightness 0
    *   2. Target segment → color 0xFFFFFF (full white)
    *   3. Target segment → brightness 100 (make it bright)
@@ -334,11 +336,21 @@ export class GoveeLanClient {
     const others = Array.from({ length: MAX_SEGMENTS }, (_, i) => i).filter(
       (i) => i !== idx,
     );
-    this.sendPtReal(ip, [
-      buildSegmentBrightnessPacket(0, others),
-      buildSegmentColorPacket(0xff, 0xff, 0xff, [idx]),
-      buildSegmentBrightnessPacket(100, [idx]),
-    ]);
+    // Step 0: force color mode. Without this, the strip stays in whatever
+    // mode it was (Scene/Gradient/Music) and silently ignores the three
+    // ptReal packets below. The colorwc command resets to a known static
+    // state that accepts segment-level overrides.
+    this.setColor(ip, 0xff, 0xff, 0xff);
+    // Small delay so the firmware can apply the mode switch before the
+    // next UDP burst — Govee's observed minimum is ~50 ms.
+    const delayMs = 150;
+    setTimeout(() => {
+      this.sendPtReal(ip, [
+        buildSegmentBrightnessPacket(0, others),
+        buildSegmentColorPacket(0xff, 0xff, 0xff, [idx]),
+        buildSegmentBrightnessPacket(100, [idx]),
+      ]);
+    }, delayMs);
   }
 
   /**
