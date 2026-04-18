@@ -180,7 +180,7 @@
                     "command": "segmentWizard",
                     "jsonData": "{ \"action\": \"abort\" }",
                     "label": "wizardBtnAbort",
-                    "variant": "text",
+                    "variant": "outlined",
                     "color": "secondary",
                     "xs": 12, "sm": 6, "md": 3, "lg": 2, "xl": 2,
                     "style": { "marginTop": 16 }
