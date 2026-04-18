@@ -1,5 +1,31 @@
 # Older Changes
 
+## 1.4.1 (2026-04-13)
+- Fix group member resolution returning empty (API field name mismatch: `gId`/`name` vs `groupId`/`groupName`)
+- Add bearer token pre-check with descriptive log message for group membership loading
+- Add debug logging when group membership API returns no data
+
+## 1.4.0 (2026-04-13)
+- Redesign group handling: fan-out commands to member devices via LAN/ptReal instead of Cloud-only power toggle
+- Group capabilities computed as intersection of member devices (power, brightness, color, scenes, music)
+- Add `info.members` state showing group member device IDs
+- Add dynamic `info.membersUnreachable` state (only created when unreachable members exist)
+- Remove snapshots and diagnostics from groups (not applicable to virtual devices)
+- Update undocumented API headers to match current Govee app version (7.3.30)
+- 327 tests (was 314)
+
+## 1.3.0 (2026-04-12)
+- Add MQTT segment state sync — per-segment brightness and color updated in real-time via MQTT BLE notifications
+- Remove non-functional scene speed slider (byte layout unknown, no project worldwide implements this)
+- Remove dead code: unused types, methods, and write-only fields (comprehensive audit, 8 findings)
+
+## 1.2.0 (2026-04-12)
+- Fix segment color commands not working (ptReal accepted but not rendered) — rerouted via Cloud API
+- Fix dropdown states not resetting on mode switch (scene/music/snapshot/color changes now reset all other dropdowns)
+- Replace individual group online states with single `groups.info.online` reflecting Cloud connection status
+- Add channel annotations to state tree documentation
+- Add acknowledgments for govee2mqtt project
+
 ## 1.1.2 (2026-04-12)
 - Remove dead MQTT command code (MQTT is status-push only, never sent commands)
 - Remove `noMqtt` device quirk (no longer needed without MQTT commands)

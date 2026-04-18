@@ -77,12 +77,16 @@ export class GoveeApiClient {
       scenceParam?: string;
       speedInfo?: { supSpeed: boolean; speedIndex: number; config: string };
     }[] = [];
-    for (const cat of resp.data?.categories ?? []) {
-      for (const s of cat.scenes ?? []) {
-        if (!s.sceneName) {
+    const categories = Array.isArray(resp?.data?.categories)
+      ? resp.data.categories
+      : [];
+    for (const cat of categories) {
+      const catScenes = Array.isArray(cat?.scenes) ? cat.scenes : [];
+      for (const s of catScenes) {
+        if (!s || typeof s.sceneName !== "string" || !s.sceneName) {
           continue;
         }
-        const effects = s.lightEffects ?? [];
+        const effects = Array.isArray(s.lightEffects) ? s.lightEffects : [];
         if (effects.length === 0) {
           // No effects — use scene-level code
           const code = s.sceneCode ?? 0;
@@ -170,12 +174,17 @@ export class GoveeApiClient {
       mode?: number;
     }[] = [];
     let modeIdx = 0;
-    for (const cat of resp.data?.categories ?? []) {
-      for (const s of cat.scenes ?? []) {
-        if (!s.sceneName) {
+    const musicCats = Array.isArray(resp?.data?.categories)
+      ? resp.data.categories
+      : [];
+    for (const cat of musicCats) {
+      const catScenes = Array.isArray(cat?.scenes) ? cat.scenes : [];
+      for (const s of catScenes) {
+        if (!s || typeof s.sceneName !== "string" || !s.sceneName) {
           continue;
         }
-        const effect = s.lightEffects?.[0];
+        const effects = Array.isArray(s.lightEffects) ? s.lightEffects : [];
+        const effect = effects[0];
         const code = effect?.sceneCode ?? s.sceneCode ?? 0;
         if (code > 0) {
           modes.push({
@@ -220,12 +229,17 @@ export class GoveeApiClient {
     }>({ method: "GET", url, headers: this.authHeaders() });
 
     const diys: { name: string; diyCode: number; scenceParam?: string }[] = [];
-    for (const cat of resp.data?.categories ?? []) {
-      for (const s of cat.scenes ?? []) {
-        if (!s.sceneName) {
+    const diyCats = Array.isArray(resp?.data?.categories)
+      ? resp.data.categories
+      : [];
+    for (const cat of diyCats) {
+      const catScenes = Array.isArray(cat?.scenes) ? cat.scenes : [];
+      for (const s of catScenes) {
+        if (!s || typeof s.sceneName !== "string" || !s.sceneName) {
           continue;
         }
-        const effect = s.lightEffects?.[0];
+        const effects = Array.isArray(s.lightEffects) ? s.lightEffects : [];
+        const effect = effects[0];
         const code = effect?.sceneCode ?? s.sceneCode ?? 0;
         if (code > 0) {
           diys.push({
@@ -283,18 +297,22 @@ export class GoveeApiClient {
     }>({ method: "GET", url, headers: this.authHeaders() });
 
     const results: { name: string; bleCmds: string[][] }[] = [];
-    for (const snap of resp.data?.snapshots ?? []) {
-      if (!snap.name) {
+    const snaps = Array.isArray(resp?.data?.snapshots)
+      ? resp.data.snapshots
+      : [];
+    for (const snap of snaps) {
+      if (!snap || typeof snap.name !== "string" || !snap.name) {
         continue;
       }
       const allCmdPackets: string[][] = [];
-      for (const cmd of snap.cmds ?? []) {
-        if (!cmd.bleCmds) {
+      const cmds = Array.isArray(snap.cmds) ? snap.cmds : [];
+      for (const cmd of cmds) {
+        if (!cmd || typeof cmd.bleCmds !== "string" || !cmd.bleCmds) {
           continue;
         }
         try {
           const parsed = JSON.parse(cmd.bleCmds) as { bleCmd?: string };
-          if (parsed.bleCmd) {
+          if (typeof parsed?.bleCmd === "string" && parsed.bleCmd.length > 0) {
             allCmdPackets.push(parsed.bleCmd.split(","));
           }
         } catch {
@@ -343,19 +361,34 @@ export class GoveeApiClient {
       name: string;
       devices: { sku: string; deviceId: string }[];
     }[] = [];
-    for (const comp of resp.data?.components ?? []) {
-      for (const g of comp.groups ?? []) {
-        if (g.gId == null) {
+    const components = Array.isArray(resp?.data?.components)
+      ? resp.data.components
+      : [];
+    for (const comp of components) {
+      const compGroups = Array.isArray(comp?.groups) ? comp.groups : [];
+      for (const g of compGroups) {
+        if (!g || typeof g.gId !== "number") {
           continue;
         }
         const devices: { sku: string; deviceId: string }[] = [];
-        for (const d of g.devices ?? []) {
-          if (d.sku && d.device) {
+        const gDevices = Array.isArray(g.devices) ? g.devices : [];
+        for (const d of gDevices) {
+          if (
+            d &&
+            typeof d.sku === "string" &&
+            typeof d.device === "string" &&
+            d.sku &&
+            d.device
+          ) {
             devices.push({ sku: d.sku, deviceId: d.device });
           }
         }
         if (devices.length > 0) {
-          groups.push({ groupId: g.gId, name: g.name || "", devices });
+          groups.push({
+            groupId: g.gId,
+            name: typeof g.name === "string" ? g.name : "",
+            devices,
+          });
         }
       }
     }

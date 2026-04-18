@@ -228,17 +228,15 @@ class GoveeMqttClient {
    * @param payload Raw MQTT message buffer
    */
   handleMessage(payload) {
-    var _a, _b, _c;
+    var _a;
     try {
       const raw = JSON.parse(payload.toString());
-      const update = {
-        sku: (_a = raw.sku) != null ? _a : "",
-        device: (_b = raw.device) != null ? _b : "",
-        state: raw.state,
-        op: raw.op
-      };
-      if (update.sku || update.device) {
-        (_c = this.onStatus) == null ? void 0 : _c.call(this, update);
+      const sku = typeof raw.sku === "string" ? raw.sku : "";
+      const device = typeof raw.device === "string" ? raw.device : "";
+      const state = raw.state && typeof raw.state === "object" ? raw.state : void 0;
+      const op = raw.op && typeof raw.op === "object" ? raw.op : void 0;
+      if (sku || device) {
+        (_a = this.onStatus) == null ? void 0 : _a.call(this, { sku, device, state, op });
       }
     } catch {
       this.log.debug(

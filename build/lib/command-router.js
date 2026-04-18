@@ -97,7 +97,7 @@ class CommandRouter {
       return;
     }
     if (command === "segmentBatch") {
-      const parsed = this.parseSegmentBatch(device, value);
+      const parsed = typeof value === "string" ? this.parseSegmentBatch(device, value) : this.coerceParsedBatch(value);
       if (parsed) {
         (_a = this.onSegmentBatchUpdate) == null ? void 0 : _a.call(this, device, parsed);
       }
@@ -123,8 +123,12 @@ class CommandRouter {
         }
         return;
       }
-      if (device.channels.cloud && this.cloudClient) {
-        await this.sendSegmentBatchParsed(device, value, parsed);
+      if (device.channels.cloud && this.cloudClient && parsed) {
+        await this.sendSegmentBatchParsed(
+          device,
+          typeof value === "string" ? value : "",
+          parsed
+        );
         return;
       }
       return;
@@ -249,6 +253,9 @@ class CommandRouter {
    */
   parseSegmentBatch(device, cmd) {
     var _a;
+    if (typeof cmd !== "string") {
+      return null;
+    }
     const parts = cmd.split(":");
     if (parts.length < 1 || !parts[0]) {
       return null;
@@ -297,6 +304,33 @@ class CommandRouter {
         brightness = bri;
       }
     }
+    if (color === void 0 && brightness === void 0) {
+      return null;
+    }
+    return { segments, color, brightness };
+  }
+  /**
+   * Coerce a pre-parsed batch object (from internal callers) to the canonical
+   * shape. Returns null if the input is not a valid {segments, ...} object.
+   *
+   * @param value Candidate object
+   */
+  coerceParsedBatch(value) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const v = value;
+    if (!Array.isArray(v.segments) || v.segments.length === 0) {
+      return null;
+    }
+    const segments = v.segments.filter(
+      (n) => typeof n === "number" && Number.isFinite(n) && n >= 0
+    );
+    if (segments.length === 0) {
+      return null;
+    }
+    const color = typeof v.color === "number" && Number.isFinite(v.color) ? v.color & 16777215 : void 0;
+    const brightness = typeof v.brightness === "number" && Number.isFinite(v.brightness) ? Math.max(0, Math.min(100, Math.round(v.brightness))) : void 0;
     if (color === void 0 && brightness === void 0) {
       return null;
     }

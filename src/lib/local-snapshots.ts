@@ -63,7 +63,9 @@ export class LocalSnapshotStore {
     try {
       if (fs.existsSync(file)) {
         const data = JSON.parse(fs.readFileSync(file, "utf-8")) as SnapshotFile;
-        return data.snapshots ?? [];
+        // Defensive: if someone edits the file by hand, snapshots could be
+        // something other than an array — downstream .findIndex would crash.
+        return Array.isArray(data?.snapshots) ? data.snapshots : [];
       }
     } catch (e) {
       this.log.debug(

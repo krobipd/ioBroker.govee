@@ -604,7 +604,7 @@ class StateManager {
    * @param device Govee device
    */
   deviceKey(device) {
-    return `${device.sku}_${device.deviceId.replace(/:/g, "").toLowerCase()}`;
+    return `${device.sku}_${(0, import_types.normalizeDeviceId)(device.deviceId)}`;
   }
   /**
    * Determine segment count from capability

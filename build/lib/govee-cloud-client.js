@@ -36,12 +36,11 @@ class GoveeCloudClient {
   }
   /** Fetch all devices with their capabilities */
   async getDevices() {
-    var _a;
     const resp = await this.request(
       "GET",
       "/router/api/v1/user/devices"
     );
-    return (_a = resp.data) != null ? _a : [];
+    return Array.isArray(resp == null ? void 0 : resp.data) ? resp.data : [];
   }
   /**
    * Fetch current state of a device
@@ -50,7 +49,7 @@ class GoveeCloudClient {
    * @param device Device identifier
    */
   async getDeviceState(sku, device) {
-    var _a, _b;
+    var _a;
     const resp = await this.request(
       "POST",
       "/router/api/v1/device/state",
@@ -59,7 +58,8 @@ class GoveeCloudClient {
         payload: { sku, device }
       }
     );
-    return (_b = (_a = resp.data) == null ? void 0 : _a.capabilities) != null ? _b : [];
+    const caps = (_a = resp == null ? void 0 : resp.data) == null ? void 0 : _a.capabilities;
+    return Array.isArray(caps) ? caps : [];
   }
   /**
    * Send a control command to a device
@@ -92,7 +92,7 @@ class GoveeCloudClient {
    * @param device Device identifier
    */
   async getScenes(sku, device) {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b;
     const resp = await this.request(
       "POST",
       "/router/api/v1/device/scenes",
@@ -104,13 +104,17 @@ class GoveeCloudClient {
     const lightScenes = [];
     const diyScenes = [];
     const snapshots = [];
-    for (const cap of (_b = (_a = resp.payload) == null ? void 0 : _a.capabilities) != null ? _b : []) {
+    const caps = Array.isArray((_a = resp == null ? void 0 : resp.payload) == null ? void 0 : _a.capabilities) ? resp.payload.capabilities : [];
+    for (const cap of caps) {
+      if (!cap || typeof cap.instance !== "string") {
+        continue;
+      }
+      const opts = Array.isArray((_b = cap.parameters) == null ? void 0 : _b.options) ? cap.parameters.options : [];
       this.log.debug(
-        `Scenes endpoint: instance=${cap.instance}, options=${(_e = (_d = (_c = cap.parameters) == null ? void 0 : _c.options) == null ? void 0 : _d.length) != null ? _e : 0}`
+        `Scenes endpoint: instance=${cap.instance}, options=${opts.length}`
       );
-      const opts = (_g = (_f = cap.parameters) == null ? void 0 : _f.options) != null ? _g : [];
       const mapped = opts.filter(
-        (o) => typeof o.name === "string" && typeof o.value === "object"
+        (o) => !!o && typeof o.name === "string" && typeof o.value === "object"
       ).map((o) => ({
         name: o.name,
         value: o.value
@@ -132,7 +136,7 @@ class GoveeCloudClient {
    * @param device Device identifier
    */
   async getDiyScenes(sku, device) {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b;
     const resp = await this.request(
       "POST",
       "/router/api/v1/device/diy-scenes",
@@ -142,14 +146,18 @@ class GoveeCloudClient {
       }
     );
     const scenes = [];
-    for (const cap of (_b = (_a = resp.payload) == null ? void 0 : _a.capabilities) != null ? _b : []) {
+    const caps = Array.isArray((_a = resp == null ? void 0 : resp.payload) == null ? void 0 : _a.capabilities) ? resp.payload.capabilities : [];
+    for (const cap of caps) {
+      if (!cap || typeof cap.instance !== "string") {
+        continue;
+      }
+      const opts = Array.isArray((_b = cap.parameters) == null ? void 0 : _b.options) ? cap.parameters.options : [];
       this.log.debug(
-        `DIY-Scenes endpoint: instance=${cap.instance}, options=${(_e = (_d = (_c = cap.parameters) == null ? void 0 : _c.options) == null ? void 0 : _d.length) != null ? _e : 0}`
+        `DIY-Scenes endpoint: instance=${cap.instance}, options=${opts.length}`
       );
-      const opts = (_g = (_f = cap.parameters) == null ? void 0 : _f.options) != null ? _g : [];
       scenes.push(
         ...opts.filter(
-          (o) => typeof o.name === "string" && typeof o.value === "object"
+          (o) => !!o && typeof o.name === "string" && typeof o.value === "object"
         ).map((o) => ({ name: o.name, value: o.value }))
       );
     }

@@ -343,43 +343,46 @@ class GoveeLanClient {
    */
   handleScanResponse(data) {
     var _a;
-    const ip = data.ip;
-    const device = data.device;
-    const sku = data.sku;
-    if (!ip || !device || !sku) {
+    if (typeof data.ip !== "string" || typeof data.device !== "string" || typeof data.sku !== "string" || !data.ip || !data.device || !data.sku) {
       return;
     }
     const lanDevice = {
-      ip,
-      device,
-      sku
+      ip: data.ip,
+      device: data.device,
+      sku: data.sku
     };
-    const key = `${device}:${ip}`;
+    const key = `${lanDevice.device}:${lanDevice.ip}`;
     if (!this.seenDeviceIps.has(key)) {
       this.seenDeviceIps.add(key);
-      this.log.debug(`LAN: Found ${sku} (${device}) at ${ip}`);
+      this.log.debug(
+        `LAN: Found ${lanDevice.sku} (${lanDevice.device}) at ${lanDevice.ip}`
+      );
     }
     (_a = this.onDiscovery) == null ? void 0 : _a.call(this, lanDevice);
   }
   /**
-   * Handle status response — matched to device by source IP
+   * Handle status response — matched to device by source IP.
+   * Defensive against malformed/partial payloads — all fields coerced to safe defaults.
    *
    * @param data Parsed status response payload
    * @param sourceIp Source IP address from UDP message
    */
   handleStatusResponse(data, sourceIp) {
-    var _a, _b, _c, _d, _e;
+    var _a;
+    const toNum = (v) => typeof v === "number" && Number.isFinite(v) ? v : 0;
+    const colorRaw = data.color;
+    const color = colorRaw && typeof colorRaw === "object" ? {
+      r: toNum(colorRaw.r),
+      g: toNum(colorRaw.g),
+      b: toNum(colorRaw.b)
+    } : { r: 0, g: 0, b: 0 };
     const status = {
-      onOff: (_a = data.onOff) != null ? _a : 0,
-      brightness: (_b = data.brightness) != null ? _b : 0,
-      color: (_c = data.color) != null ? _c : {
-        r: 0,
-        g: 0,
-        b: 0
-      },
-      colorTemInKelvin: (_d = data.colorTemInKelvin) != null ? _d : 0
+      onOff: toNum(data.onOff),
+      brightness: toNum(data.brightness),
+      color,
+      colorTemInKelvin: toNum(data.colorTemInKelvin)
     };
-    (_e = this.onStatus) == null ? void 0 : _e.call(this, sourceIp, status);
+    (_a = this.onStatus) == null ? void 0 : _a.call(this, sourceIp, status);
   }
 }
 function xorChecksum(data) {

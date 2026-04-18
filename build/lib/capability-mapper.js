@@ -514,9 +514,12 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
     var _a;
     if (((_a = entry.speedInfo) == null ? void 0 : _a.supSpeed) && entry.speedInfo.config) {
       try {
-        const configs = JSON.parse(entry.speedInfo.config);
-        for (const cfg of configs) {
-          if (cfg.moveIn && cfg.moveIn.length - 1 > max) {
+        const parsed = JSON.parse(entry.speedInfo.config);
+        if (!Array.isArray(parsed)) {
+          return max;
+        }
+        for (const cfg of parsed) {
+          if (cfg && Array.isArray(cfg.moveIn) && cfg.moveIn.length - 1 > max) {
             max = cfg.moveIn.length - 1;
           }
         }

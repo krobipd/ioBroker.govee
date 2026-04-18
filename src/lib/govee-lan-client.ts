@@ -370,30 +370,37 @@ export class GoveeLanClient {
    * @param data Parsed scan response payload
    */
   private handleScanResponse(data: Record<string, unknown>): void {
-    const ip = data.ip as string;
-    const device = data.device as string;
-    const sku = data.sku as string;
-
-    if (!ip || !device || !sku) {
+    // Defensive type checks — LAN payload comes over the wire, treat as untrusted
+    if (
+      typeof data.ip !== "string" ||
+      typeof data.device !== "string" ||
+      typeof data.sku !== "string" ||
+      !data.ip ||
+      !data.device ||
+      !data.sku
+    ) {
       return;
     }
 
     const lanDevice: LanDevice = {
-      ip,
-      device,
-      sku,
+      ip: data.ip,
+      device: data.device,
+      sku: data.sku,
     };
 
-    const key = `${device}:${ip}`;
+    const key = `${lanDevice.device}:${lanDevice.ip}`;
     if (!this.seenDeviceIps.has(key)) {
       this.seenDeviceIps.add(key);
-      this.log.debug(`LAN: Found ${sku} (${device}) at ${ip}`);
+      this.log.debug(
+        `LAN: Found ${lanDevice.sku} (${lanDevice.device}) at ${lanDevice.ip}`,
+      );
     }
     this.onDiscovery?.(lanDevice);
   }
 
   /**
-   * Handle status response — matched to device by source IP
+   * Handle status response — matched to device by source IP.
+   * Defensive against malformed/partial payloads — all fields coerced to safe defaults.
    *
    * @param data Parsed status response payload
    * @param sourceIp Source IP address from UDP message
@@ -402,15 +409,23 @@ export class GoveeLanClient {
     data: Record<string, unknown>,
     sourceIp: string,
   ): void {
+    const toNum = (v: unknown): number =>
+      typeof v === "number" && Number.isFinite(v) ? v : 0;
+    const colorRaw = data.color;
+    const color =
+      colorRaw && typeof colorRaw === "object"
+        ? {
+            r: toNum((colorRaw as Record<string, unknown>).r),
+            g: toNum((colorRaw as Record<string, unknown>).g),
+            b: toNum((colorRaw as Record<string, unknown>).b),
+          }
+        : { r: 0, g: 0, b: 0 };
+
     const status: LanStatus = {
-      onOff: (data.onOff as number) ?? 0,
-      brightness: (data.brightness as number) ?? 0,
-      color: (data.color as { r: number; g: number; b: number }) ?? {
-        r: 0,
-        g: 0,
-        b: 0,
-      },
-      colorTemInKelvin: (data.colorTemInKelvin as number) ?? 0,
+      onOff: toNum(data.onOff),
+      brightness: toNum(data.brightness),
+      color,
+      colorTemInKelvin: toNum(data.colorTemInKelvin),
     };
 
     this.onStatus?.(sourceIp, status);

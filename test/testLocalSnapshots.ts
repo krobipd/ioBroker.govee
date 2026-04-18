@@ -169,6 +169,30 @@ describe("LocalSnapshotStore", () => {
         expect(result).to.deep.equal([]);
     });
 
+    // Drift guard — user might hand-edit the JSON file and leave snapshots
+    // field in an unexpected shape. Downstream .findIndex would crash.
+    it("should return empty array when snapshots field is not an array", () => {
+        const snapDir = path.join(tmpDir, "snapshots");
+        fs.writeFileSync(
+            path.join(snapDir, "h6160_0011.json"),
+            JSON.stringify({ snapshots: "hello" }),
+            "utf-8",
+        );
+        const result = store.getSnapshots("H6160", "AABBCCDDEEFF0011");
+        expect(result).to.deep.equal([]);
+    });
+
+    it("should return empty array when snapshots field is missing", () => {
+        const snapDir = path.join(tmpDir, "snapshots");
+        fs.writeFileSync(
+            path.join(snapDir, "h6160_0011.json"),
+            JSON.stringify({ version: 1 }),
+            "utf-8",
+        );
+        const result = store.getSnapshots("H6160", "AABBCCDDEEFF0011");
+        expect(result).to.deep.equal([]);
+    });
+
     it("should save and retrieve snapshot with segment data", () => {
         const snap: LocalSnapshot = {
             name: "Segments",

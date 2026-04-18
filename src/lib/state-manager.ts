@@ -705,7 +705,9 @@ export class StateManager {
    * @param device Govee device
    */
   private deviceKey(device: GoveeDevice): string {
-    return `${device.sku}_${device.deviceId.replace(/:/g, "").toLowerCase()}`;
+    // Use normalizeDeviceId which is defensive against non-string input —
+    // cached data on disk could theoretically be tampered with.
+    return `${device.sku}_${normalizeDeviceId(device.deviceId)}`;
   }
 
   /**

@@ -49,6 +49,28 @@ describe("Types utilities", () => {
         it("should handle white", () => {
             expect(rgbToHex(255, 255, 255)).to.equal("#ffffff");
         });
+
+        // Drift guards — v1.6.3 hardening. Upstream could pass NaN (from
+        // division-by-zero) or out-of-range values (from buggy capability data).
+        it("should clamp values above 255 to 255", () => {
+            expect(rgbToHex(300, 500, 1000)).to.equal("#ffffff");
+        });
+
+        it("should clamp negative values to 0", () => {
+            expect(rgbToHex(-10, -1, -500)).to.equal("#000000");
+        });
+
+        it("should return #000000 for NaN channels", () => {
+            expect(rgbToHex(NaN, NaN, NaN)).to.equal("#000000");
+        });
+
+        it("should coerce non-numeric (undefined) to 0", () => {
+            expect(rgbToHex(undefined as unknown as number, 128, 0)).to.equal("#008000");
+        });
+
+        it("should round fractional channels", () => {
+            expect(rgbToHex(127.6, 127.4, 0)).to.equal("#80" + "7f" + "00");
+        });
     });
 
     describe("hexToRgb", () => {
@@ -66,6 +88,19 @@ describe("Types utilities", () => {
 
         it("should handle invalid hex as black", () => {
             expect(hexToRgb("xyz")).to.deep.equal({ r: 0, g: 0, b: 0 });
+        });
+
+        // Drift guard — MQTT/Cloud could deliver non-string in color fields.
+        it("should return black for non-string input (undefined)", () => {
+            expect(hexToRgb(undefined as unknown as string)).to.deep.equal({ r: 0, g: 0, b: 0 });
+        });
+
+        it("should return black for non-string input (null)", () => {
+            expect(hexToRgb(null as unknown as string)).to.deep.equal({ r: 0, g: 0, b: 0 });
+        });
+
+        it("should return black for non-string input (number)", () => {
+            expect(hexToRgb(0xff6600 as unknown as string)).to.deep.equal({ r: 0, g: 0, b: 0 });
         });
     });
 

@@ -41,11 +41,14 @@ const APPLIANCE_TYPES = /* @__PURE__ */ new Set([
   "devices.types.kettle"
 ]);
 function parseMqttSegmentData(commands, segmentCount) {
-  if (segmentCount <= 0) {
+  if (segmentCount <= 0 || !Array.isArray(commands)) {
     return [];
   }
   const segments = [];
   for (const cmd of commands) {
+    if (typeof cmd !== "string") {
+      continue;
+    }
     const bytes = Buffer.from(cmd, "base64");
     if (bytes.length < 20 || bytes[0] !== 170 || bytes[1] !== 165) {
       continue;

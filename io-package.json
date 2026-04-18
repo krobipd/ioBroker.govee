@@ -1,155 +1,155 @@
 {
-  "common": {
-    "name": "govee-smart",
-    "version": "1.6.2",
-    "news": {
-      "1.6.2": {
-        "en": "Fix jsonConfig schema warnings for Segment Detection Wizard — removed unsupported \"button\" property, aligned variant/color to admin schema (primary/secondary, contained/outlined), set xs=12 for mobile-full-width on sendTo buttons\nNo functionality change, purely schema compliance",
-        "de": "jsonConfig-Schema-Warnings für Segment-Erkennungs-Assistent behoben — nicht unterstütztes \"button\"-Property entfernt, variant/color an Admin-Schema angepasst (primary/secondary, contained/outlined), xs=12 für sendTo-Buttons (volle Breite mobil)\nKeine Funktionsänderung, reine Schema-Compliance"
-      },
-      "1.6.1": {
-        "en": "Fix Segment Detection Wizard in admin UI — jsonConfig button type was \"sendto\" (lowercase) instead of \"sendTo\" causing validation errors\nFix LED strip dropdown showed as free-text input because selectSendTo expects the array directly, not wrapped in {list: ...}",
-        "de": "Fix Segment-Erkennungs-Assistent im Admin-UI — jsonConfig-Button-Typ war \"sendto\" (klein) statt \"sendTo\", führte zu Validierungsfehlern\nFix LED-Strip-Dropdown erschien als freies Texteingabefeld, weil selectSendTo das Array direkt erwartet, nicht in {list: ...} verpackt"
-      },
-      "1.6.0": {
-        "en": "Add manual segment override for cut LED strips — declare which segment indices actually exist via segments.manual_mode + segments.manual_list (supports ranges like \"0-9\" or gaps like \"0-8,10-14\")\nAdd interactive Segment Detection wizard in admin UI — flashes each segment, user answers Yes/No, adapter writes the manual list\nAdd SKU cache pruning — stale entries without network sighting for 14+ days are removed automatically; scenesChecked flag prevents endless Cloud refetch when scenes are legitimately empty\nHard-filter Cloud device list — stale registrations without capabilities are skipped and no longer clutter the cache\nMQTT/Cloud startup grace raised to 60s with honest \"still connecting\" status; Cloud now has a background retry loop (5 min default, Retry-After respected on rate-limit, no retry on auth failure)\nFix info.mqttConnected staying stale — state now reliably reflects current connection on any failure\n427 tests (was 399)",
-        "de": "Manuelle Segment-Definition für abgeschnittene LED-Strips — Indizes über segments.manual_mode + segments.manual_list festlegen (Ranges wie \"0-9\" oder Lücken wie \"0-8,10-14\")\nInteraktiver Segment-Erkennungs-Assistent im Admin-UI — flasht jedes Segment, User bestätigt Ja/Nein, Adapter schreibt die Liste\nSKU-Cache-Aufräumen — Einträge ohne Netzwerk-Sichtung seit 14+ Tagen werden automatisch entfernt; scenesChecked-Flag verhindert Endlos-Refetch bei legitim leeren Szenen-Listen\nHard-Filter für Cloud-Geräteliste — stale Registrierungen ohne Capabilities werden übersprungen, kein Cache-Müll mehr\nMQTT/Cloud-Startup-Grace auf 60s erhöht mit ehrlicher \"noch im Aufbau\"-Meldung; Cloud mit Background-Retry-Loop (5 Min default, Retry-After bei Rate-Limit respektiert, kein Retry bei Auth-Fehler)\nFix info.mqttConnected hängt auf altem Wert — State reflektiert jetzt zuverlässig den aktuellen Verbindungszustand\n427 Tests (vorher 399)"
-      },
-      "1.5.2": {
-        "en": "Harden Cloud API drift — capabilities without parameters field, non-string type/instance, malformed device entries no longer crash the adapter\nCoerce string-valued booleans (\"1\"/\"true\") and numeric strings (\"75\") from Cloud API to correct types — previously silently wrong state values\nAdd 45 regression tests for API-drift scenarios — 399 tests total",
-        "de": "Cloud API gehärtet — Capabilities ohne parameters-Feld, non-string type/instance und defekte Device-Einträge lassen den Adapter nicht mehr crashen\nString-Booleans (\"1\"/\"true\") und numerische Strings (\"75\") aus Cloud API werden jetzt korrekt zu Typen konvertiert — vorher stille Fehlwerte\n45 Regression-Tests für API-Drift-Szenarien ergänzt — 399 Tests gesamt",
-        "ru": "Усилена защита от дрейфа Cloud API — возможности без поля parameters, не-строковые type/instance, некорректные записи устройств больше не роняют адаптер\nСтроковые булевы (\"1\"/\"true\") и числовые строки (\"75\") из Cloud API теперь корректно конвертируются — раньше тихо приводили к неверным значениям\n45 регрессионных тестов для сценариев дрейфа API — всего 399 тестов",
-        "pt": "Reforço contra deriva da Cloud API — capacidades sem campo parameters, type/instance não-string e entradas de dispositivo malformadas já não travam o adaptador\nBooleanos em string (\"1\"/\"true\") e strings numéricas (\"75\") da Cloud API agora são convertidos corretamente — antes valores de estado silenciosamente errados\n45 testes de regressão para cenários de deriva de API — total 399 testes",
-        "nl": "Cloud API gehard — capabilities zonder parameters-veld, non-string type/instance en misvormde device-entries laten de adapter niet meer crashen\nString-booleans (\"1\"/\"true\") en numerieke strings (\"75\") van Cloud API worden nu correct geconverteerd — voorheen stille verkeerde waarden\n45 regressietests voor API-drift-scenario's toegevoegd — 399 tests totaal",
-        "fr": "Durcissement contre la dérive de l'API Cloud — capacités sans champ parameters, type/instance non-string et entrées d'appareils malformées ne font plus planter l'adaptateur\nBooléens sous forme de string (\"1\"/\"true\") et strings numériques (\"75\") de l'API Cloud correctement convertis — auparavant valeurs silencieusement erronées\n45 tests de régression pour scénarios de dérive API — 399 tests au total",
-        "it": "Rafforzata protezione contro drift Cloud API — capability senza campo parameters, type/instance non-string e voci dispositivo malformate non fanno più crashare l'adattatore\nBooleani-stringa (\"1\"/\"true\") e stringhe numeriche (\"75\") dalla Cloud API ora convertiti correttamente — prima valori silenziosamente errati\n45 test di regressione per scenari di drift API — 399 test totali",
-        "es": "Endurecimiento contra deriva de Cloud API — capacidades sin campo parameters, type/instance no-string y entradas de dispositivo malformadas ya no hacen crashear el adaptador\nBooleanos en string (\"1\"/\"true\") y strings numéricas (\"75\") de Cloud API ahora convertidos correctamente — antes valores silenciosamente erróneos\n45 pruebas de regresión para escenarios de deriva de API — 399 pruebas en total",
-        "pl": "Wzmocniono odporność na dryf Cloud API — capabilities bez pola parameters, nie-tekstowe type/instance i zniekształcone wpisy urządzeń nie powodują już awarii adaptera\nWartości logiczne jako string (\"1\"/\"true\") i stringi liczbowe (\"75\") z Cloud API są teraz poprawnie konwertowane — wcześniej cichy błędny stan\nDodano 45 testów regresyjnych dla scenariuszy dryfu API — łącznie 399 testów",
-        "uk": "Підсилено захист від дрейфу Cloud API — можливості без поля parameters, не-рядкові type/instance і неправильні записи пристроїв більше не крешать адаптер\nРядкові булеві (\"1\"/\"true\") та числові рядки (\"75\") з Cloud API тепер коректно конвертуються — раніше тихо давали неправильні значення\nДодано 45 регресійних тестів для сценаріїв дрейфу API — всього 399 тестів",
-        "zh-cn": "加固Cloud API抗漂移能力 — 缺少parameters字段的能力、非字符串type/instance和格式错误的设备条目不再导致适配器崩溃\n来自Cloud API的字符串布尔值(\"1\"/\"true\")和数值字符串(\"75\")现在正确转换 — 之前静默产生错误状态值\n新增45个API漂移场景回归测试 — 共399个测试"
-      },
-      "1.5.1": {
-        "en": "Fix device type matching — scenes only loaded via fallback because type comparison never matched Cloud API format\nAdd dynamic API rate limit sharing with other Govee adapters on the same account\nFilter non-light device types (heaters, fans, sensors etc.) — this adapter handles lights only\n354 tests (was 352)",
-        "de": "Fix Gerätetyp-Vergleich — Szenen wurden nur über Fallback geladen weil Typ-Vergleich nie mit Cloud-API-Format übereinstimmte\nDynamische API-Rate-Limit-Aufteilung mit anderen Govee-Adaptern auf demselben Account\nNicht-Licht-Gerätetypen gefiltert (Heizungen, Ventilatoren, Sensoren etc.) — dieser Adapter ist nur für Lichter\n354 Tests (vorher 352)",
-        "ru": "Исправлено сравнение типа устройства — сцены загружались только через запасной механизм из-за несоответствия формата Cloud API\nДинамическое разделение лимитов API с другими адаптерами Govee на том же аккаунте\nФильтрация не-световых типов устройств (обогреватели, вентиляторы, датчики) — этот адаптер только для света\n354 теста (было 352)",
-        "pt": "Corrigida comparação de tipo de dispositivo — cenas carregadas apenas via fallback devido a incompatibilidade com formato Cloud API\nCompartilhamento dinâmico de limite de taxa API com outros adaptadores Govee na mesma conta\nFiltrar tipos de dispositivos não-luz (aquecedores, ventiladores, sensores) — este adaptador é apenas para luzes\n354 testes (eram 352)",
-        "nl": "Fix apparaattype vergelijking — scènes alleen geladen via fallback vanwege mismatch met Cloud API formaat\nDynamisch API rate limit delen met andere Govee adapters op hetzelfde account\nNiet-licht apparaattypen gefilterd (verwarmers, ventilatoren, sensoren) — deze adapter is alleen voor lampen\n354 tests (was 352)",
-        "fr": "Correction comparaison type d'appareil — scènes chargées uniquement via fallback à cause d'incompatibilité avec format Cloud API\nPartage dynamique des limites de taux API avec d'autres adaptateurs Govee sur le même compte\nFiltrage des types d'appareils non-lumière (chauffages, ventilateurs, capteurs) — cet adaptateur est uniquement pour les lumières\n354 tests (était 352)",
-        "it": "Fix confronto tipo dispositivo — scene caricate solo via fallback per mancata corrispondenza con formato Cloud API\nCondivisione dinamica dei limiti API con altri adattatori Govee sullo stesso account\nFiltro tipi dispositivi non-luce (riscaldatori, ventilatori, sensori) — questo adattatore è solo per le luci\n354 test (erano 352)",
-        "es": "Fix comparación tipo de dispositivo — escenas cargadas solo vía fallback por incompatibilidad con formato Cloud API\nCompartición dinámica de límites de tasa API con otros adaptadores Govee en la misma cuenta\nFiltrar tipos de dispositivos no-luz (calentadores, ventiladores, sensores) — este adaptador es solo para luces\n354 pruebas (eran 352)",
-        "pl": "Naprawiono porównanie typu urządzenia — sceny ładowane tylko przez fallback z powodu niezgodności z formatem Cloud API\nDynamiczne współdzielenie limitów API z innymi adapterami Govee na tym samym koncie\nFiltrowanie typów urządzeń nie-świetlnych (grzejniki, wentylatory, czujniki) — ten adapter jest tylko dla lamp\n354 testy (było 352)",
-        "uk": "Виправлено порівняння типу пристрою — сцени завантажувалися лише через резервний механізм через невідповідність формату Cloud API\nДинамічний поділ лімітів API з іншими адаптерами Govee на тому ж акаунті\nФільтрація типів пристроїв не-світло (обігрівачі, вентилятори, датчики) — цей адаптер лише для світла\n354 тести (було 352)",
-        "zh-cn": "修复设备类型比较 — 场景仅通过备用机制加载因为类型比较从未匹配Cloud API格式\n与同账户其他Govee适配器动态共享API速率限制\n过滤非灯具设备类型（加热器、风扇、传感器等）— 此适配器仅处理灯具\n354个测试（原352个）"
-      },
-      "1.5.0": {
-        "en": "Add local segment control via BLE-over-LAN (ptReal) — segments now controlled locally instead of Cloud\nAdd scene variants — all light effects per scene (A/B/C/D) instead of only the first\nAdd local snapshot activation via ptReal BLE packets from Cloud endpoint\nAdd scene speed control — adjust speed for supported scenes via slider\nAdd per-segment color and brightness to local snapshots\n352 tests (was 327)",
-        "de": "Lokale Segment-Steuerung via BLE-over-LAN (ptReal) — Segmente jetzt lokal statt über Cloud gesteuert\nSzenen-Varianten — alle Lichteffekte pro Szene (A/B/C/D) statt nur dem ersten\nLokale Snapshot-Aktivierung via ptReal BLE-Pakete vom Cloud-Endpoint\nSzenen-Geschwindigkeit — Speed für unterstützte Szenen per Slider einstellbar\nPer-Segment Farbe und Helligkeit in lokalen Snapshots\n352 Tests (vorher 327)",
-        "ru": "Локальное управление сегментами через BLE-over-LAN (ptReal) — сегменты теперь управляются локально\nВарианты сцен — все световые эффекты на сцену (A/B/C/D) вместо только первого\nЛокальная активация снимков через ptReal BLE-пакеты\nУправление скоростью сцен — слайдер для поддерживаемых сцен\nЦвет и яркость каждого сегмента в локальных снимках\n352 теста (было 327)",
-        "pt": "Controle local de segmentos via BLE-over-LAN (ptReal) — segmentos controlados localmente\nVariantes de cena — todos os efeitos de luz por cena (A/B/C/D)\nAtivação local de snapshots via pacotes BLE ptReal\nControle de velocidade de cena — slider para cenas compatíveis\nCor e brilho por segmento em snapshots locais\n352 testes (eram 327)",
-        "nl": "Lokale segmentbesturing via BLE-over-LAN (ptReal) — segmenten lokaal bestuurd\nScènevarianten — alle lichteffecten per scène (A/B/C/D)\nLokale snapshot-activering via ptReal BLE-pakketten\nScènesnelheid — slider voor ondersteunde scènes\nKleur en helderheid per segment in lokale snapshots\n352 tests (was 327)",
-        "fr": "Contrôle local des segments via BLE-over-LAN (ptReal) — segments contrôlés localement\nVariantes de scène — tous les effets lumineux par scène (A/B/C/D)\nActivation locale des snapshots via paquets BLE ptReal\nVitesse de scène — slider pour les scènes compatibles\nCouleur et luminosité par segment dans les snapshots locaux\n352 tests (était 327)",
-        "it": "Controllo locale segmenti via BLE-over-LAN (ptReal) — segmenti controllati localmente\nVarianti di scena — tutti gli effetti luce per scena (A/B/C/D)\nAttivazione locale snapshot via pacchetti BLE ptReal\nVelocità scena — slider per scene supportate\nColore e luminosità per segmento negli snapshot locali\n352 test (erano 327)",
-        "es": "Control local de segmentos vía BLE-over-LAN (ptReal) — segmentos controlados localmente\nVariantes de escena — todos los efectos de luz por escena (A/B/C/D)\nActivación local de snapshots vía paquetes BLE ptReal\nVelocidad de escena — slider para escenas compatibles\nColor y brillo por segmento en snapshots locales\n352 pruebas (eran 327)",
-        "pl": "Lokalne sterowanie segmentami przez BLE-over-LAN (ptReal) — segmenty sterowane lokalnie\nWarianty scen — wszystkie efekty świetlne na scenę (A/B/C/D)\nLokalna aktywacja snapshotów przez pakiety BLE ptReal\nPrędkość sceny — suwak dla obsługiwanych scen\nKolor i jasność na segment w lokalnych snapshotach\n352 testy (było 327)",
-        "uk": "Локальне керування сегментами через BLE-over-LAN (ptReal) — сегменти керуються локально\nВаріанти сцен — всі світлові ефекти на сцену (A/B/C/D)\nЛокальна активація знімків через ptReal BLE-пакети\nШвидкість сцени — слайдер для підтримуваних сцен\nКолір та яскравість кожного сегмента в локальних знімках\n352 тести (було 327)",
-        "zh-cn": "通过BLE-over-LAN (ptReal)本地控制分段 — 分段现在本地控制而非Cloud\n场景变体 — 每场景所有灯光效果 (A/B/C/D)\n通过ptReal BLE包本地激活快照\n场景速度控制 — 支持场景的速度滑块\n本地快照中每段颜色和亮度\n352个测试（原327个）"
-      },
-      "1.4.1": {
-        "en": "Fix group member resolution returning empty (API field name mismatch)\nAdd bearer token pre-check with descriptive log message\nAdd debug logging when group membership API returns no data",
-        "de": "Fix Gruppen-Mitglieder-Auflösung gibt leer zurück (API-Feldnamen-Fehler)\nBearer-Token-Vorabprüfung mit beschreibender Log-Meldung hinzugefügt\nDebug-Logging wenn Gruppen-API keine Daten liefert",
-        "ru": "Исправлено пустое разрешение участников группы (несоответствие имён полей API)\nДобавлена предварительная проверка bearer token с описательным сообщением\nДобавлено debug-логирование при пустом ответе API групп",
-        "pt": "Corrigida resolução de membros do grupo retornando vazio (incompatibilidade de nomes de campos API)\nAdicionada verificação prévia do bearer token com mensagem descritiva\nAdicionado logging debug quando API de grupos retorna vazio",
-        "nl": "Fix groepsleden-resolutie geeft leeg terug (API-veldnaam mismatch)\nBearer token voorcontrole met beschrijvende logmelding toegevoegd\nDebug-logging toegevoegd wanneer groepen-API geen data retourneert",
-        "fr": "Correction résolution membres du groupe retourne vide (incompatibilité noms de champs API)\nAjout vérification préalable du bearer token avec message descriptif\nAjout logging debug quand l'API des groupes ne retourne aucune donnée",
-        "it": "Fix risoluzione membri del gruppo restituisce vuoto (disallineamento nomi campi API)\nAggiunta verifica preliminare bearer token con messaggio descrittivo\nAggiunto logging debug quando API gruppi non restituisce dati",
-        "es": "Fix resolución de miembros del grupo retorna vacío (incompatibilidad de nombres de campos API)\nAñadida verificación previa del bearer token con mensaje descriptivo\nAñadido logging debug cuando API de grupos no retorna datos",
-        "pl": "Naprawiono pustą rozdzielczość członków grupy (niezgodność nazw pól API)\nDodano wstępne sprawdzanie bearer token z opisowym komunikatem\nDodano logowanie debug gdy API grup nie zwraca danych",
-        "uk": "Виправлено порожнє розв'язування учасників групи (невідповідність назв полів API)\nДодано попередню перевірку bearer token з описовим повідомленням\nДодано debug-логування коли API груп не повертає даних",
-        "zh-cn": "修复组成员解析返回空（API字段名不匹配）\n添加bearer token预检查及描述性日志消息\n添加组成员API返回空数据时的debug日志"
-      }
+    "common": {
+        "name": "govee-smart",
+        "version": "1.6.3",
+        "news": {
+            "1.6.3": {
+                "en": "Fix Segment Detection Wizard crash on Start — parseSegmentBatch now guards against non-string values, flashSegment-routing reworked to accept parsed objects directly (the cmd.split crash that produced the v1.6.2 restart loop)\nHarden all async event handlers against unhandled rejections — ready/stateChange/onMessage now route errors via .catch; prevents SIGKILL-code-6 restart loops\nHarden all Cloud/API/MQTT/LAN boundary types — Array.isArray + typeof guards added across every external-data for-loop, rgbToHex NaN/clamp, hexToRgb non-string safe, snapshot file path safe against non-string deviceId\nRefactor segment-wizard and cloud-retry-loop into testable modules; 511 tests total (was 427)",
+                "de": "Fix Segment-Detection-Wizard-Absturz beim Start — parseSegmentBatch prüft jetzt auf Nicht-String-Werte, flashSegment-Routing nimmt geparste Objekte direkt entgegen (cmd.split-Crash aus 1.6.2-Restart-Loop)\nAlle async Event-Handler gegen unhandled rejection gehärtet — ready/stateChange/onMessage fangen Fehler jetzt per .catch ab; verhindert SIGKILL-code-6 Restart-Loops\nCloud/API/MQTT/LAN-Grenzen gehärtet — Array.isArray + typeof Guards in jedem externen Daten-Loop, rgbToHex NaN/clamp, hexToRgb non-string safe, Snapshot-Pfad safe gegen non-string deviceId\nSegment-Wizard und Cloud-Retry-Loop in testbare Module refaktoriert; 511 Tests gesamt (war 427)",
+                "ru": "Исправлен сбой мастера определения сегментов при запуске — parseSegmentBatch проверяет нестроковые значения, flashSegment принимает разобранные объекты напрямую\nАсинхронные обработчики событий защищены от необработанных rejection\nГраницы Cloud/API/MQTT/LAN усилены typeof/Array.isArray проверками\n511 тестов (было 427)",
+                "pt": "Corrigido crash do Assistente de Detecção de Segmentos — parseSegmentBatch valida valores não-string, flashSegment aceita objetos já analisados\nHandlers async reforçados contra rejections não tratadas\nLimites Cloud/API/MQTT/LAN endurecidos com guards typeof/Array.isArray\n511 testes (era 427)",
+                "nl": "Segment Detection Wizard crash bij start opgelost — parseSegmentBatch valideert niet-string waarden, flashSegment accepteert geparste objecten direct\nAlle async event-handlers afgeschermd tegen unhandled rejections\nCloud/API/MQTT/LAN grenzen gehard met typeof/Array.isArray guards\n511 tests (was 427)",
+                "fr": "Correctif du crash de l'Assistant de Détection de Segments au démarrage — parseSegmentBatch rejette les valeurs non-string, flashSegment accepte directement les objets analysés\nGestionnaires async durcis contre les rejections non gérées\nFrontières Cloud/API/MQTT/LAN durcies avec des guards typeof/Array.isArray\n511 tests (était 427)",
+                "it": "Correzione crash Segment Detection Wizard all'avvio — parseSegmentBatch valida valori non-string, flashSegment accetta oggetti parsati direttamente\nHandler async protetti da rejection non gestite\nConfini Cloud/API/MQTT/LAN rafforzati con typeof/Array.isArray guards\n511 test (era 427)",
+                "es": "Corrección del crash del Asistente de Detección de Segmentos al iniciar — parseSegmentBatch valida valores no-string, flashSegment acepta objetos parseados directamente\nHandlers async protegidos contra rejections sin manejar\nLímites Cloud/API/MQTT/LAN reforzados con guards typeof/Array.isArray\n511 tests (antes 427)",
+                "pl": "Naprawa crashu Kreatora Wykrywania Segmentów przy starcie — parseSegmentBatch waliduje wartości nie-string, flashSegment akceptuje sparsowane obiekty bezpośrednio\nHandlery async zabezpieczone przed unhandled rejection\nGranice Cloud/API/MQTT/LAN wzmocnione guardami typeof/Array.isArray\n511 testów (było 427)",
+                "uk": "Виправлено збій майстра виявлення сегментів під час запуску — parseSegmentBatch перевіряє нестрокові значення\nАсинхронні обробники подій захищені від необроблених rejection\nМежі Cloud/API/MQTT/LAN посилено перевірками typeof/Array.isArray\n511 тестів (було 427)",
+                "zh-cn": "修复分段检测向导启动崩溃 — parseSegmentBatch 防御非字符串值,flashSegment 直接接受解析对象\n所有异步事件处理器防止未处理的 rejection\nCloud/API/MQTT/LAN 边界通过 typeof/Array.isArray 守卫加固\n共 511 项测试(原 427)"
+            },
+            "1.6.2": {
+                "en": "Fix jsonConfig schema warnings for Segment Detection Wizard — removed unsupported \"button\" property, aligned variant/color to admin schema (primary/secondary, contained/outlined), set xs=12 for mobile-full-width on sendTo buttons\nNo functionality change, purely schema compliance",
+                "de": "jsonConfig-Schema-Warnings für Segment-Erkennungs-Assistent behoben — nicht unterstütztes \"button\"-Property entfernt, variant/color an Admin-Schema angepasst (primary/secondary, contained/outlined), xs=12 für sendTo-Buttons (volle Breite mobil)\nKeine Funktionsänderung, reine Schema-Compliance"
+            },
+            "1.6.1": {
+                "en": "Fix Segment Detection Wizard in admin UI — jsonConfig button type was \"sendto\" (lowercase) instead of \"sendTo\" causing validation errors\nFix LED strip dropdown showed as free-text input because selectSendTo expects the array directly, not wrapped in {list: ...}",
+                "de": "Fix Segment-Erkennungs-Assistent im Admin-UI — jsonConfig-Button-Typ war \"sendto\" (klein) statt \"sendTo\", führte zu Validierungsfehlern\nFix LED-Strip-Dropdown erschien als freies Texteingabefeld, weil selectSendTo das Array direkt erwartet, nicht in {list: ...} verpackt"
+            },
+            "1.6.0": {
+                "en": "Add manual segment override for cut LED strips — declare which segment indices actually exist via segments.manual_mode + segments.manual_list (supports ranges like \"0-9\" or gaps like \"0-8,10-14\")\nAdd interactive Segment Detection wizard in admin UI — flashes each segment, user answers Yes/No, adapter writes the manual list\nAdd SKU cache pruning — stale entries without network sighting for 14+ days are removed automatically; scenesChecked flag prevents endless Cloud refetch when scenes are legitimately empty\nHard-filter Cloud device list — stale registrations without capabilities are skipped and no longer clutter the cache\nMQTT/Cloud startup grace raised to 60s with honest \"still connecting\" status; Cloud now has a background retry loop (5 min default, Retry-After respected on rate-limit, no retry on auth failure)\nFix info.mqttConnected staying stale — state now reliably reflects current connection on any failure\n427 tests (was 399)",
+                "de": "Manuelle Segment-Definition für abgeschnittene LED-Strips — Indizes über segments.manual_mode + segments.manual_list festlegen (Ranges wie \"0-9\" oder Lücken wie \"0-8,10-14\")\nInteraktiver Segment-Erkennungs-Assistent im Admin-UI — flasht jedes Segment, User bestätigt Ja/Nein, Adapter schreibt die Liste\nSKU-Cache-Aufräumen — Einträge ohne Netzwerk-Sichtung seit 14+ Tagen werden automatisch entfernt; scenesChecked-Flag verhindert Endlos-Refetch bei legitim leeren Szenen-Listen\nHard-Filter für Cloud-Geräteliste — stale Registrierungen ohne Capabilities werden übersprungen, kein Cache-Müll mehr\nMQTT/Cloud-Startup-Grace auf 60s erhöht mit ehrlicher \"noch im Aufbau\"-Meldung; Cloud mit Background-Retry-Loop (5 Min default, Retry-After bei Rate-Limit respektiert, kein Retry bei Auth-Fehler)\nFix info.mqttConnected hängt auf altem Wert — State reflektiert jetzt zuverlässig den aktuellen Verbindungszustand\n427 Tests (vorher 399)"
+            },
+            "1.5.2": {
+                "en": "Harden Cloud API drift — capabilities without parameters field, non-string type/instance, malformed device entries no longer crash the adapter\nCoerce string-valued booleans (\"1\"/\"true\") and numeric strings (\"75\") from Cloud API to correct types — previously silently wrong state values\nAdd 45 regression tests for API-drift scenarios — 399 tests total",
+                "de": "Cloud API gehärtet — Capabilities ohne parameters-Feld, non-string type/instance und defekte Device-Einträge lassen den Adapter nicht mehr crashen\nString-Booleans (\"1\"/\"true\") und numerische Strings (\"75\") aus Cloud API werden jetzt korrekt zu Typen konvertiert — vorher stille Fehlwerte\n45 Regression-Tests für API-Drift-Szenarien ergänzt — 399 Tests gesamt",
+                "ru": "Усилена защита от дрейфа Cloud API — возможности без поля parameters, не-строковые type/instance, некорректные записи устройств больше не роняют адаптер\nСтроковые булевы (\"1\"/\"true\") и числовые строки (\"75\") из Cloud API теперь корректно конвертируются — раньше тихо приводили к неверным значениям\n45 регрессионных тестов для сценариев дрейфа API — всего 399 тестов",
+                "pt": "Reforço contra deriva da Cloud API — capacidades sem campo parameters, type/instance não-string e entradas de dispositivo malformadas já não travam o adaptador\nBooleanos em string (\"1\"/\"true\") e strings numéricas (\"75\") da Cloud API agora são convertidos corretamente — antes valores de estado silenciosamente errados\n45 testes de regressão para cenários de deriva de API — total 399 testes",
+                "nl": "Cloud API gehard — capabilities zonder parameters-veld, non-string type/instance en misvormde device-entries laten de adapter niet meer crashen\nString-booleans (\"1\"/\"true\") en numerieke strings (\"75\") van Cloud API worden nu correct geconverteerd — voorheen stille verkeerde waarden\n45 regressietests voor API-drift-scenario's toegevoegd — 399 tests totaal",
+                "fr": "Durcissement contre la dérive de l'API Cloud — capacités sans champ parameters, type/instance non-string et entrées d'appareils malformées ne font plus planter l'adaptateur\nBooléens sous forme de string (\"1\"/\"true\") et strings numériques (\"75\") de l'API Cloud correctement convertis — auparavant valeurs silencieusement erronées\n45 tests de régression pour scénarios de dérive API — 399 tests au total",
+                "it": "Rafforzata protezione contro drift Cloud API — capability senza campo parameters, type/instance non-string e voci dispositivo malformate non fanno più crashare l'adattatore\nBooleani-stringa (\"1\"/\"true\") e stringhe numeriche (\"75\") dalla Cloud API ora convertiti correttamente — prima valori silenziosamente errati\n45 test di regressione per scenari di drift API — 399 test totali",
+                "es": "Endurecimiento contra deriva de Cloud API — capacidades sin campo parameters, type/instance no-string y entradas de dispositivo malformadas ya no hacen crashear el adaptador\nBooleanos en string (\"1\"/\"true\") y strings numéricas (\"75\") de Cloud API ahora convertidos correctamente — antes valores silenciosamente erróneos\n45 pruebas de regresión para escenarios de deriva de API — 399 pruebas en total",
+                "pl": "Wzmocniono odporność na dryf Cloud API — capabilities bez pola parameters, nie-tekstowe type/instance i zniekształcone wpisy urządzeń nie powodują już awarii adaptera\nWartości logiczne jako string (\"1\"/\"true\") i stringi liczbowe (\"75\") z Cloud API są teraz poprawnie konwertowane — wcześniej cichy błędny stan\nDodano 45 testów regresyjnych dla scenariuszy dryfu API — łącznie 399 testów",
+                "uk": "Підсилено захист від дрейфу Cloud API — можливості без поля parameters, не-рядкові type/instance і неправильні записи пристроїв більше не крешать адаптер\nРядкові булеві (\"1\"/\"true\") та числові рядки (\"75\") з Cloud API тепер коректно конвертуються — раніше тихо давали неправильні значення\nДодано 45 регресійних тестів для сценаріїв дрейфу API — всього 399 тестів",
+                "zh-cn": "加固Cloud API抗漂移能力 — 缺少parameters字段的能力、非字符串type/instance和格式错误的设备条目不再导致适配器崩溃\n来自Cloud API的字符串布尔值(\"1\"/\"true\")和数值字符串(\"75\")现在正确转换 — 之前静默产生错误状态值\n新增45个API漂移场景回归测试 — 共399个测试"
+            },
+            "1.5.1": {
+                "en": "Fix device type matching — scenes only loaded via fallback because type comparison never matched Cloud API format\nAdd dynamic API rate limit sharing with other Govee adapters on the same account\nFilter non-light device types (heaters, fans, sensors etc.) — this adapter handles lights only\n354 tests (was 352)",
+                "de": "Fix Gerätetyp-Vergleich — Szenen wurden nur über Fallback geladen weil Typ-Vergleich nie mit Cloud-API-Format übereinstimmte\nDynamische API-Rate-Limit-Aufteilung mit anderen Govee-Adaptern auf demselben Account\nNicht-Licht-Gerätetypen gefiltert (Heizungen, Ventilatoren, Sensoren etc.) — dieser Adapter ist nur für Lichter\n354 Tests (vorher 352)",
+                "ru": "Исправлено сравнение типа устройства — сцены загружались только через запасной механизм из-за несоответствия формата Cloud API\nДинамическое разделение лимитов API с другими адаптерами Govee на том же аккаунте\nФильтрация не-световых типов устройств (обогреватели, вентиляторы, датчики) — этот адаптер только для света\n354 теста (было 352)",
+                "pt": "Corrigida comparação de tipo de dispositivo — cenas carregadas apenas via fallback devido a incompatibilidade com formato Cloud API\nCompartilhamento dinâmico de limite de taxa API com outros adaptadores Govee na mesma conta\nFiltrar tipos de dispositivos não-luz (aquecedores, ventiladores, sensores) — este adaptador é apenas para luzes\n354 testes (eram 352)",
+                "nl": "Fix apparaattype vergelijking — scènes alleen geladen via fallback vanwege mismatch met Cloud API formaat\nDynamisch API rate limit delen met andere Govee adapters op hetzelfde account\nNiet-licht apparaattypen gefilterd (verwarmers, ventilatoren, sensoren) — deze adapter is alleen voor lampen\n354 tests (was 352)",
+                "fr": "Correction comparaison type d'appareil — scènes chargées uniquement via fallback à cause d'incompatibilité avec format Cloud API\nPartage dynamique des limites de taux API avec d'autres adaptateurs Govee sur le même compte\nFiltrage des types d'appareils non-lumière (chauffages, ventilateurs, capteurs) — cet adaptateur est uniquement pour les lumières\n354 tests (était 352)",
+                "it": "Fix confronto tipo dispositivo — scene caricate solo via fallback per mancata corrispondenza con formato Cloud API\nCondivisione dinamica dei limiti API con altri adattatori Govee sullo stesso account\nFiltro tipi dispositivi non-luce (riscaldatori, ventilatori, sensori) — questo adattatore è solo per le luci\n354 test (erano 352)",
+                "es": "Fix comparación tipo de dispositivo — escenas cargadas solo vía fallback por incompatibilidad con formato Cloud API\nCompartición dinámica de límites de tasa API con otros adaptadores Govee en la misma cuenta\nFiltrar tipos de dispositivos no-luz (calentadores, ventiladores, sensores) — este adaptador es solo para luces\n354 pruebas (eran 352)",
+                "pl": "Naprawiono porównanie typu urządzenia — sceny ładowane tylko przez fallback z powodu niezgodności z formatem Cloud API\nDynamiczne współdzielenie limitów API z innymi adapterami Govee na tym samym koncie\nFiltrowanie typów urządzeń nie-świetlnych (grzejniki, wentylatory, czujniki) — ten adapter jest tylko dla lamp\n354 testy (było 352)",
+                "uk": "Виправлено порівняння типу пристрою — сцени завантажувалися лише через резервний механізм через невідповідність формату Cloud API\nДинамічний поділ лімітів API з іншими адаптерами Govee на тому ж акаунті\nФільтрація типів пристроїв не-світло (обігрівачі, вентилятори, датчики) — цей адаптер лише для світла\n354 тести (було 352)",
+                "zh-cn": "修复设备类型比较 — 场景仅通过备用机制加载因为类型比较从未匹配Cloud API格式\n与同账户其他Govee适配器动态共享API速率限制\n过滤非灯具设备类型（加热器、风扇、传感器等）— 此适配器仅处理灯具\n354个测试（原352个）"
+            },
+            "1.5.0": {
+                "en": "Add local segment control via BLE-over-LAN (ptReal) — segments now controlled locally instead of Cloud\nAdd scene variants — all light effects per scene (A/B/C/D) instead of only the first\nAdd local snapshot activation via ptReal BLE packets from Cloud endpoint\nAdd scene speed control — adjust speed for supported scenes via slider\nAdd per-segment color and brightness to local snapshots\n352 tests (was 327)",
+                "de": "Lokale Segment-Steuerung via BLE-over-LAN (ptReal) — Segmente jetzt lokal statt über Cloud gesteuert\nSzenen-Varianten — alle Lichteffekte pro Szene (A/B/C/D) statt nur dem ersten\nLokale Snapshot-Aktivierung via ptReal BLE-Pakete vom Cloud-Endpoint\nSzenen-Geschwindigkeit — Speed für unterstützte Szenen per Slider einstellbar\nPer-Segment Farbe und Helligkeit in lokalen Snapshots\n352 Tests (vorher 327)",
+                "ru": "Локальное управление сегментами через BLE-over-LAN (ptReal) — сегменты теперь управляются локально\nВарианты сцен — все световые эффекты на сцену (A/B/C/D) вместо только первого\nЛокальная активация снимков через ptReal BLE-пакеты\nУправление скоростью сцен — слайдер для поддерживаемых сцен\nЦвет и яркость каждого сегмента в локальных снимках\n352 теста (было 327)",
+                "pt": "Controle local de segmentos via BLE-over-LAN (ptReal) — segmentos controlados localmente\nVariantes de cena — todos os efeitos de luz por cena (A/B/C/D)\nAtivação local de snapshots via pacotes BLE ptReal\nControle de velocidade de cena — slider para cenas compatíveis\nCor e brilho por segmento em snapshots locais\n352 testes (eram 327)",
+                "nl": "Lokale segmentbesturing via BLE-over-LAN (ptReal) — segmenten lokaal bestuurd\nScènevarianten — alle lichteffecten per scène (A/B/C/D)\nLokale snapshot-activering via ptReal BLE-pakketten\nScènesnelheid — slider voor ondersteunde scènes\nKleur en helderheid per segment in lokale snapshots\n352 tests (was 327)",
+                "fr": "Contrôle local des segments via BLE-over-LAN (ptReal) — segments contrôlés localement\nVariantes de scène — tous les effets lumineux par scène (A/B/C/D)\nActivation locale des snapshots via paquets BLE ptReal\nVitesse de scène — slider pour les scènes compatibles\nCouleur et luminosité par segment dans les snapshots locaux\n352 tests (était 327)",
+                "it": "Controllo locale segmenti via BLE-over-LAN (ptReal) — segmenti controllati localmente\nVarianti di scena — tutti gli effetti luce per scena (A/B/C/D)\nAttivazione locale snapshot via pacchetti BLE ptReal\nVelocità scena — slider per scene supportate\nColore e luminosità per segmento negli snapshot locali\n352 test (erano 327)",
+                "es": "Control local de segmentos vía BLE-over-LAN (ptReal) — segmentos controlados localmente\nVariantes de escena — todos los efectos de luz por escena (A/B/C/D)\nActivación local de snapshots vía paquetes BLE ptReal\nVelocidad de escena — slider para escenas compatibles\nColor y brillo por segmento en snapshots locales\n352 pruebas (eran 327)",
+                "pl": "Lokalne sterowanie segmentami przez BLE-over-LAN (ptReal) — segmenty sterowane lokalnie\nWarianty scen — wszystkie efekty świetlne na scenę (A/B/C/D)\nLokalna aktywacja snapshotów przez pakiety BLE ptReal\nPrędkość sceny — suwak dla obsługiwanych scen\nKolor i jasność na segment w lokalnych snapshotach\n352 testy (było 327)",
+                "uk": "Локальне керування сегментами через BLE-over-LAN (ptReal) — сегменти керуються локально\nВаріанти сцен — всі світлові ефекти на сцену (A/B/C/D)\nЛокальна активація знімків через ptReal BLE-пакети\nШвидкість сцени — слайдер для підтримуваних сцен\nКолір та яскравість кожного сегмента в локальних знімках\n352 тести (було 327)",
+                "zh-cn": "通过BLE-over-LAN (ptReal)本地控制分段 — 分段现在本地控制而非Cloud\n场景变体 — 每场景所有灯光效果 (A/B/C/D)\n通过ptReal BLE包本地激活快照\n场景速度控制 — 支持场景的速度滑块\n本地快照中每段颜色和亮度\n352个测试（原327个）"
+            }
+        },
+        "titleLang": {
+            "en": "Govee Smart Lights",
+            "de": "Govee Smart Lights",
+            "ru": "Govee Smart Lights",
+            "pt": "Govee Smart Lights",
+            "nl": "Govee Smart Lights",
+            "fr": "Govee Smart Lights",
+            "it": "Govee Smart Lights",
+            "es": "Govee Smart Lights",
+            "pl": "Govee Smart Lights",
+            "uk": "Govee Smart Lights",
+            "zh-cn": "Govee Smart Lights"
+        },
+        "desc": {
+            "en": "Control Govee smart lights (LED strips, bulbs, panels) via LAN, MQTT and Cloud API — lights only, no appliances",
+            "de": "Govee Smart Lights (LED-Strips, Lampen, Panels) über LAN, MQTT und Cloud API steuern — nur Lichter, keine Haushaltsgeräte",
+            "ru": "Управление умными светильниками Govee (LED-ленты, лампы, панели) через LAN, MQTT и Cloud API — только свет, без бытовой техники",
+            "pt": "Controle luzes inteligentes Govee (fitas LED, lâmpadas, painéis) via LAN, MQTT e Cloud API — apenas luzes, sem eletrodomésticos",
+            "nl": "Bedien Govee slimme verlichting (LED-strips, lampen, panelen) via LAN, MQTT en Cloud API — alleen lampen, geen huishoudapparaten",
+            "fr": "Contrôlez les lumières intelligentes Govee (rubans LED, ampoules, panneaux) via LAN, MQTT et Cloud API — lumières uniquement, pas d'appareils ménagers",
+            "it": "Controlla le luci intelligenti Govee (strisce LED, lampadine, pannelli) tramite LAN, MQTT e Cloud API — solo luci, nessun elettrodomestico",
+            "es": "Controla las luces inteligentes Govee (tiras LED, bombillas, paneles) a través de LAN, MQTT y Cloud API — solo luces, sin electrodomésticos",
+            "pl": "Steruj inteligentnymi lampami Govee (taśmy LED, żarówki, panele) przez LAN, MQTT i Cloud API — tylko lampy, bez urządzeń domowych",
+            "uk": "Керуйте розумними світильниками Govee (LED-стрічки, лампи, панелі) через LAN, MQTT та Cloud API — лише світло, без побутової техніки",
+            "zh-cn": "通过LAN、MQTT和Cloud API控制Govee智能灯（LED灯带、灯泡、面板）— 仅灯具，不含家电"
+        },
+        "authors": [
+            "krobi <krobi@power-dreams.com>"
+        ],
+        "licenseInformation": {
+            "license": "MIT",
+            "type": "free"
+        },
+        "platform": "Javascript/Node.js",
+        "icon": "govee-smart.svg",
+        "extIcon": "https://raw.githubusercontent.com/krobipd/ioBroker.govee-smart/main/admin/govee-smart.svg",
+        "readme": "https://github.com/krobipd/ioBroker.govee-smart/blob/main/README.md",
+        "enabled": true,
+        "tier": 3,
+        "loglevel": "info",
+        "mode": "daemon",
+        "keywords": [
+            "govee",
+            "lights",
+            "led",
+            "lan",
+            "mqtt",
+            "ble"
+        ],
+        "type": "lighting",
+        "compact": true,
+        "connectionType": "local",
+        "dataSource": "push",
+        "adminUI": {
+            "config": "json"
+        },
+        "supportedMessages": {
+            "stopInstance": true
+        },
+        "dependencies": [
+            {
+                "js-controller": ">=7.0.0"
+            }
+        ],
+        "globalDependencies": [
+            {
+                "admin": ">=7.6.20"
+            }
+        ]
     },
-    "titleLang": {
-      "en": "Govee Smart Lights",
-      "de": "Govee Smart Lights",
-      "ru": "Govee Smart Lights",
-      "pt": "Govee Smart Lights",
-      "nl": "Govee Smart Lights",
-      "fr": "Govee Smart Lights",
-      "it": "Govee Smart Lights",
-      "es": "Govee Smart Lights",
-      "pl": "Govee Smart Lights",
-      "uk": "Govee Smart Lights",
-      "zh-cn": "Govee Smart Lights"
-    },
-    "desc": {
-      "en": "Control Govee smart lights (LED strips, bulbs, panels) via LAN, MQTT and Cloud API — lights only, no appliances",
-      "de": "Govee Smart Lights (LED-Strips, Lampen, Panels) über LAN, MQTT und Cloud API steuern — nur Lichter, keine Haushaltsgeräte",
-      "ru": "Управление умными светильниками Govee (LED-ленты, лампы, панели) через LAN, MQTT и Cloud API — только свет, без бытовой техники",
-      "pt": "Controle luzes inteligentes Govee (fitas LED, lâmpadas, painéis) via LAN, MQTT e Cloud API — apenas luzes, sem eletrodomésticos",
-      "nl": "Bedien Govee slimme verlichting (LED-strips, lampen, panelen) via LAN, MQTT en Cloud API — alleen lampen, geen huishoudapparaten",
-      "fr": "Contrôlez les lumières intelligentes Govee (rubans LED, ampoules, panneaux) via LAN, MQTT et Cloud API — lumières uniquement, pas d'appareils ménagers",
-      "it": "Controlla le luci intelligenti Govee (strisce LED, lampadine, pannelli) tramite LAN, MQTT e Cloud API — solo luci, nessun elettrodomestico",
-      "es": "Controla las luces inteligentes Govee (tiras LED, bombillas, paneles) a través de LAN, MQTT y Cloud API — solo luces, sin electrodomésticos",
-      "pl": "Steruj inteligentnymi lampami Govee (taśmy LED, żarówki, panele) przez LAN, MQTT i Cloud API — tylko lampy, bez urządzeń domowych",
-      "uk": "Керуйте розумними світильниками Govee (LED-стрічки, лампи, панелі) через LAN, MQTT та Cloud API — лише світло, без побутової техніки",
-      "zh-cn": "通过LAN、MQTT和Cloud API控制Govee智能灯（LED灯带、灯泡、面板）— 仅灯具，不含家电"
-    },
-    "authors": [
-      "krobi <krobi@power-dreams.com>"
+    "encryptedNative": [
+        "apiKey",
+        "goveePassword"
     ],
-    "licenseInformation": {
-      "license": "MIT",
-      "type": "free"
-    },
-    "platform": "Javascript/Node.js",
-    "icon": "govee-smart.svg",
-    "extIcon": "https://raw.githubusercontent.com/krobipd/ioBroker.govee-smart/main/admin/govee-smart.svg",
-    "readme": "https://github.com/krobipd/ioBroker.govee-smart/blob/main/README.md",
-    "enabled": true,
-    "tier": 3,
-    "loglevel": "info",
-    "mode": "daemon",
-    "keywords": [
-      "govee",
-      "lights",
-      "led",
-      "lan",
-      "mqtt",
-      "ble"
+    "protectedNative": [
+        "apiKey",
+        "goveePassword"
     ],
-    "type": "lighting",
-    "compact": true,
-    "connectionType": "local",
-    "dataSource": "push",
-    "adminUI": {
-      "config": "json"
-    },
-    "supportedMessages": {
-      "stopInstance": true
-    },
-    "dependencies": [
-      {
-        "js-controller": ">=7.0.0"
-      }
-    ],
-    "globalDependencies": [
-      {
-        "admin": ">=7.6.20"
-      }
-    ]
-  },
-  "encryptedNative": [
-    "apiKey",
-    "goveePassword"
-  ],
-  "protectedNative": [
-    "apiKey",
-    "goveePassword"
-  ],
-  "native": {
-    "apiKey": "",
-    "goveeEmail": "",
-    "goveePassword": "",
-    "networkInterface": "0.0.0.0"
-  }
+    "native": {
+        "apiKey": "",
+        "goveeEmail": "",
+        "goveePassword": "",
+        "networkInterface": "0.0.0.0"
+    }
 }

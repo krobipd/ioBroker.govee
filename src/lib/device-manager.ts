@@ -61,13 +61,17 @@ export function parseMqttSegmentData(
   commands: string[],
   segmentCount: number,
 ): MqttSegmentData[] {
-  if (segmentCount <= 0) {
+  if (segmentCount <= 0 || !Array.isArray(commands)) {
     return [];
   }
 
   const segments: MqttSegmentData[] = [];
 
   for (const cmd of commands) {
+    // Defensive — MQTT can push non-string entries; Buffer.from would throw.
+    if (typeof cmd !== "string") {
+      continue;
+    }
     const bytes = Buffer.from(cmd, "base64");
     // AA A5 packets are 20 bytes: AA A5 <packetNum> <4×4 bytes data> <checksum>
     if (bytes.length < 20 || bytes[0] !== 0xaa || bytes[1] !== 0xa5) {

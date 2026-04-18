@@ -33,7 +33,8 @@ export class GoveeCloudClient {
       "GET",
       "/router/api/v1/user/devices",
     );
-    return resp.data ?? [];
+    // Defensive — API can drift. Guard for non-array to protect downstream iteration.
+    return Array.isArray(resp?.data) ? resp.data : [];
   }
 
   /**
@@ -54,7 +55,8 @@ export class GoveeCloudClient {
         payload: { sku, device },
       },
     );
-    return resp.data?.capabilities ?? [];
+    const caps = resp?.data?.capabilities;
+    return Array.isArray(caps) ? caps : [];
   }
 
   /**
@@ -115,15 +117,23 @@ export class GoveeCloudClient {
     const diyScenes: CloudScene[] = [];
     const snapshots: CloudScene[] = [];
 
-    for (const cap of resp.payload?.capabilities ?? []) {
+    const caps = Array.isArray(resp?.payload?.capabilities)
+      ? resp.payload.capabilities
+      : [];
+    for (const cap of caps) {
+      if (!cap || typeof cap.instance !== "string") {
+        continue;
+      }
+      const opts = Array.isArray(cap.parameters?.options)
+        ? cap.parameters.options
+        : [];
       this.log.debug(
-        `Scenes endpoint: instance=${cap.instance}, options=${cap.parameters?.options?.length ?? 0}`,
+        `Scenes endpoint: instance=${cap.instance}, options=${opts.length}`,
       );
-      const opts = cap.parameters?.options ?? [];
       const mapped: CloudScene[] = opts
         .filter(
           (o): o is { name: string; value: Record<string, unknown> } =>
-            typeof o.name === "string" && typeof o.value === "object",
+            !!o && typeof o.name === "string" && typeof o.value === "object",
         )
         .map((o) => ({
           name: o.name,
@@ -159,16 +169,24 @@ export class GoveeCloudClient {
     );
 
     const scenes: CloudScene[] = [];
-    for (const cap of resp.payload?.capabilities ?? []) {
+    const caps = Array.isArray(resp?.payload?.capabilities)
+      ? resp.payload.capabilities
+      : [];
+    for (const cap of caps) {
+      if (!cap || typeof cap.instance !== "string") {
+        continue;
+      }
+      const opts = Array.isArray(cap.parameters?.options)
+        ? cap.parameters.options
+        : [];
       this.log.debug(
-        `DIY-Scenes endpoint: instance=${cap.instance}, options=${cap.parameters?.options?.length ?? 0}`,
+        `DIY-Scenes endpoint: instance=${cap.instance}, options=${opts.length}`,
       );
-      const opts = cap.parameters?.options ?? [];
       scenes.push(
         ...opts
           .filter(
             (o): o is { name: string; value: Record<string, unknown> } =>
-              typeof o.name === "string" && typeof o.value === "object",
+              !!o && typeof o.name === "string" && typeof o.value === "object",
           )
           .map((o) => ({ name: o.name, value: o.value })),
       );

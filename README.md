@@ -452,6 +452,29 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### 1.6.3 (2026-04-18)
+- Fix Segment Detection Wizard crash on Start — `parseSegmentBatch` now guards against non-string values; `flashSegment` routing accepts parsed objects directly (the `cmd.split is not a function` crash that produced the v1.6.2 restart loop)
+- Harden all async event handlers against unhandled rejections — `ready`/`stateChange`/`onMessage` now route errors via `.catch`; prevents SIGKILL-code-6 restart loops
+- Harden Cloud/API/MQTT/LAN boundary types — `Array.isArray` + `typeof` guards added across every external-data iteration, `rgbToHex` NaN/clamp, `hexToRgb` non-string safe, snapshot file path safe against non-string deviceId
+- Refactor segment-wizard and cloud-retry-loop into dedicated testable modules
+- 511 tests (was 427)
+
+### 1.6.2 (2026-04-18)
+- Fix jsonConfig schema warnings for Segment Detection Wizard — removed unsupported `button` property, aligned variant/color to admin schema (`primary`/`secondary`, `contained`/`outlined`), set `xs=12` for mobile layout
+
+### 1.6.1 (2026-04-18)
+- Fix Segment Detection Wizard in admin UI — jsonConfig button type was `sendto` (lowercase) instead of `sendTo` causing validation errors
+- Fix LED strip dropdown showed as free-text input because `selectSendTo` response was wrapped in `{list: [...]}` instead of bare array
+
+### 1.6.0 (2026-04-18)
+- Add manual segment override for cut LED strips — declare which segment indices actually exist via `segments.manual_mode` + `segments.manual_list` (supports ranges like `"0-9"` or gaps like `"0-8,10-14"`)
+- Add Segment Detection Wizard in admin UI — flashes each segment bright white one-by-one and records which indices the user confirms visible, writes result as `manual_list`
+- Add Cloud-Retry-Loop with Rate-Limit handling — 429 responses honour `Retry-After`, auth-failures stop permanently, transient errors retry after 5 min
+- Add SKU-cache pruning — 14-day aging + `scenesChecked` flag + hard-filter of stale Cloud entries without capabilities
+- Extend startup grace period for MQTT+Cloud from 30s to 60s — covers normal MQTT reconnect-attempt timing
+- Fix `info.mqttConnected` state not updating on disconnect
+- 427 tests (was 399)
+
 ### 1.5.2 (2026-04-17)
 - Harden all Cloud API boundaries against schema drift — `typeof`/`Array.isArray` guards and string coercion on every external field access (sku, device, capabilities, parameters, type, instance)
 - Type `CloudCapability.parameters` is now optional — API may omit it even when docs require it
@@ -471,32 +494,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - Add scene speed control — adjust playback speed for supported scenes via slider
 - Add per-segment color and brightness to local snapshots — full visual state capture without Cloud
 - 352 tests (was 327)
-
-### 1.4.1 (2026-04-13)
-- Fix group member resolution returning empty (API field name mismatch: `gId`/`name` vs `groupId`/`groupName`)
-- Add bearer token pre-check with descriptive log message for group membership loading
-- Add debug logging when group membership API returns no data
-
-### 1.4.0 (2026-04-13)
-- Redesign group handling: fan-out commands to member devices via LAN/ptReal instead of Cloud-only power toggle
-- Group capabilities computed as intersection of member devices (power, brightness, color, scenes, music)
-- Add `info.members` state showing group member device IDs
-- Add dynamic `info.membersUnreachable` state (only created when unreachable members exist)
-- Remove snapshots and diagnostics from groups (not applicable to virtual devices)
-- Update undocumented API headers to match current Govee app version (7.3.30)
-- 327 tests (was 314)
-
-### 1.3.0 (2026-04-12)
-- Add MQTT segment state sync — per-segment brightness and color updated in real-time via MQTT BLE notifications
-- Remove non-functional scene speed slider (byte layout unknown, no project worldwide implements this)
-- Remove dead code: unused types, methods, and write-only fields (comprehensive audit, 8 findings)
-
-### 1.2.0 (2026-04-12)
-- Fix segment color commands not working (ptReal accepted but not rendered) — rerouted via Cloud API
-- Fix dropdown states not resetting on mode switch (scene/music/snapshot/color changes now reset all other dropdowns)
-- Replace individual group online states with single `groups.info.online` reflecting Cloud connection status
-- Add channel annotations to state tree documentation
-- Add acknowledgments for govee2mqtt project
 
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

@@ -54,12 +54,11 @@ class LocalSnapshotStore {
    * @param deviceId Device identifier
    */
   getSnapshots(sku, deviceId) {
-    var _a;
     const file = this.snapshotFile(sku, deviceId);
     try {
       if (fs.existsSync(file)) {
         const data = JSON.parse(fs.readFileSync(file, "utf-8"));
-        return (_a = data.snapshots) != null ? _a : [];
+        return Array.isArray(data == null ? void 0 : data.snapshots) ? data.snapshots : [];
       }
     } catch (e) {
       this.log.debug(

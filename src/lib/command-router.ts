@@ -100,9 +100,15 @@ export class CommandRouter {
       return;
     }
 
-    // Segment batch: LAN ptReal first (multi-segment bitmask), Cloud fallback
+    // Segment batch: LAN ptReal first (multi-segment bitmask), Cloud fallback.
+    // Accepts either a string in the user-batch syntax ("0-5:#ff0000:20") or a
+    // pre-parsed object { segments, color?, brightness? } from internal callers
+    // like the detection wizard (avoids a string→parse round-trip).
     if (command === "segmentBatch") {
-      const parsed = this.parseSegmentBatch(device, value as string);
+      const parsed =
+        typeof value === "string"
+          ? this.parseSegmentBatch(device, value)
+          : this.coerceParsedBatch(value);
       if (parsed) {
         this.onSegmentBatchUpdate?.(device, parsed);
       }
@@ -128,8 +134,12 @@ export class CommandRouter {
         }
         return;
       }
-      if (device.channels.cloud && this.cloudClient) {
-        await this.sendSegmentBatchParsed(device, value as string, parsed);
+      if (device.channels.cloud && this.cloudClient && parsed) {
+        await this.sendSegmentBatchParsed(
+          device,
+          typeof value === "string" ? value : "",
+          parsed,
+        );
         return;
       }
       return;
@@ -295,6 +305,11 @@ export class CommandRouter {
     color?: number;
     brightness?: number;
   } | null {
+    // Defensive guard — non-string input (e.g. from internal caller passing
+    // an already-parsed object) would crash cmd.split(). Treat as no-op.
+    if (typeof cmd !== "string") {
+      return null;
+    }
     const parts = cmd.split(":");
     if (parts.length < 1 || !parts[0]) {
       return null;
@@ -367,6 +382,44 @@ export class CommandRouter {
       return null;
     }
 
+    return { segments, color, brightness };
+  }
+
+  /**
+   * Coerce a pre-parsed batch object (from internal callers) to the canonical
+   * shape. Returns null if the input is not a valid {segments, ...} object.
+   *
+   * @param value Candidate object
+   */
+  private coerceParsedBatch(value: unknown): {
+    segments: number[];
+    color?: number;
+    brightness?: number;
+  } | null {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const v = value as Record<string, unknown>;
+    if (!Array.isArray(v.segments) || v.segments.length === 0) {
+      return null;
+    }
+    const segments = v.segments.filter(
+      (n) => typeof n === "number" && Number.isFinite(n) && n >= 0,
+    ) as number[];
+    if (segments.length === 0) {
+      return null;
+    }
+    const color =
+      typeof v.color === "number" && Number.isFinite(v.color)
+        ? v.color & 0xffffff
+        : undefined;
+    const brightness =
+      typeof v.brightness === "number" && Number.isFinite(v.brightness)
+        ? Math.max(0, Math.min(100, Math.round(v.brightness)))
+        : undefined;
+    if (color === undefined && brightness === undefined) {
+      return null;
+    }
     return { segments, color, brightness };
   }
 

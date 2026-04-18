@@ -57,10 +57,20 @@ function classifyError(err) {
   }
   return "UNKNOWN";
 }
+function clampByte(v) {
+  const n = typeof v === "number" && Number.isFinite(v) ? v : 0;
+  return Math.max(0, Math.min(255, Math.round(n)));
+}
 function rgbToHex(r, g, b) {
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+  const rr = clampByte(r).toString(16).padStart(2, "0");
+  const gg = clampByte(g).toString(16).padStart(2, "0");
+  const bb = clampByte(b).toString(16).padStart(2, "0");
+  return `#${rr}${gg}${bb}`;
 }
 function hexToRgb(hex) {
+  if (typeof hex !== "string") {
+    return { r: 0, g: 0, b: 0 };
+  }
   const num = parseInt(hex.replace("#", ""), 16) || 0;
   return { r: num >> 16 & 255, g: num >> 8 & 255, b: num & 255 };
 }

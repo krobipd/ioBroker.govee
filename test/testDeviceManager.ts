@@ -463,6 +463,53 @@ describe("DeviceManager", () => {
             expect(lanTracker.calls[0].args[1]).to.equal(50);
         });
 
+        // Regression: v1.6.0-1.6.2 shipped with sendCommand(segmentBatch, object)
+        // crashing at parseSegmentBatch → cmd.split. Wizard passes objects directly.
+        it("should accept pre-parsed object for segmentBatch (wizard path)", async () => {
+            const lanTracker = createCallTracker();
+            const mockLan = {
+                setPower: lanTracker.track("setPower"),
+                setSegmentColor: lanTracker.track("setSegmentColor"),
+                setSegmentBrightness: lanTracker.track("setSegmentBrightness"),
+            };
+            dm.setLanClient(mockLan as any);
+
+            const device = createTestDevice();
+            (dm as any).devices.set("H6160_aabbccddeeff0011", device);
+
+            // This is how the detection wizard + restoreWizardBaseline call it
+            await dm.sendCommand(device, "segmentBatch", {
+                segments: [0, 1, 2],
+                color: 0xff0000,
+                brightness: 80,
+            } as any);
+
+            // Must not throw, must call LAN setSegmentColor + setSegmentBrightness
+            const colorCalls = lanTracker.calls.filter(
+                (c) => c.method === "setSegmentColor",
+            );
+            const brightCalls = lanTracker.calls.filter(
+                (c) => c.method === "setSegmentBrightness",
+            );
+            expect(colorCalls).to.have.lengthOf(1);
+            expect(colorCalls[0].args[4]).to.deep.equal([0, 1, 2]);
+            expect(brightCalls).to.have.lengthOf(1);
+            expect(brightCalls[0].args[1]).to.equal(80);
+        });
+
+        it("should not crash on sendCommand(segmentBatch, null)", async () => {
+            const device = createTestDevice();
+            (dm as any).devices.set("H6160_aabbccddeeff0011", device);
+            // No assertion on side effects — just that it doesn't throw
+            await dm.sendCommand(device, "segmentBatch", null as any);
+        });
+
+        it("should not crash on sendCommand(segmentBatch, undefined)", async () => {
+            const device = createTestDevice();
+            (dm as any).devices.set("H6160_aabbccddeeff0011", device);
+            await dm.sendCommand(device, "segmentBatch", undefined as any);
+        });
+
         it("should fall back to Cloud for segment color without LAN", async () => {
             const cloudTracker = createCallTracker();
             const mockCloud = {
@@ -738,6 +785,70 @@ describe("DeviceManager", () => {
                 device.manualSegments = [0, 1, 2]; // list ignored when mode off
                 const result = (dm as any).commandRouter.parseSegmentBatch(device, "all:#ff0000");
                 expect(result.segments).to.have.lengthOf(15);
+            });
+        });
+
+        describe("non-string input guards (wizard/internal callers)", () => {
+            it("parseSegmentBatch returns null for object input (defensive)", () => {
+                const result = (dm as any).commandRouter.parseSegmentBatch(
+                    device,
+                    { segments: [0, 1], color: 0xff0000 } as any,
+                );
+                expect(result).to.be.null;
+            });
+
+            it("parseSegmentBatch returns null for null/undefined", () => {
+                expect((dm as any).commandRouter.parseSegmentBatch(device, null)).to.be.null;
+                expect((dm as any).commandRouter.parseSegmentBatch(device, undefined)).to.be.null;
+            });
+
+            it("coerceParsedBatch accepts valid object", () => {
+                const result = (dm as any).commandRouter.coerceParsedBatch({
+                    segments: [0, 1, 2],
+                    color: 0xff0000,
+                    brightness: 50,
+                });
+                expect(result).to.deep.equal({
+                    segments: [0, 1, 2],
+                    color: 0xff0000,
+                    brightness: 50,
+                });
+            });
+
+            it("coerceParsedBatch clamps brightness to 0-100", () => {
+                const result = (dm as any).commandRouter.coerceParsedBatch({
+                    segments: [0],
+                    brightness: 150,
+                });
+                expect(result.brightness).to.equal(100);
+            });
+
+            it("coerceParsedBatch rejects empty segments", () => {
+                expect((dm as any).commandRouter.coerceParsedBatch({ segments: [], color: 0 })).to.be.null;
+            });
+
+            it("coerceParsedBatch rejects missing segments field", () => {
+                expect((dm as any).commandRouter.coerceParsedBatch({ color: 0 })).to.be.null;
+            });
+
+            it("coerceParsedBatch rejects non-object", () => {
+                expect((dm as any).commandRouter.coerceParsedBatch("string")).to.be.null;
+                expect((dm as any).commandRouter.coerceParsedBatch(null)).to.be.null;
+                expect((dm as any).commandRouter.coerceParsedBatch(42)).to.be.null;
+            });
+
+            it("coerceParsedBatch filters non-numeric segment entries", () => {
+                const result = (dm as any).commandRouter.coerceParsedBatch({
+                    segments: [0, "bad", -1, 2, NaN, 3],
+                    color: 0,
+                });
+                expect(result.segments).to.deep.equal([0, 2, 3]);
+            });
+
+            it("coerceParsedBatch requires at least color or brightness", () => {
+                expect(
+                    (dm as any).commandRouter.coerceParsedBatch({ segments: [0, 1] }),
+                ).to.be.null;
             });
         });
     });
@@ -1312,6 +1423,36 @@ describe("DeviceManager", () => {
                 expect(seg.g).to.equal(202);
                 expect(seg.b).to.equal(145);
             }
+        });
+
+        // Drift guards — MQTT payload structure could change unexpectedly.
+        // parseMqttSegmentData is called with update.op?.command which is typed
+        // as string[] but the wire-format is untrusted.
+        it("should return [] for non-array commands input", () => {
+            const result = parseMqttSegmentData(null as unknown as string[], 15);
+            expect(result).to.deep.equal([]);
+        });
+
+        it("should return [] for undefined commands input", () => {
+            const result = parseMqttSegmentData(undefined as unknown as string[], 15);
+            expect(result).to.deep.equal([]);
+        });
+
+        it("should return [] for object instead of array", () => {
+            const result = parseMqttSegmentData({} as unknown as string[], 15);
+            expect(result).to.deep.equal([]);
+        });
+
+        it("should skip non-string entries in commands array", () => {
+            const goodPkt = buildAaA5Packet(1, [[0x50, 0xFF, 0x00, 0x00], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
+            const result = parseMqttSegmentData(
+                [null as unknown as string, 42 as unknown as string, goodPkt, {} as unknown as string],
+                15,
+            );
+            // Only the valid AA A5 packet should be decoded
+            expect(result.length).to.equal(4); // one packet = 4 slots
+            expect(result[0].index).to.equal(0);
+            expect(result[0].r).to.equal(255);
         });
     });
 

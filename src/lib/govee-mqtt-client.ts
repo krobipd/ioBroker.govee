@@ -262,16 +262,21 @@ export class GoveeMqttClient {
     try {
       const raw = JSON.parse(payload.toString()) as Record<string, unknown>;
 
-      // Status updates can have different formats
-      const update: MqttStatusUpdate = {
-        sku: (raw.sku as string) ?? "",
-        device: (raw.device as string) ?? "",
-        state: raw.state as MqttStatusUpdate["state"],
-        op: raw.op as MqttStatusUpdate["op"],
-      };
+      // Defensive — blind casts would crash downstream if Govee pushes
+      // unexpected types. Validate each field before constructing the update.
+      const sku = typeof raw.sku === "string" ? raw.sku : "";
+      const device = typeof raw.device === "string" ? raw.device : "";
+      const state =
+        raw.state && typeof raw.state === "object"
+          ? (raw.state as MqttStatusUpdate["state"])
+          : undefined;
+      const op =
+        raw.op && typeof raw.op === "object"
+          ? (raw.op as MqttStatusUpdate["op"])
+          : undefined;
 
-      if (update.sku || update.device) {
-        this.onStatus?.(update);
+      if (sku || device) {
+        this.onStatus?.({ sku, device, state, op });
       }
     } catch {
       this.log.debug(

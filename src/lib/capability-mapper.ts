@@ -738,11 +738,13 @@ export function buildDeviceStateDefs(
   const maxSpeedLevel = device.sceneLibrary.reduce((max, entry) => {
     if (entry.speedInfo?.supSpeed && entry.speedInfo.config) {
       try {
-        const configs = JSON.parse(entry.speedInfo.config) as Array<{
-          moveIn?: number[];
-        }>;
-        for (const cfg of configs) {
-          if (cfg.moveIn && cfg.moveIn.length - 1 > max) {
+        const parsed = JSON.parse(entry.speedInfo.config) as unknown;
+        // Config can drift — if not an array, skip this entry silently
+        if (!Array.isArray(parsed)) {
+          return max;
+        }
+        for (const cfg of parsed as Array<{ moveIn?: number[] }>) {
+          if (cfg && Array.isArray(cfg.moveIn) && cfg.moveIn.length - 1 > max) {
             max = cfg.moveIn.length - 1;
           }
         }

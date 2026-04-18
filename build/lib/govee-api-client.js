@@ -47,7 +47,7 @@ class GoveeApiClient {
    * @param sku Product model (e.g. "H61BE")
    */
   async fetchSceneLibrary(sku) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+    var _a, _b, _c, _d, _e, _f;
     const url = `https://app2.govee.com/appsku/v1/light-effect-libraries?sku=${encodeURIComponent(sku)}`;
     const resp = await (0, import_http_client.httpsRequest)({
       method: "GET",
@@ -55,14 +55,16 @@ class GoveeApiClient {
       headers: { appVersion: APP_VERSION, "User-Agent": USER_AGENT }
     });
     const scenes = [];
-    for (const cat of (_b = (_a = resp.data) == null ? void 0 : _a.categories) != null ? _b : []) {
-      for (const s of (_c = cat.scenes) != null ? _c : []) {
-        if (!s.sceneName) {
+    const categories = Array.isArray((_a = resp == null ? void 0 : resp.data) == null ? void 0 : _a.categories) ? resp.data.categories : [];
+    for (const cat of categories) {
+      const catScenes = Array.isArray(cat == null ? void 0 : cat.scenes) ? cat.scenes : [];
+      for (const s of catScenes) {
+        if (!s || typeof s.sceneName !== "string" || !s.sceneName) {
           continue;
         }
-        const effects = (_d = s.lightEffects) != null ? _d : [];
+        const effects = Array.isArray(s.lightEffects) ? s.lightEffects : [];
         if (effects.length === 0) {
-          const code = (_e = s.sceneCode) != null ? _e : 0;
+          const code = (_b = s.sceneCode) != null ? _b : 0;
           if (code > 0) {
             scenes.push({ name: s.sceneName, sceneCode: code });
           }
@@ -70,7 +72,7 @@ class GoveeApiClient {
         }
         const multiVariant = effects.length > 1;
         for (const effect of effects) {
-          const code = (_g = (_f = effect.sceneCode) != null ? _f : s.sceneCode) != null ? _g : 0;
+          const code = (_d = (_c = effect.sceneCode) != null ? _c : s.sceneCode) != null ? _d : 0;
           if (code <= 0) {
             continue;
           }
@@ -82,8 +84,8 @@ class GoveeApiClient {
             scenceParam: effect.scenceParam || void 0,
             speedInfo: (si == null ? void 0 : si.supSpeed) ? {
               supSpeed: true,
-              speedIndex: (_h = si.speedIndex) != null ? _h : 0,
-              config: (_i = si.config) != null ? _i : ""
+              speedIndex: (_e = si.speedIndex) != null ? _e : 0,
+              config: (_f = si.config) != null ? _f : ""
             } : void 0
           });
         }
@@ -108,7 +110,7 @@ class GoveeApiClient {
    * @param sku Product model (e.g. "H61BE")
    */
   async fetchMusicLibrary(sku) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c;
     if (!this.bearerToken) {
       return [];
     }
@@ -116,13 +118,16 @@ class GoveeApiClient {
     const resp = await (0, import_http_client.httpsRequest)({ method: "GET", url, headers: this.authHeaders() });
     const modes = [];
     let modeIdx = 0;
-    for (const cat of (_b = (_a = resp.data) == null ? void 0 : _a.categories) != null ? _b : []) {
-      for (const s of (_c = cat.scenes) != null ? _c : []) {
-        if (!s.sceneName) {
+    const musicCats = Array.isArray((_a = resp == null ? void 0 : resp.data) == null ? void 0 : _a.categories) ? resp.data.categories : [];
+    for (const cat of musicCats) {
+      const catScenes = Array.isArray(cat == null ? void 0 : cat.scenes) ? cat.scenes : [];
+      for (const s of catScenes) {
+        if (!s || typeof s.sceneName !== "string" || !s.sceneName) {
           continue;
         }
-        const effect = (_d = s.lightEffects) == null ? void 0 : _d[0];
-        const code = (_f = (_e = effect == null ? void 0 : effect.sceneCode) != null ? _e : s.sceneCode) != null ? _f : 0;
+        const effects = Array.isArray(s.lightEffects) ? s.lightEffects : [];
+        const effect = effects[0];
+        const code = (_c = (_b = effect == null ? void 0 : effect.sceneCode) != null ? _b : s.sceneCode) != null ? _c : 0;
         if (code > 0) {
           modes.push({
             name: s.sceneName,
@@ -143,20 +148,23 @@ class GoveeApiClient {
    * @param sku Product model (e.g. "H61BE")
    */
   async fetchDiyLibrary(sku) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c;
     if (!this.bearerToken) {
       return [];
     }
     const url = `https://app2.govee.com/appsku/v1/diy-light-effect-libraries?sku=${encodeURIComponent(sku)}`;
     const resp = await (0, import_http_client.httpsRequest)({ method: "GET", url, headers: this.authHeaders() });
     const diys = [];
-    for (const cat of (_b = (_a = resp.data) == null ? void 0 : _a.categories) != null ? _b : []) {
-      for (const s of (_c = cat.scenes) != null ? _c : []) {
-        if (!s.sceneName) {
+    const diyCats = Array.isArray((_a = resp == null ? void 0 : resp.data) == null ? void 0 : _a.categories) ? resp.data.categories : [];
+    for (const cat of diyCats) {
+      const catScenes = Array.isArray(cat == null ? void 0 : cat.scenes) ? cat.scenes : [];
+      for (const s of catScenes) {
+        if (!s || typeof s.sceneName !== "string" || !s.sceneName) {
           continue;
         }
-        const effect = (_d = s.lightEffects) == null ? void 0 : _d[0];
-        const code = (_f = (_e = effect == null ? void 0 : effect.sceneCode) != null ? _e : s.sceneCode) != null ? _f : 0;
+        const effects = Array.isArray(s.lightEffects) ? s.lightEffects : [];
+        const effect = effects[0];
+        const code = (_c = (_b = effect == null ? void 0 : effect.sceneCode) != null ? _b : s.sceneCode) != null ? _c : 0;
         if (code > 0) {
           diys.push({
             name: s.sceneName,
@@ -191,25 +199,27 @@ class GoveeApiClient {
    * @param deviceId Device identifier (colon-separated)
    */
   async fetchSnapshots(sku, deviceId) {
-    var _a, _b, _c;
+    var _a;
     if (!this.bearerToken) {
       return [];
     }
     const url = `https://app2.govee.com/bff-app/v1/devices/snapshots?sku=${encodeURIComponent(sku)}&device=${encodeURIComponent(deviceId)}&snapshotId=-1`;
     const resp = await (0, import_http_client.httpsRequest)({ method: "GET", url, headers: this.authHeaders() });
     const results = [];
-    for (const snap of (_b = (_a = resp.data) == null ? void 0 : _a.snapshots) != null ? _b : []) {
-      if (!snap.name) {
+    const snaps = Array.isArray((_a = resp == null ? void 0 : resp.data) == null ? void 0 : _a.snapshots) ? resp.data.snapshots : [];
+    for (const snap of snaps) {
+      if (!snap || typeof snap.name !== "string" || !snap.name) {
         continue;
       }
       const allCmdPackets = [];
-      for (const cmd of (_c = snap.cmds) != null ? _c : []) {
-        if (!cmd.bleCmds) {
+      const cmds = Array.isArray(snap.cmds) ? snap.cmds : [];
+      for (const cmd of cmds) {
+        if (!cmd || typeof cmd.bleCmds !== "string" || !cmd.bleCmds) {
           continue;
         }
         try {
           const parsed = JSON.parse(cmd.bleCmds);
-          if (parsed.bleCmd) {
+          if (typeof (parsed == null ? void 0 : parsed.bleCmd) === "string" && parsed.bleCmd.length > 0) {
             allCmdPackets.push(parsed.bleCmd.split(","));
           }
         } catch {
@@ -226,26 +236,33 @@ class GoveeApiClient {
    * Returns groups with their member device references.
    */
   async fetchGroupMembers() {
-    var _a, _b, _c, _d;
+    var _a;
     if (!this.bearerToken) {
       return [];
     }
     const url = "https://app2.govee.com/bff-app/v1/exec-plat/home";
     const resp = await (0, import_http_client.httpsRequest)({ method: "GET", url, headers: this.authHeaders() });
     const groups = [];
-    for (const comp of (_b = (_a = resp.data) == null ? void 0 : _a.components) != null ? _b : []) {
-      for (const g of (_c = comp.groups) != null ? _c : []) {
-        if (g.gId == null) {
+    const components = Array.isArray((_a = resp == null ? void 0 : resp.data) == null ? void 0 : _a.components) ? resp.data.components : [];
+    for (const comp of components) {
+      const compGroups = Array.isArray(comp == null ? void 0 : comp.groups) ? comp.groups : [];
+      for (const g of compGroups) {
+        if (!g || typeof g.gId !== "number") {
           continue;
         }
         const devices = [];
-        for (const d of (_d = g.devices) != null ? _d : []) {
-          if (d.sku && d.device) {
+        const gDevices = Array.isArray(g.devices) ? g.devices : [];
+        for (const d of gDevices) {
+          if (d && typeof d.sku === "string" && typeof d.device === "string" && d.sku && d.device) {
             devices.push({ sku: d.sku, deviceId: d.device });
           }
         }
         if (devices.length > 0) {
-          groups.push({ groupId: g.gId, name: g.name || "", devices });
+          groups.push({
+            groupId: g.gId,
+            name: typeof g.name === "string" ? g.name : "",
+            devices
+          });
         }
       }
     }

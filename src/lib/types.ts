@@ -430,22 +430,40 @@ export function classifyError(err: unknown): ErrorCategory {
 }
 
 /**
- * Convert RGB values to hex color string "#RRGGBB"
+ * Clamp a value to the 0-255 byte range. NaN/non-numeric inputs become 0.
+ *
+ * @param v Input value
+ */
+function clampByte(v: unknown): number {
+  const n = typeof v === "number" && Number.isFinite(v) ? v : 0;
+  return Math.max(0, Math.min(255, Math.round(n)));
+}
+
+/**
+ * Convert RGB values to hex color string "#RRGGBB".
+ * Out-of-range or non-numeric inputs are clamped to produce valid hex.
  *
  * @param r Red channel 0-255
  * @param g Green channel 0-255
  * @param b Blue channel 0-255
  */
 export function rgbToHex(r: number, g: number, b: number): string {
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+  const rr = clampByte(r).toString(16).padStart(2, "0");
+  const gg = clampByte(g).toString(16).padStart(2, "0");
+  const bb = clampByte(b).toString(16).padStart(2, "0");
+  return `#${rr}${gg}${bb}`;
 }
 
 /**
- * Parse hex color string to RGB values
+ * Parse hex color string to RGB values. Returns black for non-string
+ * or malformed input (defensive — upstream may pass unexpected types).
  *
  * @param hex Color string (e.g. "#FF6600" or "FF6600")
  */
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  if (typeof hex !== "string") {
+    return { r: 0, g: 0, b: 0 };
+  }
   const num = parseInt(hex.replace("#", ""), 16) || 0;
   return { r: (num >> 16) & 0xff, g: (num >> 8) & 0xff, b: num & 0xff };
 }
