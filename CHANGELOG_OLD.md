@@ -1,5 +1,13 @@
 # Older Changes
 
+## 1.5.0 (2026-04-14)
+- Add local segment control via BLE-over-LAN (ptReal) — segments now controlled locally (~100ms) instead of Cloud (5-10s)
+- Add scene variants — all light effects per scene (A/B/C/D) instead of only the first variant
+- Add local snapshot activation via ptReal BLE packets — Cloud snapshots now activated locally
+- Add scene speed control — adjust playback speed for supported scenes via slider
+- Add per-segment color and brightness to local snapshots — full visual state capture without Cloud
+- 352 tests (was 327)
+
 ## 1.4.1 (2026-04-13)
 - Fix group member resolution returning empty (API field name mismatch: `gId`/`name` vs `groupId`/`groupName`)
 - Add bearer token pre-check with descriptive log message for group membership loading

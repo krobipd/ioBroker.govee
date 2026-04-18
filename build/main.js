@@ -1076,24 +1076,32 @@ class GoveeAdapter extends utils.Adapter {
     });
   }
   async handleMessage(obj) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     try {
       if (obj.command === "getSegmentDevices") {
         const devices = (_b = (_a = this.deviceManager) == null ? void 0 : _a.getDevices()) != null ? _b : [];
         const list = devices.filter(
-          (d) => d.sku !== "BaseGroup" && typeof d.segmentCount === "number" && d.segmentCount > 0
+          (d) => {
+            var _a2;
+            return d.sku !== "BaseGroup" && typeof d.segmentCount === "number" && d.segmentCount > 0 && ((_a2 = d.state) == null ? void 0 : _a2.online) === true;
+          }
         ).map((d) => ({
           value: this.deviceKeyFor(d),
-          label: `${d.name} (${d.sku}, ${d.segmentCount} segs)`
+          label: `${d.name} (${d.sku}, ${d.segmentCount} Segmente)`
         }));
         this.sendMessageResponse(obj, list);
         return;
       }
+      if (obj.command === "getWizardStatus") {
+        const text = (_e = (_d = (_c = this.segmentWizard) == null ? void 0 : _c.getStatusText) == null ? void 0 : _d.call(_c)) != null ? _e : "Kein Wizard aktiv. W\xE4hle oben einen LED-Strip und klicke Start.";
+        this.sendMessageResponse(obj, text);
+        return;
+      }
       if (obj.command === "segmentWizard") {
-        const payload = (_c = obj.message) != null ? _c : {};
+        const payload = (_f = obj.message) != null ? _f : {};
         const response = await this.runWizardStep(
-          (_d = payload.action) != null ? _d : "",
-          (_e = payload.device) != null ? _e : ""
+          (_g = payload.action) != null ? _g : "",
+          (_h = payload.device) != null ? _h : ""
         );
         this.sendMessageResponse(obj, response);
         return;

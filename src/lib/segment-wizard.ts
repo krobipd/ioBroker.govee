@@ -88,6 +88,26 @@ export class SegmentWizard {
     return this.session !== null;
   }
 
+  /**
+   * Human-readable status string for the admin UI (rendered via textSendTo).
+   * Must stay a plain string — Admin renders it as-is into a read-only field.
+   */
+  public getStatusText(): string {
+    const s = this.session;
+    if (!s) {
+      return "Kein Wizard aktiv. Wähle oben einen LED-Strip und klicke ▶ Start.";
+    }
+    const shown = s.current + 1;
+    return (
+      `Gerät: ${s.name}\n` +
+      `► Segment ${s.current} von ${s.total} leuchtet jetzt WEISS (Fortschritt ${shown} / ${s.total}).\n` +
+      `Siehst du das Licht auf dem Strip?\n` +
+      `  → Ja, sichtbar    → klicke "Ja, sichtbar"\n` +
+      `  → Nein, dunkel    → klicke "Nein, dunkel"\n` +
+      `Bisher als sichtbar markiert: [${s.visible.join(", ") || "noch keine"}]`
+    );
+  }
+
   /** Clear any pending idle-timer. Called from onUnload. */
   public dispose(): void {
     this.clearIdleTimer();
@@ -155,7 +175,11 @@ export class SegmentWizard {
     await this.flashSegment(device, 0);
 
     return {
-      status: `Segment 0 von ${total} leuchtet weiß. Siehst du Licht auf dem Strip?`,
+      message:
+        `Wizard gestartet für ${device.name}.\n\n` +
+        `► SEGMENT 0 von ${total} leuchtet jetzt WEISS.\n` +
+        `Siehst du das Licht auf dem Strip?\n` +
+        `→ Ja, sichtbar   oder   → Nein, dunkel`,
       progress: `1 / ${total}`,
       active: true,
     };
@@ -188,8 +212,16 @@ export class SegmentWizard {
       return { error: "Gerät während des Wizards verschwunden" };
     }
     await this.flashSegment(device, session.current);
+    const last = session.current - 1;
+    const lastNote = wasVisible
+      ? `✓ Segment ${last} als sichtbar markiert.`
+      : `✗ Segment ${last} übersprungen.`;
     return {
-      status: `Segment ${session.current} von ${session.total} leuchtet weiß. Siehst du Licht?`,
+      message:
+        `${lastNote}\n\n` +
+        `► SEGMENT ${session.current} von ${session.total} leuchtet jetzt WEISS.\n` +
+        `Siehst du das Licht?\n` +
+        `→ Ja, sichtbar   oder   → Nein, dunkel`,
       progress: `${session.current + 1} / ${session.total}`,
       active: true,
     };
@@ -208,7 +240,10 @@ export class SegmentWizard {
     this.session = null;
     this.clearIdleTimer();
     return {
-      status: "Wizard abgebrochen, Strip auf Ausgangszustand zurückgesetzt.",
+      message:
+        `Wizard abgebrochen.\n` +
+        `Der Strip wurde auf den vorherigen Zustand zurückgesetzt.\n` +
+        `Du kannst den Wizard jederzeit neu starten.`,
       done: true,
       aborted: true,
     };
@@ -249,7 +284,11 @@ export class SegmentWizard {
     this.clearIdleTimer();
 
     return {
-      status: `Fertig: ${found} von ${session.total} Segmenten sichtbar. Liste "${listStr}" gespeichert, manual_mode aktiv.`,
+      message:
+        `✓ FERTIG!\n\n` +
+        `${found} von ${session.total} Segmenten als sichtbar markiert.\n` +
+        `Liste "${listStr || "(leer)"}" wurde gespeichert.\n` +
+        `Manual-Mode aktiv — der State-Tree wurde neu gebaut.`,
       progress: `${session.total} / ${session.total}`,
       done: true,
       result: found,

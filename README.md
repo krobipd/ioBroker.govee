@@ -452,6 +452,10 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### 1.6.4 (2026-04-18)
+- Wizard UX rewrite — dropdown now shows only online devices, a persistent status box indicates which segment is currently being checked, and each button click triggers a multi-line info toast with clear Yes/No guidance
+- Status box uses `textSendTo` (refreshes when the device is re-selected); button responses use the `message` field so admin shows info toasts correctly (previously silent because of wrong field name)
+
 ### 1.6.3 (2026-04-18)
 - Fix Segment Detection Wizard crash on Start — `parseSegmentBatch` now guards against non-string values; `flashSegment` routing accepts parsed objects directly (the `cmd.split is not a function` crash that produced the v1.6.2 restart loop)
 - Harden all async event handlers against unhandled rejections — `ready`/`stateChange`/`onMessage` now route errors via `.catch`; prevents SIGKILL-code-6 restart loops
@@ -486,14 +490,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - Add dynamic API rate limit sharing with other Govee adapters on the same account
 - Filter non-light device types (heaters, fans, sensors etc.) — this adapter handles lights only
 - 354 tests (was 352)
-
-### 1.5.0 (2026-04-14)
-- Add local segment control via BLE-over-LAN (ptReal) — segments now controlled locally (~100ms) instead of Cloud (5-10s)
-- Add scene variants — all light effects per scene (A/B/C/D) instead of only the first variant
-- Add local snapshot activation via ptReal BLE packets — Cloud snapshots now activated locally
-- Add scene speed control — adjust playback speed for supported scenes via slider
-- Add per-segment color and brightness to local snapshots — full visual state capture without Cloud
-- 352 tests (was 327)
 
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

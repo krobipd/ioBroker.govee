@@ -1339,14 +1339,23 @@ class GoveeAdapter extends utils.Adapter {
             (d) =>
               d.sku !== "BaseGroup" &&
               typeof d.segmentCount === "number" &&
-              d.segmentCount > 0,
+              d.segmentCount > 0 &&
+              d.state?.online === true,
           )
           .map((d) => ({
             value: this.deviceKeyFor(d),
-            label: `${d.name} (${d.sku}, ${d.segmentCount} segs)`,
+            label: `${d.name} (${d.sku}, ${d.segmentCount} Segmente)`,
           }));
         // selectSendTo expects the array directly, not wrapped in an object
         this.sendMessageResponse(obj, list);
+        return;
+      }
+      if (obj.command === "getWizardStatus") {
+        // Called by textSendTo — returns current wizard state as display string
+        const text =
+          this.segmentWizard?.getStatusText?.() ??
+          "Kein Wizard aktiv. Wähle oben einen LED-Strip und klicke Start.";
+        this.sendMessageResponse(obj, text);
         return;
       }
       if (obj.command === "segmentWizard") {
