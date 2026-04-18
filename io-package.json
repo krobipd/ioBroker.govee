@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "govee-smart",
-        "version": "1.6.7",
+        "version": "1.7.0",
         "news": {
+            "1.7.0": {
+                "en": "Reliable segment count — the adapter now uses a single source of truth (cache → MQTT-learned → Cloud-min) that survives restarts. Resolves the Esszimmer-style case where Cloud says 15 and the strip really has 20\nSegment Wizard redesign — ONE clear flow, 3 buttons: ✓ Yes visible, ✗ No dark, ■ Done – end of strip. Wizard now measures the REAL length regardless of what Cloud reports, detects gaps automatically (cut strips)\nPersisted manual_mode + manual_list across restarts — cut-strip settings no longer get lost",
+                "de": "Segmentzahl verlässlich — der Adapter nutzt jetzt eine klare Quelle-der-Wahrheit (Cache → MQTT-gelernt → Cloud-Min) die Neustarts überlebt. Löst den Esszimmer-Fall bei dem Cloud 15 meldet der Strip aber 20 hat\nSegment-Wizard neu gedacht — EIN klarer Flow, 3 Buttons: ✓ Ja sichtbar, ✗ Nein dunkel, ■ Fertig - Strip zu Ende. Der Wizard misst die ECHTE Länge unabhängig von Cloud-Angabe, Lücken (Cut-Strips) werden automatisch erkannt\nmanual_mode + manual_list überleben jetzt Neustarts — Cut-Strip-Einstellungen gehen nie verloren",
+                "ru": "Надёжный подсчёт сегментов — адаптер использует единый источник истины (кэш → MQTT → Cloud-мин) который переживает перезапуск\nПерерабоанный Мастер Сегментов — 3 кнопки: Да / Нет / Готово\nmanual_mode + manual_list теперь переживают перезапуск",
+                "pt": "Contagem de segmentos confiável — fonte única de verdade (cache → MQTT → Cloud-min) que sobrevive a reinicializações\nAssistente de Segmentos redesenhado — 3 botões: Sim / Não / Concluído\nmanual_mode + manual_list agora persistem entre reinicializações",
+                "nl": "Betrouwbare segmenttelling — één bron van waarheid (cache → MQTT → Cloud-min) die herstarts overleeft\nSegment-wizard opnieuw ontworpen — 3 knoppen: Ja / Nee / Klaar\nmanual_mode + manual_list overleven nu herstarts",
+                "fr": "Comptage de segments fiable — source unique de vérité (cache → MQTT → Cloud-min) qui survit aux redémarrages\nAssistant Segments redessiné — 3 boutons: Oui / Non / Terminé\nmanual_mode + manual_list survivent maintenant aux redémarrages",
+                "it": "Conteggio segmenti affidabile — fonte unica di verità (cache → MQTT → Cloud-min) che sopravvive ai riavvii\nWizard Segmenti riprogettato — 3 pulsanti: Sì / No / Finito\nmanual_mode + manual_list ora sopravvivono ai riavvii",
+                "es": "Recuento de segmentos fiable — fuente única de verdad (caché → MQTT → Cloud-min) que sobrevive a reinicios\nAsistente de Segmentos rediseñado — 3 botones: Sí / No / Terminado\nmanual_mode + manual_list ahora sobreviven a reinicios",
+                "pl": "Niezawodna liczba segmentów — jedno źródło prawdy (cache → MQTT → Cloud-min) przetrwa restarty\nKreator Segmentów przeprojektowany — 3 przyciski: Tak / Nie / Koniec\nmanual_mode + manual_list teraz przetrwają restarty",
+                "uk": "Надійний підрахунок сегментів — єдине джерело істини (кеш → MQTT → Cloud-мін) що переживає перезапуск\nМайстер сегментів перероблений — 3 кнопки: Так / Ні / Готово\nmanual_mode + manual_list тепер переживають перезапуск",
+                "zh-cn": "可靠的分段计数 — 单一可信来源 (缓存 → MQTT → Cloud-最小值), 重启后依然有效\n分段向导重新设计 — 3 个按钮: 是 / 否 / 完成\nmanual_mode + manual_list 现在可在重启后保留"
+            },
             "1.6.7": {
                 "en": "Fix race condition when MQTT reveals more segments than Cloud — skip the segment-state sync for the discovery push so new datapoints get created first (no more \"State has no existing object\" warnings). Next AA A5 push (seconds later) populates the fully-built tree",
                 "de": "Race-Condition behoben wenn MQTT mehr Segmente meldet als Cloud — Segment-Sync beim Discovery-Push überspringen, damit die neuen Datenpunkte erst angelegt werden (keine \"State has no existing object\"-Warnungen mehr). Der nächste AA A5-Push befüllt den fertigen Tree Sekunden später",
@@ -80,19 +93,6 @@
                 "pl": "Naprawa ostrzeżeń schematu jsonConfig dla Kreatora Wykrywania Segmentów",
                 "uk": "Виправлено попередження схеми jsonConfig для майстра виявлення сегментів",
                 "zh-cn": "修复分段检测向导的 jsonConfig 架构警告"
-            },
-            "1.6.1": {
-                "en": "Fix Segment Detection Wizard in admin UI — jsonConfig button type was \"sendto\" (lowercase) instead of \"sendTo\" causing validation errors\nFix LED strip dropdown showed as free-text input because selectSendTo expects the array directly, not wrapped in {list: ...}",
-                "de": "Fix Segment-Erkennungs-Assistent im Admin-UI — jsonConfig-Button-Typ war \"sendto\" (klein) statt \"sendTo\", führte zu Validierungsfehlern\nFix LED-Strip-Dropdown erschien als freies Texteingabefeld, weil selectSendTo das Array direkt erwartet, nicht in {list: ...} verpackt",
-                "ru": "Исправлен мастер определения сегментов в админ-UI — тип кнопки jsonConfig, dropdown устройств",
-                "pt": "Corrigido Assistente de Detecção de Segmentos no admin — tipo de botão jsonConfig, dropdown de dispositivos",
-                "nl": "Segment Detection Wizard in admin UI opgelost — jsonConfig button type, apparaat-dropdown",
-                "fr": "Correction de l'Assistant de Détection de Segments dans l'admin — type de bouton jsonConfig, dropdown des appareils",
-                "it": "Correzione Segment Detection Wizard in admin UI — tipo pulsante jsonConfig, dropdown dispositivi",
-                "es": "Corregido Asistente de Detección de Segmentos en admin UI — tipo de botón jsonConfig, dropdown de dispositivos",
-                "pl": "Naprawa Kreatora Wykrywania Segmentów w admin UI — typ przycisku jsonConfig, dropdown urządzeń",
-                "uk": "Виправлено майстер виявлення сегментів в admin UI — тип кнопки jsonConfig, dropdown пристроїв",
-                "zh-cn": "修复管理界面中的分段检测向导 — jsonConfig 按钮类型和设备下拉框"
             }
         },
         "titleLang": {

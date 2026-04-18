@@ -21,7 +21,14 @@ __export(segment_wizard_exports, {
   SegmentWizard: () => SegmentWizard
 });
 module.exports = __toCommonJS(segment_wizard_exports);
+var import_device_manager = require("./device-manager.js");
 const IDLE_TIMEOUT_MS = 5 * 6e4;
+function hasSegmentCapability(device) {
+  const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
+  return caps.some(
+    (c) => c && typeof c.type === "string" && c.type.includes("segment_color_setting")
+  );
+}
 class SegmentWizard {
   /** @param host Host interface wired up to the adapter. */
   constructor(host) {
@@ -42,13 +49,15 @@ class SegmentWizard {
     if (!s) {
       return "Kein Wizard aktiv. W\xE4hle oben einen LED-Strip und klicke \u25B6 Start.";
     }
-    const shown = s.current + 1;
+    const visibleStr = s.visible.length > 0 ? s.visible.join(", ") : "\u2014";
     return `Ger\xE4t: ${s.name}
-\u25BA Segment ${s.current} von ${s.total} leuchtet jetzt WEISS (Fortschritt ${shown} / ${s.total}).
+\u25BA Segment ${s.current} leuchtet jetzt WEISS.
 Siehst du das Licht auf dem Strip?
-  \u2192 Ja, sichtbar    \u2192 klicke "Ja, sichtbar"
-  \u2192 Nein, dunkel    \u2192 klicke "Nein, dunkel"
-Bisher als sichtbar markiert: [${s.visible.join(", ") || "noch keine"}]`;
+  \u2713 Ja, sichtbar   \u2192 weiter zum n\xE4chsten Segment
+  \u2717 Nein, dunkel   \u2192 L\xFCcke, weiter zum n\xE4chsten Segment
+  \u25A0 Fertig \u2013 Strip zu Ende \u2192 Ergebnis speichern
+
+Bisher als sichtbar markiert: [${visibleStr}]`;
   }
   /** Clear any pending idle-timer. Called from onUnload. */
   dispose() {
@@ -58,7 +67,7 @@ Bisher als sichtbar markiert: [${s.visible.join(", ") || "noch keine"}]`;
   /**
    * Route one wizard step from the sendTo handler.
    *
-   * @param action "start" | "yes" | "no" | "abort"
+   * @param action "start" | "yes" | "no" | "done" | "abort"
    * @param deviceKey Target device — only consulted on action="start"
    */
   async runStep(action, deviceKey) {
@@ -71,6 +80,9 @@ Bisher als sichtbar markiert: [${s.visible.join(", ") || "noch keine"}]`;
     if (action === "abort") {
       return this.abort();
     }
+    if (action === "done") {
+      return this.done();
+    }
     if (action === "yes" || action === "no") {
       return this.answer(action === "yes");
     }
@@ -82,7 +94,6 @@ Bisher als sichtbar markiert: [${s.visible.join(", ") || "noch keine"}]`;
    * @param deviceKey Target device key
    */
   async start(deviceKey) {
-    var _a;
     if (this.session) {
       return {
         error: `Wizard bereits aktiv f\xFCr ${this.session.name}. Bitte zuerst abbrechen.`
@@ -92,9 +103,10 @@ Bisher als sichtbar markiert: [${s.visible.join(", ") || "noch keine"}]`;
     if (!device) {
       return { error: `Ger\xE4t nicht gefunden: ${deviceKey}` };
     }
-    const total = (_a = device.segmentCount) != null ? _a : 0;
-    if (total <= 0) {
-      return { error: `${device.name} hat keine Segmente (segmentCount=0)` };
+    if (!hasSegmentCapability(device)) {
+      return {
+        error: `${device.name} hat keine Segmente \u2014 Wizard nicht anwendbar.`
+      };
     }
     const baseline = await this.captureBaseline(device);
     this.session = {
@@ -102,7 +114,7 @@ Bisher als sichtbar markiert: [${s.visible.join(", ") || "noch keine"}]`;
       sku: device.sku,
       name: device.name,
       current: 0,
-      total,
+      total: import_device_manager.SEGMENT_HARD_MAX + 1,
       visible: [],
       startedAt: Date.now(),
       baseline
@@ -114,10 +126,10 @@ Bisher als sichtbar markiert: [${s.visible.join(", ") || "noch keine"}]`;
     return {
       message: `Wizard gestartet f\xFCr ${device.name}.
 
-\u25BA SEGMENT 0 von ${total} leuchtet jetzt WEISS.
+\u25BA SEGMENT 0 leuchtet jetzt WEISS.
 Siehst du das Licht auf dem Strip?
-\u2192 Ja, sichtbar   oder   \u2192 Nein, dunkel`,
-      progress: `1 / ${total}`,
+\u2192 Ja, sichtbar   oder   \u2192 Nein, dunkel   oder   \u2192 Fertig \u2013 Strip zu Ende`,
+      progress: `Segment 0`,
       active: true
     };
   }
@@ -134,9 +146,10 @@ Siehst du das Licht auf dem Strip?
     if (wasVisible) {
       session.visible.push(session.current);
     }
+    const answeredIdx = session.current;
     session.current += 1;
     this.scheduleIdleTimeout();
-    if (session.current >= session.total) {
+    if (session.current > import_device_manager.SEGMENT_HARD_MAX) {
       return this.finish();
     }
     const device = this.host.findDevice(session.deviceKey);
@@ -146,17 +159,32 @@ Siehst du das Licht auf dem Strip?
       return { error: "Ger\xE4t w\xE4hrend des Wizards verschwunden" };
     }
     await this.flashSegment(device, session.current);
-    const last = session.current - 1;
-    const lastNote = wasVisible ? `\u2713 Segment ${last} als sichtbar markiert.` : `\u2717 Segment ${last} \xFCbersprungen.`;
+    const lastNote = wasVisible ? `\u2713 Segment ${answeredIdx} als sichtbar markiert.` : `\u2717 Segment ${answeredIdx} als dunkel markiert (L\xFCcke).`;
     return {
       message: `${lastNote}
 
-\u25BA SEGMENT ${session.current} von ${session.total} leuchtet jetzt WEISS.
+\u25BA SEGMENT ${session.current} leuchtet jetzt WEISS.
 Siehst du das Licht?
-\u2192 Ja, sichtbar   oder   \u2192 Nein, dunkel`,
-      progress: `${session.current + 1} / ${session.total}`,
+\u2192 Ja, sichtbar   oder   \u2192 Nein, dunkel   oder   \u2192 Fertig \u2013 Strip zu Ende`,
+      progress: `Segment ${session.current}`,
       active: true
     };
+  }
+  /**
+   * User ends the session — "Strip zu Ende, keine weiteren Segmente".
+   * The currently-flashed segment was NOT answered, so it doesn't count.
+   */
+  async done() {
+    const session = this.session;
+    if (!session) {
+      return { error: "Kein Wizard aktiv" };
+    }
+    if (session.current === 0) {
+      return {
+        error: "Bitte zuerst mindestens eine Antwort geben (Ja sichtbar oder Nein dunkel)."
+      };
+    }
+    return this.finish();
   }
   /** Abort the session and roll back to the captured baseline. */
   async abort() {
@@ -178,7 +206,10 @@ Du kannst den Wizard jederzeit neu starten.`,
       aborted: true
     };
   }
-  /** Write manual_list + manual_mode, restore baseline, and end session. */
+  /**
+   * Consolidate the session into a {@link WizardResult}, hand off to the host
+   * for application, restore baseline and close the session.
+   */
   async finish() {
     const session = this.session;
     if (!session) {
@@ -190,34 +221,34 @@ Du kannst den Wizard jederzeit neu starten.`,
       this.clearIdleTimer();
       return { error: "Ger\xE4t verschwunden" };
     }
-    const listStr = session.visible.join(",");
-    const prefix = this.host.devicePrefix(device);
-    const ns = this.host.namespace;
-    await this.host.setState(`${ns}.${prefix}.segments.manual_list`, {
-      val: listStr,
-      ack: false
-    });
-    await this.host.setState(`${ns}.${prefix}.segments.manual_mode`, {
-      val: true,
-      ack: false
-    });
+    const segmentCount = session.current;
+    const visible = session.visible.slice().sort((a, b) => a - b);
+    const allContiguous = visible.length === segmentCount && visible.every((v, i) => v === i);
+    const manualList = allContiguous ? "" : compactIndices(visible);
+    const result = {
+      segmentCount,
+      manualList,
+      hasGaps: !allContiguous
+    };
+    await this.host.applyWizardResult(device, result);
     await this.restoreBaseline(device, session.baseline);
-    const found = session.visible.length;
     this.host.log.info(
-      `Segment-Wizard f\xFCr ${device.name}: ${found} von ${session.total} Segmenten sichtbar \u2192 manual_list="${listStr}"`
+      `Segment-Wizard f\xFCr ${device.name}: ${segmentCount} Segmente erkannt${result.hasGaps ? `, L\xFCcken erkannt (manual_list="${manualList}")` : ", keine L\xFCcken"}`
     );
     this.session = null;
     this.clearIdleTimer();
+    const summary = result.hasGaps ? `L\xFCcken-Liste: ${manualList} \u2014 Manual-Mode aktiv.` : `Keine L\xFCcken \u2014 Manual-Mode deaktiviert.`;
     return {
       message: `\u2713 FERTIG!
 
-${found} von ${session.total} Segmenten als sichtbar markiert.
-Liste "${listStr || "(leer)"}" wurde gespeichert.
-Manual-Mode aktiv \u2014 der State-Tree wurde neu gebaut.`,
-      progress: `${session.total} / ${session.total}`,
+${segmentCount} Segmente erkannt.
+${summary}
+State-Tree wurde neu gebaut.`,
+      progress: `${segmentCount} Segmente`,
       done: true,
-      result: found,
-      list: listStr
+      segmentCount,
+      list: manualList,
+      hasGaps: result.hasGaps
     };
   }
   /** (Re-)arm the 5-minute idle timeout that fires abort(). */
@@ -259,8 +290,8 @@ Manual-Mode aktiv \u2014 der State-Tree wurde neu gebaut.`,
     const brightness = (_b = await this.host.getState(`${ns}.${prefix}.control.brightness`)) == null ? void 0 : _b.val;
     const colorRgb = (_c = await this.host.getState(`${ns}.${prefix}.control.colorRgb`)) == null ? void 0 : _c.val;
     const segmentColors = [];
-    const total = (_d = device.segmentCount) != null ? _d : 0;
-    for (let i = 0; i < total; i++) {
+    const currentCount = (_d = device.segmentCount) != null ? _d : 0;
+    for (let i = 0; i < currentCount; i++) {
       const c = (_e = await this.host.getState(`${ns}.${prefix}.segments.${i}.color`)) == null ? void 0 : _e.val;
       const b = (_f = await this.host.getState(`${ns}.${prefix}.segments.${i}.brightness`)) == null ? void 0 : _f.val;
       segmentColors.push({
@@ -284,11 +315,7 @@ Manual-Mode aktiv \u2014 der State-Tree wurde neu gebaut.`,
    * @param idx Segment to flash white (others go near-black)
    */
   async flashSegment(device, idx) {
-    var _a;
-    const total = (_a = device.segmentCount) != null ? _a : 0;
-    if (total <= 0) {
-      return;
-    }
+    const total = import_device_manager.SEGMENT_HARD_MAX + 1;
     const atomic = await this.host.flashSegmentAtomic(device, total, idx);
     if (atomic) {
       return;
@@ -342,6 +369,25 @@ Manual-Mode aktiv \u2014 der State-Tree wurde neu gebaut.`,
       brightness
     });
   }
+}
+function compactIndices(sorted) {
+  if (sorted.length === 0) {
+    return "";
+  }
+  const parts = [];
+  let runStart = sorted[0];
+  let runEnd = sorted[0];
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === runEnd + 1) {
+      runEnd = sorted[i];
+    } else {
+      parts.push(runStart === runEnd ? `${runStart}` : `${runStart}-${runEnd}`);
+      runStart = sorted[i];
+      runEnd = sorted[i];
+    }
+  }
+  parts.push(runStart === runEnd ? `${runStart}` : `${runStart}-${runEnd}`);
+  return parts.join(",");
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

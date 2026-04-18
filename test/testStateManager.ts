@@ -892,5 +892,112 @@ describe("StateManager", () => {
 
             expect(dev.segmentCount).to.equal(0);
         });
+
+        it("should prefer already-set segmentCount over capability count", async () => {
+            // Cache or MQTT discovery has learned 20; capability only says 15.
+            // We trust the learned value.
+            const { adapter, objects } = createMockAdapter();
+            const sm = new StateManager(adapter as never);
+            const dev = createTestDevice({
+                segmentCount: 20,
+                capabilities: [{
+                    type: "devices.capabilities.segment_color_setting",
+                    instance: "segmentedColorRgb",
+                    parameters: {
+                        dataType: "STRUCT",
+                        fields: [{ fieldName: "segment", elementRange: { min: 0, max: 14 } }],
+                    },
+                }],
+            });
+
+            const segmentDefs: StateDefinition[] = [{
+                id: "_segment_color",
+                name: "Segment",
+                type: "string",
+                role: "level.color.rgb",
+                write: true,
+                capabilityType: "segment",
+                capabilityInstance: "segmentColor",
+            }];
+
+            await sm.createDeviceStates(dev, segmentDefs);
+
+            expect(dev.segmentCount).to.equal(20);
+            expect(objects.has("devices.h6160_0011.segments.19")).to.be.true;
+            expect(objects.has("devices.h6160_0011.segments.14")).to.be.true;
+        });
+
+        it("should write manual_mode + manual_list initial values from device", async () => {
+            // Cache-restored device with manual mode — state-manager should
+            // reflect that back to the state tree (ack=true, no trigger).
+            const { adapter, states } = createMockAdapter();
+            const sm = new StateManager(adapter as never);
+            const dev = createTestDevice({
+                segmentCount: 15,
+                manualMode: true,
+                manualSegments: [0, 1, 2, 5, 6, 7],
+                capabilities: [{
+                    type: "devices.capabilities.segment_color_setting",
+                    instance: "segmentedColorRgb",
+                    parameters: {
+                        dataType: "STRUCT",
+                        fields: [{ fieldName: "segment", elementRange: { min: 0, max: 14 } }],
+                    },
+                }],
+            });
+
+            const segmentDefs: StateDefinition[] = [{
+                id: "_segment_color",
+                name: "Segment",
+                type: "string",
+                role: "level.color.rgb",
+                write: true,
+                capabilityType: "segment",
+                capabilityInstance: "segmentColor",
+            }];
+
+            await sm.createDeviceStates(dev, segmentDefs);
+
+            const mode = states.get("devices.h6160_0011.segments.manual_mode");
+            const list = states.get("devices.h6160_0011.segments.manual_list");
+            expect(mode?.val).to.be.true;
+            expect(mode?.ack).to.be.true;
+            expect(list?.val).to.equal("0,1,2,5,6,7");
+            expect(list?.ack).to.be.true;
+        });
+
+        it("should clear manual_mode + manual_list when device.manualMode=false", async () => {
+            const { adapter, states } = createMockAdapter();
+            const sm = new StateManager(adapter as never);
+            const dev = createTestDevice({
+                segmentCount: 10,
+                manualMode: false,
+                capabilities: [{
+                    type: "devices.capabilities.segment_color_setting",
+                    instance: "segmentedColorRgb",
+                    parameters: {
+                        dataType: "STRUCT",
+                        fields: [{ fieldName: "segment", elementRange: { min: 0, max: 9 } }],
+                    },
+                }],
+            });
+
+            const segmentDefs: StateDefinition[] = [{
+                id: "_segment_color",
+                name: "Segment",
+                type: "string",
+                role: "level.color.rgb",
+                write: true,
+                capabilityType: "segment",
+                capabilityInstance: "segmentColor",
+            }];
+
+            await sm.createDeviceStates(dev, segmentDefs);
+
+            const mode = states.get("devices.h6160_0011.segments.manual_mode");
+            const list = states.get("devices.h6160_0011.segments.manual_list");
+            expect(mode?.val).to.be.false;
+            expect(list?.val).to.equal("");
+        });
     });
 });

@@ -792,6 +792,11 @@ class GoveeAdapter extends utils.Adapter {
       this.stateCreationQueue.push(p);
     }
     this.updateConnectionState();
+    Promise.all(this.stateCreationQueue).then(() => {
+      var _a2;
+      return (_a2 = this.deviceManager) == null ? void 0 : _a2.saveDevicesToCache();
+    }).catch(() => {
+    });
   }
   /** Update global info.connection */
   updateConnectionState() {
@@ -1040,7 +1045,7 @@ class GoveeAdapter extends utils.Adapter {
    * @param newValue Written value
    */
   async handleManualSegmentsChange(device, suffix, newValue) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e, _f;
     if (!this.stateManager) {
       return;
     }
@@ -1056,13 +1061,14 @@ class GoveeAdapter extends utils.Adapter {
       device.manualMode = false;
       device.manualSegments = void 0;
       this.log.info(
-        `${device.name}: manual segments disabled \u2014 using Cloud defaults`
+        `${device.name}: manual segments disabled \u2014 strip treated as contiguous`
       );
       await this.stateManager.createSegmentStates(device);
+      (_d = this.deviceManager) == null ? void 0 : _d.persistDeviceToCache(device);
       return;
     }
-    const SEGMENT_HARD_MAX = 55;
-    const parsed = (0, import_types.parseSegmentList)(listVal, SEGMENT_HARD_MAX);
+    const maxIndex = typeof device.segmentCount === "number" && device.segmentCount > 0 ? device.segmentCount - 1 : import_device_manager.SEGMENT_HARD_MAX;
+    const parsed = (0, import_types.parseSegmentList)(listVal, maxIndex);
     if (parsed.error) {
       this.log.warn(
         `${device.name}: manual_list invalid (${parsed.error}) \u2014 disabling manual mode`
@@ -1073,14 +1079,16 @@ class GoveeAdapter extends utils.Adapter {
         val: false,
         ack: true
       });
+      (_e = this.deviceManager) == null ? void 0 : _e.persistDeviceToCache(device);
       return;
     }
     device.manualMode = true;
     device.manualSegments = parsed.indices;
     this.log.info(
-      `${device.name}: manual segments active \u2014 ${parsed.indices.length} physical segments (${listVal})`
+      `${device.name}: manual segments active \u2014 ${parsed.indices.length} physical indices (${listVal})`
     );
     await this.stateManager.createSegmentStates(device);
+    (_f = this.deviceManager) == null ? void 0 : _f.persistDeviceToCache(device);
   }
   // ───────── Segment-Detection-Wizard ─────────
   /**
@@ -1109,12 +1117,15 @@ class GoveeAdapter extends utils.Adapter {
         const list = devices.filter(
           (d) => {
             var _a2;
-            return d.sku !== "BaseGroup" && typeof d.segmentCount === "number" && d.segmentCount > 0 && ((_a2 = d.state) == null ? void 0 : _a2.online) === true;
+            return d.sku !== "BaseGroup" && ((_a2 = d.state) == null ? void 0 : _a2.online) === true && (0, import_device_manager.resolveSegmentCount)(d) > 0;
           }
-        ).map((d) => ({
-          value: this.deviceKeyFor(d),
-          label: `${d.name} (${d.sku}, ${d.segmentCount} Segmente)`
-        }));
+        ).map((d) => {
+          const count = (0, import_device_manager.resolveSegmentCount)(d);
+          return {
+            value: this.deviceKeyFor(d),
+            label: `${d.name} (${d.sku}, bisher ${count} Segmente)`
+          };
+        });
         this.sendMessageResponse(obj, list);
         return;
       }
@@ -1164,10 +1175,6 @@ class GoveeAdapter extends utils.Adapter {
     return {
       log: this.log,
       getState: (id) => this.getStateAsync(id),
-      setState: (id, s) => this.setStateAsync(id, {
-        val: s.val,
-        ack: s.ack
-      }),
       sendCommand: async (device, command, value) => {
         var _a;
         await ((_a = this.deviceManager) == null ? void 0 : _a.sendCommand(device, command, value));
@@ -1203,8 +1210,43 @@ class GoveeAdapter extends utils.Adapter {
         return (_b = (_a = this.stateManager) == null ? void 0 : _a.devicePrefix(device)) != null ? _b : "";
       },
       setTimeout: (cb, ms) => this.setTimeout(cb, ms),
-      clearTimeout: (h) => this.clearTimeout(h)
+      clearTimeout: (h) => this.clearTimeout(h),
+      applyWizardResult: (device, result) => this.applyWizardResult(device, result)
     };
+  }
+  /**
+   * Apply a finished wizard's measurement to the device: set the real
+   * segment count, toggle manual-mode only if gaps were detected, rebuild
+   * the state tree, persist to cache. Runs with ack=true so the state
+   * writes don't bounce through {@link handleManualSegmentsChange}.
+   *
+   * @param device Target device
+   * @param result Wizard's measurement
+   */
+  async applyWizardResult(device, result) {
+    var _a;
+    if (!this.stateManager) {
+      return;
+    }
+    const prefix = this.stateManager.devicePrefix(device);
+    const ns = this.namespace;
+    device.segmentCount = result.segmentCount;
+    if (result.hasGaps) {
+      const parsed = (0, import_types.parseSegmentList)(
+        result.manualList,
+        result.segmentCount - 1
+      );
+      device.manualMode = true;
+      device.manualSegments = parsed.error ? void 0 : parsed.indices;
+    } else {
+      device.manualMode = false;
+      device.manualSegments = void 0;
+    }
+    await this.stateManager.createSegmentStates(device);
+    (_a = this.deviceManager) == null ? void 0 : _a.persistDeviceToCache(device);
+    this.log.debug(
+      `applyWizardResult: ${ns}.${prefix} \u2192 segmentCount=${result.segmentCount}, manualMode=${device.manualMode}, list="${result.manualList}"`
+    );
   }
   /**
    * Execute one wizard step (start/yes/no/abort). Delegates to

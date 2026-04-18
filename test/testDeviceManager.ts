@@ -1,5 +1,10 @@
 import { expect } from "chai";
-import { DeviceManager, parseMqttSegmentData } from "../src/lib/device-manager";
+import {
+    DeviceManager,
+    parseMqttSegmentData,
+    resolveSegmentCount,
+    SEGMENT_HARD_MAX,
+} from "../src/lib/device-manager";
 import type { CloudCapability, GoveeDevice, LanDevice, MqttStatusUpdate } from "../src/lib/types";
 
 /** Minimal mock logger */
@@ -1504,17 +1509,24 @@ describe("DeviceManager", () => {
             expect(segmentUpdates![1]).to.deep.equal({ index: 1, brightness: 50, r: 0, g: 255, b: 0 });
         });
 
-        it("should not call onMqttSegmentUpdate when no segmentCount", () => {
+        it("should discover segmentCount and call onSegmentCountGrown on first AA A5", () => {
             const lanDevice: LanDevice = { ip: "192.168.1.100", device: "AABBCCDDEEFF0011", sku: "H6160" };
             dm.handleLanDiscovery(lanDevice);
-            // segmentCount is undefined by default for LAN-only devices
+            // Device starts with segmentCount undefined — LAN-only, no Cloud data yet
 
-            let called = false;
+            let grownDevice: GoveeDevice | null = null;
             dm.setCallbacks(() => {}, () => {});
-            dm.onMqttSegmentUpdate = () => { called = true; };
+            dm.onSegmentCountGrown = (d) => { grownDevice = d; };
+            dm.onMqttSegmentUpdate = () => { /* we're testing the bump path */ };
 
+            // Single AA A5 packet with 2 visible segments
             const bytes = new Uint8Array(20);
             bytes[0] = 0xAA; bytes[1] = 0xA5; bytes[2] = 1;
+            bytes[3] = 100; bytes[4] = 255; bytes[5] = 0; bytes[6] = 0; // seg 0
+            bytes[7] = 50; bytes[8] = 0; bytes[9] = 255; bytes[10] = 0; // seg 1
+            let xor = 0;
+            for (let i = 0; i < 19; i++) xor ^= bytes[i];
+            bytes[19] = xor;
             const pkt = Buffer.from(bytes).toString("base64");
 
             dm.handleMqttStatus({
@@ -1523,7 +1535,44 @@ describe("DeviceManager", () => {
                 op: { command: [pkt] },
             });
 
-            expect(called).to.be.false;
+            expect(grownDevice).to.not.be.null;
+            expect(dm.getDevices()[0].segmentCount).to.equal(2);
+        });
+
+        it("should grow segmentCount when MQTT reports more than Cloud said", () => {
+            const lanDevice: LanDevice = { ip: "192.168.1.100", device: "AABBCCDDEEFF0011", sku: "H61BE" };
+            dm.handleLanDiscovery(lanDevice);
+            const device = dm.getDevices()[0];
+            // Cloud says 15, simulate that starting state
+            device.segmentCount = 15;
+
+            let grownDevice: GoveeDevice | null = null;
+            dm.setCallbacks(() => {}, () => {});
+            dm.onSegmentCountGrown = (d) => { grownDevice = d; };
+
+            // Build 5 AA A5 packets = 20 segments total
+            const packets: string[] = [];
+            for (let p = 1; p <= 5; p++) {
+                const b = new Uint8Array(20);
+                b[0] = 0xAA; b[1] = 0xA5; b[2] = p;
+                for (let slot = 0; slot < 4; slot++) {
+                    b[3 + slot * 4] = 50;      // brightness
+                    b[3 + slot * 4 + 1] = 255; // r
+                }
+                let xor = 0;
+                for (let i = 0; i < 19; i++) xor ^= b[i];
+                b[19] = xor;
+                packets.push(Buffer.from(b).toString("base64"));
+            }
+
+            dm.handleMqttStatus({
+                sku: "H61BE",
+                device: "AABBCCDDEEFF0011",
+                op: { command: packets },
+            });
+
+            expect(grownDevice).to.not.be.null;
+            expect(dm.getDevices()[0].segmentCount).to.equal(20);
         });
 
         it("should not call onMqttSegmentUpdate when no AA A5 packets in command", () => {
@@ -1549,5 +1598,115 @@ describe("DeviceManager", () => {
 
             expect(called).to.be.false;
         });
+    });
+});
+
+describe("resolveSegmentCount", () => {
+    function segCap(instance: string, segmentMax: number): CloudCapability {
+        return {
+            type: "devices.capabilities.segment_color_setting",
+            instance,
+            parameters: {
+                dataType: "STRUCT",
+                fields: [
+                    {
+                        fieldName: "segment",
+                        dataType: "Array",
+                        elementRange: { min: 0, max: segmentMax },
+                    },
+                ],
+            },
+        };
+    }
+
+    function deviceWith(
+        caps: CloudCapability[],
+        segmentCount?: number,
+    ): GoveeDevice {
+        return {
+            sku: "H6160",
+            deviceId: "AABBCCDDEEFF0011",
+            name: "T",
+            type: "devices.types.light",
+            capabilities: caps,
+            scenes: [],
+            diyScenes: [],
+            snapshots: [],
+            sceneLibrary: [],
+            musicLibrary: [],
+            diyLibrary: [],
+            skuFeatures: null,
+            segmentCount,
+            state: { online: true },
+            channels: { lan: false, mqtt: false, cloud: false },
+        };
+    }
+
+    it("returns device.segmentCount when already set (cache wins)", () => {
+        const device = deviceWith([segCap("segmentedColorRgb", 14)], 20);
+        expect(resolveSegmentCount(device)).to.equal(20);
+    });
+
+    it("returns 0 when no segment capability and no learned count", () => {
+        const device = deviceWith([]);
+        expect(resolveSegmentCount(device)).to.equal(0);
+    });
+
+    it("uses min of positive capability counts (H70D1: brightness=10, colorRgb=15 → 10)", () => {
+        // This is the Icicle-lights case — one cap honest, other inflated.
+        const device = deviceWith([
+            segCap("segmentedBrightness", 9), // 10 segments
+            segCap("segmentedColorRgb", 14),  // 15 segments (lie)
+        ]);
+        expect(resolveSegmentCount(device)).to.equal(10);
+    });
+
+    it("ignores caps without positive count", () => {
+        const device = deviceWith([
+            segCap("segmentedBrightness", -1), // 0 segments
+            segCap("segmentedColorRgb", 14),   // 15 segments
+        ]);
+        expect(resolveSegmentCount(device)).to.equal(15);
+    });
+
+    it("defensive: handles non-array capabilities", () => {
+        const device = {
+            ...deviceWith([]),
+            capabilities: null as unknown as CloudCapability[],
+        };
+        expect(resolveSegmentCount(device)).to.equal(0);
+    });
+
+    it("defensive: handles cap without parameters", () => {
+        const device = deviceWith([
+            {
+                type: "devices.capabilities.segment_color_setting",
+                instance: "x",
+            } as CloudCapability,
+        ]);
+        expect(resolveSegmentCount(device)).to.equal(0);
+    });
+
+    it("defensive: handles non-segment field names", () => {
+        const device = deviceWith([
+            {
+                type: "devices.capabilities.segment_color_setting",
+                instance: "x",
+                parameters: {
+                    dataType: "STRUCT",
+                    fields: [
+                        {
+                            fieldName: "brightness",
+                            elementRange: { min: 0, max: 100 },
+                        },
+                    ],
+                },
+            } as CloudCapability,
+        ]);
+        expect(resolveSegmentCount(device)).to.equal(0);
+    });
+
+    it("SEGMENT_HARD_MAX is the protocol ceiling (55)", () => {
+        expect(SEGMENT_HARD_MAX).to.equal(55);
     });
 });

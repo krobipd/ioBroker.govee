@@ -142,6 +142,59 @@ export function getEffectiveSegmentIndices(device: GoveeDevice): number[] {
 }
 
 /**
+ * Resolve the authoritative segment count for a device.
+ *
+ * Priority:
+ *   1. `device.segmentCount` if already set (from cache, MQTT discovery, or wizard)
+ *   2. Minimum of positive `segment_color_setting` capability counts
+ *   3. 0 if no capability advertises segments
+ *
+ * Why `min` over the capability caps: Govee reports `segmentedBrightness` and
+ * `segmentedColorRgb` separately, and on at least one SKU (H70D1) those two
+ * disagree — brightness says 10, colorRgb says 15, real device has 10.
+ * Picking the smaller value is the safer starting point; MQTT discovery can
+ * then grow it if the real device pushes more slots.
+ *
+ * @param device Target device
+ */
+export function resolveSegmentCount(device: GoveeDevice): number {
+  if (typeof device.segmentCount === "number" && device.segmentCount > 0) {
+    return device.segmentCount;
+  }
+  const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
+  let min = Number.POSITIVE_INFINITY;
+  for (const c of caps) {
+    if (
+      !c ||
+      typeof c.type !== "string" ||
+      !c.type.includes("segment_color_setting")
+    ) {
+      continue;
+    }
+    const params = (c as { parameters?: { fields?: unknown[] } }).parameters;
+    const fields = Array.isArray(params?.fields) ? params.fields : [];
+    for (const f of fields) {
+      if (!f || typeof f !== "object") {
+        continue;
+      }
+      const fn = (f as { fieldName?: unknown }).fieldName;
+      const er = (f as { elementRange?: { max?: unknown } }).elementRange;
+      const rawMax = er && typeof er.max === "number" ? er.max : -1;
+      if (fn === "segment" && rawMax >= 0) {
+        const n = rawMax + 1;
+        if (n > 0 && n < min) {
+          min = n;
+        }
+      }
+    }
+  }
+  return Number.isFinite(min) ? min : 0;
+}
+
+/** Protocol limit: Govee's segment bitmask is 7 bytes × 8 bits = 56 slots (0..55). */
+export const SEGMENT_HARD_MAX = 55;
+
+/**
  * Device manager — maintains unified device list and routes commands
  * through the fastest available channel: LAN → MQTT → Cloud.
  */
@@ -730,7 +783,7 @@ export class DeviceManager {
   }
 
   /** Save all devices to SKU cache, skipping only those never confirmed via Cloud yet. */
-  private saveDevicesToCache(): void {
+  public saveDevicesToCache(): void {
     if (!this.skuCache) {
       return;
     }
@@ -860,32 +913,26 @@ export class DeviceManager {
     this.onDeviceUpdate?.(device, state);
 
     // Parse per-segment data from BLE notification packets (AA A5).
-    // The parser returns every real segment it sees — we don't cap by
-    // device.segmentCount here because Cloud under-reports (user's 20 m
-    // strip: Cloud says 15, device actually pushes 20 slots via AA A5).
-    if (update.op?.command && device.segmentCount) {
+    // MQTT is authoritative for segment count — the device tells us what it
+    // actually has. Cloud only gives an initial best-guess from capabilities.
+    if (update.op?.command) {
       const segData = parseMqttSegmentData(update.op.command);
 
       if (segData.length > 0) {
-        // Discovery: if MQTT shows more segments than the Cloud said,
-        // trust the device. Bump segmentCount, rebuild the state tree so
-        // the extra segments get their datapoints BEFORE we try to write
-        // values into them — otherwise ioBroker warns about missing objects.
         const maxSeen = Math.max(...segData.map((s) => s.index)) + 1;
-        if (maxSeen > (device.segmentCount ?? 0)) {
+        const current = device.segmentCount ?? 0;
+        if (maxSeen > current) {
           this.log.info(
-            `${device.name}: MQTT shows ${maxSeen} segments (Cloud reported ${device.segmentCount}) — updating state tree`,
+            `${device.name}: detected ${maxSeen} segments via MQTT (was ${current}) — rebuilding state tree`,
           );
           device.segmentCount = maxSeen;
-          // Persist immediately so the next restart reads the real count
-          // from cache — otherwise capability=15 would win and segments
-          // 15+ would get deleted as "excess" before rediscovery.
+          // Persist now so a restart starts from the real value instead of
+          // falling back to Cloud capabilities and deleting the extra slots.
           if (this.skuCache) {
             this.skuCache.save(this.goveeDeviceToCached(device));
           }
-          // Skip the segment-state sync for THIS push — the objects aren't
-          // ready yet. The next AA A5 push (a few seconds later) will hit
-          // the fully-built tree.
+          // Skip per-segment sync for this push — the new datapoints don't
+          // exist yet. The next AA A5 push hits the fully-built tree.
           this.onSegmentCountGrown?.(device);
           return;
         }
@@ -1142,31 +1189,34 @@ export class DeviceManager {
       snapshotBleCmds: cached.snapshotBleCmds,
       scenesChecked: cached.scenesChecked,
       lastSeenOnNetwork: cached.lastSeenOnNetwork,
-      // Restore the MQTT-discovered count so it wins over Cloud capability
-      // after a restart. Without this the next createSegmentStates would
-      // immediately delete segments 15-19 as "excess" before MQTT gets a
-      // chance to rediscover.
-      segmentCount: cached.discoveredSegmentCount,
+      // Restore learned count so it wins over Cloud capability on next start.
+      segmentCount: cached.segmentCount,
+      manualMode: cached.manualMode,
+      manualSegments: cached.manualSegments,
       state: { online: false },
       channels: { lan: false, mqtt: false, cloud: false },
     };
   }
 
   /**
-   * Extract cacheable data from a GoveeDevice
+   * Persist a device's current runtime state to the SKU cache.
+   * Safe no-op when no cache is configured.
+   *
+   * @param device Target device
+   */
+  public persistDeviceToCache(device: GoveeDevice): void {
+    if (!this.skuCache) {
+      return;
+    }
+    this.skuCache.save(this.goveeDeviceToCached(device));
+  }
+
+  /**
+   * Extract cacheable data from a GoveeDevice.
    *
    * @param device Runtime device
    */
   private goveeDeviceToCached(device: GoveeDevice): CachedDeviceData {
-    // Only persist discoveredSegmentCount when it actually exceeds the
-    // capability value — avoids persisting Cloud defaults and pointing
-    // future starts at a discovery that didn't really happen.
-    const capabilityCount = this.capabilityCountFor(device);
-    const discoveredSegmentCount =
-      typeof device.segmentCount === "number" &&
-      device.segmentCount > capabilityCount
-        ? device.segmentCount
-        : undefined;
     return {
       sku: device.sku,
       deviceId: device.deviceId,
@@ -1183,41 +1233,19 @@ export class DeviceManager {
       snapshotBleCmds: device.snapshotBleCmds,
       scenesChecked: device.scenesChecked,
       lastSeenOnNetwork: device.lastSeenOnNetwork,
-      discoveredSegmentCount,
+      segmentCount:
+        typeof device.segmentCount === "number" && device.segmentCount > 0
+          ? device.segmentCount
+          : undefined,
+      manualMode: device.manualMode ? true : undefined,
+      manualSegments:
+        device.manualMode &&
+        Array.isArray(device.manualSegments) &&
+        device.manualSegments.length > 0
+          ? device.manualSegments.slice()
+          : undefined,
       cachedAt: Date.now(),
     };
-  }
-
-  /**
-   * Max segment count advertised by capabilities (0 if none).
-   *
-   * @param device Target device
-   */
-  private capabilityCountFor(device: GoveeDevice): number {
-    let max = 0;
-    const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
-    for (const c of caps) {
-      if (
-        c &&
-        typeof c.type === "string" &&
-        c.type.includes("segment_color_setting")
-      ) {
-        const params = (c as { parameters?: { fields?: unknown[] } })
-          .parameters;
-        const fields = Array.isArray(params?.fields) ? params.fields : [];
-        for (const f of fields) {
-          const fieldName = (f as { fieldName?: unknown }).fieldName;
-          const range = (f as { elementRange?: { max?: unknown } })
-            .elementRange;
-          const rawMax =
-            range && typeof range.max === "number" ? range.max : -1;
-          if (fieldName === "segment" && rawMax + 1 > max) {
-            max = rawMax + 1;
-          }
-        }
-      }
-    }
-    return max;
   }
 
   /**

@@ -17,12 +17,13 @@
     "tabMain": "Hauptkonfiguration",
     "tabWizard": "Segment-Erkennung",
     "wizardHeader": "Segment-Erkennungs-Assistent",
-    "wizardInfo": "Für LED-Strips, die auf eine kürzere Länge als die Werkseinstellung zugeschnitten wurden. Wähle den Strip (nur online-Geräte werden angezeigt), klicke Start und beantworte für jedes Segment mit Ja oder Nein, ob du das Licht siehst.",
+    "wizardInfo": "Misst die echte Länge deines LED-Strips und erkennt Lücken (bei gekürzten Strips). Wähle den Strip, klicke Start und beantworte für jedes blinkende Segment: sichtbar, dunkel oder 'Fertig – Strip zu Ende'.",
     "wizardDeviceLabel": "LED-Strip (nur online)",
     "wizardStatusLabel": "Status",
     "wizardBtnStart": "▶ Start",
     "wizardBtnYes": "✓ Ja, sichtbar",
     "wizardBtnNo": "✗ Nein, dunkel",
-    "wizardBtnAbort": "✗ Abbrechen",
-    "wizardHelp": "Bei jedem Start oder Antwort leuchtet das aktuelle Segment hellweiß, alle anderen bleiben dunkel. Die Status-Anzeige oben zeigt dir welches Segment gerade geprüft wird. Nur ein Wizard kann gleichzeitig laufen, die Session bricht nach 5 Minuten Inaktivität automatisch ab. Das Ergebnis wird in segments.manual_mode und segments.manual_list gespeichert und kann manuell editiert werden (z.B. '0-9' für die ersten 10 von 15 Segmenten, oder '0-8,10-14' wenn Segment 9 fehlt)."
+    "wizardBtnDone": "■ Fertig – Strip zu Ende",
+    "wizardBtnAbort": "Abbrechen",
+    "wizardHelp": "So läufts ab: Das aktuelle Segment leuchtet WEISS, alle anderen bleiben dunkel. Klicke 'Ja, sichtbar' oder 'Nein, dunkel'. Wenn der Strip physisch zu Ende ist, klicke 'Fertig – Strip zu Ende'. Der Wizard ermittelt die echte Segmentanzahl und speichert bei Lücken automatisch eine manual_list. Session bricht nach 5 Minuten Inaktivität ab."
 }

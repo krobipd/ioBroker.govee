@@ -55,12 +55,17 @@ export interface CachedDeviceData {
   /** Timestamp (ms) when device was last seen on local network (LAN/MQTT). */
   lastSeenOnNetwork?: number;
   /**
-   * Physical segment count discovered from MQTT `AA A5` stream — wins over
-   * the Cloud capability value when the device pushes more segments than
-   * Cloud admits (under-reporting bug on long strips). Only set by the
-   * MQTT discovery path; Cloud data never writes this.
+   * Physical segment count for this device. Resolved from (in order):
+   * 1. MQTT `AA A5` stream — authoritative, the real device tells us
+   * 2. Wizard result — user-measured
+   * 3. Cloud capabilities — initial best guess (min of reported values)
+   * Once set, wins over Cloud capability re-reads across restarts.
    */
-  discoveredSegmentCount?: number;
+  segmentCount?: number;
+  /** Cut-strip mode: `manualSegments` lists the physically-present indices. */
+  manualMode?: boolean;
+  /** Physical indices when manualMode=true; undefined when contiguous. */
+  manualSegments?: number[];
 }
 
 /**

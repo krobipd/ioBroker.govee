@@ -1,5 +1,9 @@
 # Older Changes
 
+## 1.6.1 (2026-04-18)
+- Fix Segment Detection Wizard in admin UI — jsonConfig button type was `"sendto"` (lowercase) instead of `"sendTo"` causing validation errors
+- Fix LED strip dropdown showed as free-text input because `selectSendTo` expects the array directly, not wrapped in `{list: ...}`
+
 ## 1.6.0 (2026-04-18)
 - Add manual segment override for cut LED strips — declare which segment indices actually exist via `segments.manual_mode` + `segments.manual_list` (supports ranges like `"0-9"` or gaps like `"0-8,10-14"`)
 - Add Segment Detection Wizard in admin UI — flashes each segment bright white one-by-one and records which indices the user confirms visible, writes result as `manual_list`

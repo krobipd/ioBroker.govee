@@ -265,4 +265,25 @@ describe("SkuCache", () => {
     const loaded = cache.loadAll()[0];
     expect(loaded.lastSeenOnNetwork).to.equal(now);
   });
+
+  it("should persist segmentCount (authoritative real count)", () => {
+    const cache = new SkuCache(dir, mockLog);
+    const data = createTestData();
+    data.segmentCount = 20;
+    cache.save(data);
+    const loaded = cache.loadAll()[0];
+    expect(loaded.segmentCount).to.equal(20);
+  });
+
+  it("should persist manualMode + manualSegments together", () => {
+    const cache = new SkuCache(dir, mockLog);
+    const data = createTestData();
+    data.segmentCount = 15;
+    data.manualMode = true;
+    data.manualSegments = [0, 1, 2, 5, 6, 7, 8];
+    cache.save(data);
+    const loaded = cache.loadAll()[0];
+    expect(loaded.manualMode).to.equal(true);
+    expect(loaded.manualSegments).to.deep.equal([0, 1, 2, 5, 6, 7, 8]);
+  });
 });

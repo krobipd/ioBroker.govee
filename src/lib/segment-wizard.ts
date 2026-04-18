@@ -1,3 +1,4 @@
+import { SEGMENT_HARD_MAX } from "./device-manager.js";
 import type { GoveeDevice } from "./types.js";
 
 /** Session state for the interactive segment-detection wizard */
@@ -8,9 +9,9 @@ export interface SegmentWizardSession {
   sku: string;
   /** Display name */
   name: string;
-  /** Current segment index being tested */
+  /** Next segment index the wizard will flash */
   current: number;
-  /** Total number of segments to test (from device.segmentCount) */
+  /** Upper bound — protocol limit, NOT Cloud-reported count */
   total: number;
   /** Indices confirmed visible by user */
   visible: number[];
@@ -28,6 +29,16 @@ export interface SegmentWizardSession {
 /** Minimum response shape — onMessage forwards this verbatim to the caller. */
 export type WizardResponse = Record<string, unknown>;
 
+/** Result of a completed wizard session — the host applies this to the device. */
+export interface WizardResult {
+  /** Real physical segment count (indices the user acknowledged, one past the last answered) */
+  segmentCount: number;
+  /** Gaps detected (indices marked dark between visible ones). Empty = contiguous strip. */
+  manualList: string;
+  /** Whether gaps were detected (manualList non-empty) */
+  hasGaps: boolean;
+}
+
 /**
  * Everything the wizard needs from the outside world. Extracting this
  * interface keeps the wizard independent from the ioBroker base class and
@@ -43,8 +54,6 @@ export interface WizardHost {
   };
   /** Read a state value by full ID. */
   getState(id: string): Promise<{ val: unknown } | null | undefined>;
-  /** Write a state value by full ID. */
-  setState(id: string, state: { val: unknown; ack: boolean }): Promise<unknown>;
   /** Dispatch a command to a device (normally DeviceManager.sendCommand). */
   sendCommand(
     device: GoveeDevice,
@@ -83,20 +92,44 @@ export interface WizardHost {
   setTimeout(cb: () => void, ms: number): unknown;
   /** Cancel a previously scheduled timeout. */
   clearTimeout(handle: unknown): void;
+  /**
+   * Apply the finished wizard result to the device — sets segmentCount,
+   * manualMode, manualSegments, rebuilds state tree, persists to cache.
+   * Host owns this because it needs to coordinate with StateManager,
+   * DeviceManager and SkuCache.
+   */
+  applyWizardResult(device: GoveeDevice, result: WizardResult): Promise<void>;
 }
 
 const IDLE_TIMEOUT_MS = 5 * 60_000;
 
 /**
+ * Check whether a device has any segment capability at all. A strip with
+ * zero segments (e.g. Curtain H70B3) can't be wizard-tested.
+ *
+ * @param device Target device
+ */
+function hasSegmentCapability(device: GoveeDevice): boolean {
+  const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
+  return caps.some(
+    (c) =>
+      c &&
+      typeof c.type === "string" &&
+      c.type.includes("segment_color_setting"),
+  );
+}
+
+/**
  * Interactive segment-detection state machine.
  *
- * Flashes each segment bright white one-by-one and records which indices the
- * user confirms visible. Result is written as `segments.manual_list` +
- * `segments.manual_mode=true` (triggers reconfig through onStateChange).
+ * Flashes each segment bright white one-by-one up to the protocol limit.
+ * The user steers the session with `yes` (visible) / `no` (dark) /
+ * `done` (strip ended). The final result — real segment count plus any
+ * gaps for cut strips — is applied via {@link WizardHost.applyWizardResult}.
  *
  * Public entry point is {@link SegmentWizard.runStep} which routes by action
- * string ("start" | "yes" | "no" | "abort"). Individual lifecycle methods are
- * also usable directly; they're the seams that tests target.
+ * string ("start" | "yes" | "no" | "done" | "abort"). Individual lifecycle
+ * methods are also usable directly; they're the seams that tests target.
  */
 export class SegmentWizard {
   private session: SegmentWizardSession | null = null;
@@ -119,14 +152,16 @@ export class SegmentWizard {
     if (!s) {
       return "Kein Wizard aktiv. Wähle oben einen LED-Strip und klicke ▶ Start.";
     }
-    const shown = s.current + 1;
+    const visibleStr = s.visible.length > 0 ? s.visible.join(", ") : "—";
     return (
       `Gerät: ${s.name}\n` +
-      `► Segment ${s.current} von ${s.total} leuchtet jetzt WEISS (Fortschritt ${shown} / ${s.total}).\n` +
+      `► Segment ${s.current} leuchtet jetzt WEISS.\n` +
       `Siehst du das Licht auf dem Strip?\n` +
-      `  → Ja, sichtbar    → klicke "Ja, sichtbar"\n` +
-      `  → Nein, dunkel    → klicke "Nein, dunkel"\n` +
-      `Bisher als sichtbar markiert: [${s.visible.join(", ") || "noch keine"}]`
+      `  ✓ Ja, sichtbar   → weiter zum nächsten Segment\n` +
+      `  ✗ Nein, dunkel   → Lücke, weiter zum nächsten Segment\n` +
+      `  ■ Fertig – Strip zu Ende → Ergebnis speichern\n` +
+      `\n` +
+      `Bisher als sichtbar markiert: [${visibleStr}]`
     );
   }
 
@@ -139,7 +174,7 @@ export class SegmentWizard {
   /**
    * Route one wizard step from the sendTo handler.
    *
-   * @param action "start" | "yes" | "no" | "abort"
+   * @param action "start" | "yes" | "no" | "done" | "abort"
    * @param deviceKey Target device — only consulted on action="start"
    */
   public async runStep(
@@ -154,6 +189,9 @@ export class SegmentWizard {
     }
     if (action === "abort") {
       return this.abort();
+    }
+    if (action === "done") {
+      return this.done();
     }
     if (action === "yes" || action === "no") {
       return this.answer(action === "yes");
@@ -176,9 +214,10 @@ export class SegmentWizard {
     if (!device) {
       return { error: `Gerät nicht gefunden: ${deviceKey}` };
     }
-    const total = device.segmentCount ?? 0;
-    if (total <= 0) {
-      return { error: `${device.name} hat keine Segmente (segmentCount=0)` };
+    if (!hasSegmentCapability(device)) {
+      return {
+        error: `${device.name} hat keine Segmente — Wizard nicht anwendbar.`,
+      };
     }
 
     const baseline = await this.captureBaseline(device);
@@ -188,7 +227,7 @@ export class SegmentWizard {
       sku: device.sku,
       name: device.name,
       current: 0,
-      total,
+      total: SEGMENT_HARD_MAX + 1,
       visible: [],
       startedAt: Date.now(),
       baseline,
@@ -196,7 +235,7 @@ export class SegmentWizard {
     this.scheduleIdleTimeout();
     // Make sure the strip is ON and at full global brightness before we
     // start flashing segments — otherwise a user with their strip dimmed to
-    // e.g. 10% would see nothing.
+    // e.g. 10 % would see nothing.
     await this.host.sendCommand(device, "power", true);
     await this.host.sendCommand(device, "brightness", 100);
     await this.flashSegment(device, 0);
@@ -204,10 +243,10 @@ export class SegmentWizard {
     return {
       message:
         `Wizard gestartet für ${device.name}.\n\n` +
-        `► SEGMENT 0 von ${total} leuchtet jetzt WEISS.\n` +
+        `► SEGMENT 0 leuchtet jetzt WEISS.\n` +
         `Siehst du das Licht auf dem Strip?\n` +
-        `→ Ja, sichtbar   oder   → Nein, dunkel`,
-      progress: `1 / ${total}`,
+        `→ Ja, sichtbar   oder   → Nein, dunkel   oder   → Fertig – Strip zu Ende`,
+      progress: `Segment 0`,
       active: true,
     };
   }
@@ -225,10 +264,13 @@ export class SegmentWizard {
     if (wasVisible) {
       session.visible.push(session.current);
     }
+    const answeredIdx = session.current;
     session.current += 1;
     this.scheduleIdleTimeout();
 
-    if (session.current >= session.total) {
+    // Safety: protocol bitmask can only address 0..55. If we somehow get
+    // there, auto-finalize instead of flashing a seg the device can't render.
+    if (session.current > SEGMENT_HARD_MAX) {
       return this.finish();
     }
 
@@ -239,19 +281,36 @@ export class SegmentWizard {
       return { error: "Gerät während des Wizards verschwunden" };
     }
     await this.flashSegment(device, session.current);
-    const last = session.current - 1;
     const lastNote = wasVisible
-      ? `✓ Segment ${last} als sichtbar markiert.`
-      : `✗ Segment ${last} übersprungen.`;
+      ? `✓ Segment ${answeredIdx} als sichtbar markiert.`
+      : `✗ Segment ${answeredIdx} als dunkel markiert (Lücke).`;
     return {
       message:
         `${lastNote}\n\n` +
-        `► SEGMENT ${session.current} von ${session.total} leuchtet jetzt WEISS.\n` +
+        `► SEGMENT ${session.current} leuchtet jetzt WEISS.\n` +
         `Siehst du das Licht?\n` +
-        `→ Ja, sichtbar   oder   → Nein, dunkel`,
-      progress: `${session.current + 1} / ${session.total}`,
+        `→ Ja, sichtbar   oder   → Nein, dunkel   oder   → Fertig – Strip zu Ende`,
+      progress: `Segment ${session.current}`,
       active: true,
     };
+  }
+
+  /**
+   * User ends the session — "Strip zu Ende, keine weiteren Segmente".
+   * The currently-flashed segment was NOT answered, so it doesn't count.
+   */
+  public async done(): Promise<WizardResponse> {
+    const session = this.session;
+    if (!session) {
+      return { error: "Kein Wizard aktiv" };
+    }
+    if (session.current === 0) {
+      return {
+        error:
+          "Bitte zuerst mindestens eine Antwort geben (Ja sichtbar oder Nein dunkel).",
+      };
+    }
+    return this.finish();
   }
 
   /** Abort the session and roll back to the captured baseline. */
@@ -276,7 +335,10 @@ export class SegmentWizard {
     };
   }
 
-  /** Write manual_list + manual_mode, restore baseline, and end session. */
+  /**
+   * Consolidate the session into a {@link WizardResult}, hand off to the host
+   * for application, restore baseline and close the session.
+   */
   private async finish(): Promise<WizardResponse> {
     const session = this.session;
     if (!session) {
@@ -288,38 +350,46 @@ export class SegmentWizard {
       this.clearIdleTimer();
       return { error: "Gerät verschwunden" };
     }
-    const listStr = session.visible.join(",");
-    const prefix = this.host.devicePrefix(device);
-    const ns = this.host.namespace;
 
-    await this.host.setState(`${ns}.${prefix}.segments.manual_list`, {
-      val: listStr,
-      ack: false,
-    });
-    await this.host.setState(`${ns}.${prefix}.segments.manual_mode`, {
-      val: true,
-      ack: false,
-    });
+    const segmentCount = session.current;
+    const visible = session.visible.slice().sort((a, b) => a - b);
+    const allContiguous =
+      visible.length === segmentCount && visible.every((v, i) => v === i);
+    const manualList = allContiguous ? "" : compactIndices(visible);
+    const result: WizardResult = {
+      segmentCount,
+      manualList,
+      hasGaps: !allContiguous,
+    };
+
+    await this.host.applyWizardResult(device, result);
     await this.restoreBaseline(device, session.baseline);
 
-    const found = session.visible.length;
     this.host.log.info(
-      `Segment-Wizard für ${device.name}: ${found} von ${session.total} Segmenten sichtbar → manual_list="${listStr}"`,
+      `Segment-Wizard für ${device.name}: ${segmentCount} Segmente erkannt${
+        result.hasGaps
+          ? `, Lücken erkannt (manual_list="${manualList}")`
+          : ", keine Lücken"
+      }`,
     );
 
     this.session = null;
     this.clearIdleTimer();
 
+    const summary = result.hasGaps
+      ? `Lücken-Liste: ${manualList} — Manual-Mode aktiv.`
+      : `Keine Lücken — Manual-Mode deaktiviert.`;
     return {
       message:
         `✓ FERTIG!\n\n` +
-        `${found} von ${session.total} Segmenten als sichtbar markiert.\n` +
-        `Liste "${listStr || "(leer)"}" wurde gespeichert.\n` +
-        `Manual-Mode aktiv — der State-Tree wurde neu gebaut.`,
-      progress: `${session.total} / ${session.total}`,
+        `${segmentCount} Segmente erkannt.\n` +
+        `${summary}\n` +
+        `State-Tree wurde neu gebaut.`,
+      progress: `${segmentCount} Segmente`,
       done: true,
-      result: found,
-      list: listStr,
+      segmentCount,
+      list: manualList,
+      hasGaps: result.hasGaps,
     };
   }
 
@@ -370,8 +440,8 @@ export class SegmentWizard {
       await this.host.getState(`${ns}.${prefix}.control.colorRgb`)
     )?.val;
     const segmentColors: SegmentWizardSession["baseline"]["segmentColors"] = [];
-    const total = device.segmentCount ?? 0;
-    for (let i = 0; i < total; i++) {
+    const currentCount = device.segmentCount ?? 0;
+    for (let i = 0; i < currentCount; i++) {
       const c = (
         await this.host.getState(`${ns}.${prefix}.segments.${i}.color`)
       )?.val;
@@ -400,14 +470,10 @@ export class SegmentWizard {
    * @param idx Segment to flash white (others go near-black)
    */
   private async flashSegment(device: GoveeDevice, idx: number): Promise<void> {
-    const total = device.segmentCount ?? 0;
-    if (total <= 0) {
-      return;
-    }
-    // Atomic path: LAN ptReal with all three packets bundled in one UDP.
-    // Back-pressure on Govee devices drops the second+third packet when
-    // they arrive in separate datagrams (observed on H61BE), producing the
-    // "only some segments went dark" symptom.
+    // Flash-extent = what we'll address: we can't know the real count yet,
+    // so drive the full protocol range. The device silently drops indices
+    // it doesn't physically have.
+    const total = SEGMENT_HARD_MAX + 1;
     const atomic = await this.host.flashSegmentAtomic(device, total, idx);
     if (atomic) {
       return;
@@ -450,7 +516,6 @@ export class SegmentWizard {
     }
     const color = parseInt(baseline.colorRgb.slice(1), 16);
     const brightness = baseline.brightness ?? 100;
-    // Atomic path first — same back-pressure avoidance as flashSegment.
     const atomic = await this.host.restoreStripAtomic(
       device,
       total,
@@ -466,4 +531,30 @@ export class SegmentWizard {
       brightness,
     });
   }
+}
+
+/**
+ * Compact a sorted index array into a range-notation string.
+ * `[0,1,2,4,5,6]` → `"0-2,4-6"`, `[3]` → `"3"`, `[]` → `""`.
+ *
+ * @param sorted Sorted ascending array of non-negative integers
+ */
+function compactIndices(sorted: number[]): string {
+  if (sorted.length === 0) {
+    return "";
+  }
+  const parts: string[] = [];
+  let runStart = sorted[0];
+  let runEnd = sorted[0];
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === runEnd + 1) {
+      runEnd = sorted[i];
+    } else {
+      parts.push(runStart === runEnd ? `${runStart}` : `${runStart}-${runEnd}`);
+      runStart = sorted[i];
+      runEnd = sorted[i];
+    }
+  }
+  parts.push(runStart === runEnd ? `${runStart}` : `${runStart}-${runEnd}`);
+  return parts.join(",");
 }

@@ -300,7 +300,11 @@ export interface GoveeDevice {
   groupMembers?: { sku: string; deviceId: string }[];
   /** Last known state */
   state: DeviceState;
-  /** Number of LED segments (from capability) */
+  /**
+   * Number of LED segments on this device. Resolved by
+   * {@link resolveSegmentCount} from Cache → MQTT-discovered → Cloud min.
+   * Persisted via SKU cache so learned values survive restarts.
+   */
   segmentCount?: number;
   /** BLE packets per cloud snapshot for ptReal activation [snapshotIdx][cmdIdx][packetBase64] */
   snapshotBleCmds?: string[][][];
@@ -312,13 +316,15 @@ export interface GoveeDevice {
    */
   scenesChecked?: boolean;
   /**
-   * Manual segment override: if true, `manualSegments` defines the physical segment
-   * indices — used for cut LED strips where the Cloud-reported count is wrong.
+   * Manual-mode flag for cut strips (physical segments with gaps). When true,
+   * `manualSegments` lists the indices that actually light up; all others
+   * (within `0..segmentCount-1`) are skipped. Orthogonal to `segmentCount`:
+   * the total is still the strip's real length, manualMode just masks gaps.
    */
   manualMode?: boolean;
   /**
    * Explicit physical segment indices (parsed from `segments.manual_list` state).
-   * Only used when `manualMode=true`. Empty or undefined = fall back to Cloud count.
+   * Only used when `manualMode=true`. Indices must be within `0..segmentCount-1`.
    */
   manualSegments?: number[];
   /**

@@ -206,42 +206,43 @@ Segment indices start at 0. Values beyond the device's segment count are automat
 
 ---
 
-## Cut LED Strips — Manual Segments
+## Segment Detection Wizard
 
-If your LED strip has been cut shorter than its factory length, Govee still reports the **original** segment count via the Cloud API. Setting segments that no longer exist physically is silently ignored by the device but clutters the object tree.
+Govee Cloud often disagrees with reality about how long your strip is — under-reports long strips (Cloud says 15, strip has 20) or contradicts itself between its own fields. The adapter learns the real count automatically from MQTT packets, but if you want a definitive measurement — or if you've **cut** your strip and need to declare the visible indices — use the wizard.
 
-This adapter supports a manual override to declare which segment indices actually exist.
-
-### Option 1 — Interactive Wizard (Admin UI)
+### Using the wizard
 
 Open the adapter settings, switch to the **Segment Detection** tab:
 
 1. Pick the LED strip from the dropdown
-2. Click **Start** — the first segment flashes bright white, all others dark
-3. Look at the strip: does it light up? Click **✓ Yes, visible** or **✗ No, nothing**
-4. Repeat for each segment
-5. After the last segment, the adapter automatically stores the result in `segments.manual_list` and enables `segments.manual_mode`. Overflow segment states are cleaned up.
+2. Click **▶ Start** — the first segment flashes bright white, all others dark
+3. Look at the strip:
+   - It lights up at the right spot? → **✓ Ja, sichtbar**
+   - It's dark at this index (cut strip, gap)? → **✗ Nein, dunkel**
+   - The strip ends here / nothing lights up anymore? → **■ Fertig – Strip zu Ende**
+4. The adapter measures the total length from your answers, detects gaps automatically, and writes the result:
+   - No gaps → `manual_mode=false`, the segment tree just matches the real length
+   - Gaps detected → `manual_mode=true`, `manual_list` gets a compact notation (`"0-8,10-14"`)
+5. Everything persists across restarts via the SKU cache
 
-The session auto-aborts after 5 minutes of inactivity, restoring the original colors.
+The session auto-aborts after 5 minutes of inactivity and restores the strip's previous colors.
 
-### Option 2 — Direct State Editing
+### Manual editing (no wizard)
 
-Write the states yourself:
+You can also set the states yourself:
 
 - `segments.manual_list` — comma-separated indices, supports ranges:
   - `"0-9"` — first 10 segments of a 15-segment strip
-  - `"0-8,10-14"` — segment 9 is broken, skip it
+  - `"0-8,10-14"` — segment 9 is cut/broken, skip it
   - `"0,1,2,3,4,5,6"` — individual indices equivalent to `"0-6"`
-- `segments.manual_mode` — set to `true` to activate, `false` to fall back to Cloud default
-
-After both states are written, the adapter re-creates the segment channel tree to match the list (removes excess entries) and uses the manual indices for all future segment commands.
+- `segments.manual_mode` — set to `true` to activate, `false` to restore contiguous behaviour
 
 ### Behavior details
 
-- `segments.count` reflects the manual list length, not the Cloud-reported value
-- `segments.command all:...` expands to the manual indices only, skipping cut ones
-- MQTT status updates for non-existent segments are ignored
-- Turning `manual_mode` off restores the full Cloud-reported segment tree
+- `segments.count` reflects the effective number of physical segments (manual list length, or the total when manual-mode is off)
+- `segments.command all:...` expands to the physical indices only, skipping cut ones
+- MQTT status updates for non-existent (cut) segments are ignored
+- Turning `manual_mode` off treats the strip as contiguous again, using the real measured length
 
 ---
 
@@ -452,6 +453,12 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### 1.7.0 (2026-04-19)
+- **Reliable segment count.** The adapter now uses a single source of truth for how many segments your strip has: cache → MQTT-learned → minimum of Cloud-advertised. Once the real length is discovered it's persisted and survives restarts. No more "Cloud said 15, strip really has 20" headaches
+- **Segment Wizard redesign — one clear flow.** Three buttons: **✓ Ja sichtbar / ✗ Nein dunkel / ■ Fertig – Strip zu Ende**. The wizard measures the REAL length regardless of what Cloud reports (runs up to the Govee protocol limit of 55), detects gaps automatically (cut strips), and applies the result atomically — segmentCount, manualMode, manualList get set together, state tree gets rebuilt, everything persists
+- **Manual-mode survives restarts.** Cut-strip settings (`manual_mode` + `manual_list`) are now part of the SKU cache — previously they could be lost on the first rebuild after startup
+- Cloud-internal contradictions (e.g. H70D1 Icicle reporting `segmentedBrightness=10` and `segmentedColorRgb=15` in the same response) are resolved conservatively: take the smaller value and let MQTT correct upwards if the real device proves bigger
+
 ### 1.6.7 (2026-04-19)
 - Fix race when MQTT reveals more segments than Cloud — the discovery push skips the segment-state sync so the new datapoints get created first (no more "State has no existing object" warnings). The next AA A5 push seconds later populates the fully-built tree.
 

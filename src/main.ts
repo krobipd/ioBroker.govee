@@ -6,7 +6,11 @@ import {
   mapCloudStateValue,
 } from "./lib/capability-mapper.js";
 import { loadCommunityQuirks } from "./lib/device-quirks.js";
-import { DeviceManager } from "./lib/device-manager.js";
+import {
+  DeviceManager,
+  resolveSegmentCount,
+  SEGMENT_HARD_MAX,
+} from "./lib/device-manager.js";
 import { GoveeApiClient } from "./lib/govee-api-client.js";
 import { GoveeCloudClient } from "./lib/govee-cloud-client.js";
 import { GoveeLanClient } from "./lib/govee-lan-client.js";
@@ -18,7 +22,11 @@ import {
 } from "./lib/local-snapshots.js";
 import { CloudRetryLoop, type CloudRetryHost } from "./lib/cloud-retry.js";
 import { RateLimiter } from "./lib/rate-limiter.js";
-import { SegmentWizard, type WizardHost } from "./lib/segment-wizard.js";
+import {
+  SegmentWizard,
+  type WizardHost,
+  type WizardResult,
+} from "./lib/segment-wizard.js";
 import { SkuCache } from "./lib/sku-cache.js";
 import { StateManager } from "./lib/state-manager.js";
 import {
@@ -984,6 +992,16 @@ class GoveeAdapter extends utils.Adapter {
     }
 
     this.updateConnectionState();
+
+    // After the state tree is built, persist any segmentCount changes that
+    // resolveSegmentCount just applied (e.g. H70D1 collapsing from Cloud's
+    // misreported 15 to the real 10). Without this the cache would still
+    // hold the outdated value and the migration would repeat on every start.
+    Promise.all(this.stateCreationQueue)
+      .then(() => this.deviceManager?.saveDevicesToCache())
+      .catch(() => {
+        /* persist errors already logged by SkuCache */
+      });
   }
 
   /** Update global info.connection */
@@ -1301,43 +1319,47 @@ class GoveeAdapter extends utils.Adapter {
           );
 
     if (!modeVal) {
-      // Manual mode off → back to Cloud defaults
+      // Manual mode off → gaps removed, back to contiguous strip
       device.manualMode = false;
       device.manualSegments = undefined;
       this.log.info(
-        `${device.name}: manual segments disabled — using Cloud defaults`,
+        `${device.name}: manual segments disabled — strip treated as contiguous`,
       );
       await this.stateManager.createSegmentStates(device);
+      this.deviceManager?.persistDeviceToCache(device);
       return;
     }
 
-    // Manual mode on: parse list, validate against the Govee protocol's
-    // hard upper bound (55, i.e. 7-byte bitmask × 8 bits − 1). We can't
-    // cap at device.segmentCount because that's the Cloud-reported count,
-    // which may under-report (user sees more physical segments than the
-    // API admits — 20 m strip, ~20 segments, Cloud says 15).
-    const SEGMENT_HARD_MAX = 55;
-    const parsed = parseSegmentList(listVal, SEGMENT_HARD_MAX);
+    // Upper bound for the list parser: cap at the strip's real length when
+    // we know it (device.segmentCount), otherwise at the protocol limit.
+    // The real length itself may still grow via MQTT discovery, so SEGMENT_HARD_MAX
+    // stays as absolute safety net.
+    const maxIndex =
+      typeof device.segmentCount === "number" && device.segmentCount > 0
+        ? device.segmentCount - 1
+        : SEGMENT_HARD_MAX;
+    const parsed = parseSegmentList(listVal, maxIndex);
     if (parsed.error) {
       this.log.warn(
         `${device.name}: manual_list invalid (${parsed.error}) — disabling manual mode`,
       );
-      // Revert toggle in state and runtime
       device.manualMode = false;
       device.manualSegments = undefined;
       await this.setStateAsync(`${ns}.${prefix}.segments.manual_mode`, {
         val: false,
         ack: true,
       });
+      this.deviceManager?.persistDeviceToCache(device);
       return;
     }
 
     device.manualMode = true;
     device.manualSegments = parsed.indices;
     this.log.info(
-      `${device.name}: manual segments active — ${parsed.indices.length} physical segments (${listVal})`,
+      `${device.name}: manual segments active — ${parsed.indices.length} physical indices (${listVal})`,
     );
     await this.stateManager.createSegmentStates(device);
+    this.deviceManager?.persistDeviceToCache(device);
   }
 
   // ───────── Segment-Detection-Wizard ─────────
@@ -1371,14 +1393,16 @@ class GoveeAdapter extends utils.Adapter {
           .filter(
             (d) =>
               d.sku !== "BaseGroup" &&
-              typeof d.segmentCount === "number" &&
-              d.segmentCount > 0 &&
-              d.state?.online === true,
+              d.state?.online === true &&
+              resolveSegmentCount(d) > 0,
           )
-          .map((d) => ({
-            value: this.deviceKeyFor(d),
-            label: `${d.name} (${d.sku}, ${d.segmentCount} Segmente)`,
-          }));
+          .map((d) => {
+            const count = resolveSegmentCount(d);
+            return {
+              value: this.deviceKeyFor(d),
+              label: `${d.name} (${d.sku}, bisher ${count} Segmente)`,
+            };
+          });
         // selectSendTo expects the array directly, not wrapped in an object
         this.sendMessageResponse(obj, list);
         return;
@@ -1435,11 +1459,6 @@ class GoveeAdapter extends utils.Adapter {
     return {
       log: this.log,
       getState: (id) => this.getStateAsync(id),
-      setState: (id, s) =>
-        this.setStateAsync(id, {
-          val: s.val as ioBroker.StateValue,
-          ack: s.ack,
-        }),
       sendCommand: async (device, command, value) => {
         await this.deviceManager?.sendCommand(device, command, value);
       },
@@ -1472,7 +1491,51 @@ class GoveeAdapter extends utils.Adapter {
       devicePrefix: (device) => this.stateManager?.devicePrefix(device) ?? "",
       setTimeout: (cb, ms) => this.setTimeout(cb, ms),
       clearTimeout: (h) => this.clearTimeout(h as ioBroker.Timeout),
+      applyWizardResult: (device, result) =>
+        this.applyWizardResult(device, result),
     };
+  }
+
+  /**
+   * Apply a finished wizard's measurement to the device: set the real
+   * segment count, toggle manual-mode only if gaps were detected, rebuild
+   * the state tree, persist to cache. Runs with ack=true so the state
+   * writes don't bounce through {@link handleManualSegmentsChange}.
+   *
+   * @param device Target device
+   * @param result Wizard's measurement
+   */
+  private async applyWizardResult(
+    device: GoveeDevice,
+    result: WizardResult,
+  ): Promise<void> {
+    if (!this.stateManager) {
+      return;
+    }
+    const prefix = this.stateManager.devicePrefix(device);
+    const ns = this.namespace;
+
+    device.segmentCount = result.segmentCount;
+    if (result.hasGaps) {
+      const parsed = parseSegmentList(
+        result.manualList,
+        result.segmentCount - 1,
+      );
+      device.manualMode = true;
+      device.manualSegments = parsed.error ? undefined : parsed.indices;
+    } else {
+      device.manualMode = false;
+      device.manualSegments = undefined;
+    }
+
+    await this.stateManager.createSegmentStates(device);
+    // createSegmentStates already wrote manual_mode / manual_list from the
+    // device object — no separate state writes needed here.
+    this.deviceManager?.persistDeviceToCache(device);
+    this.log.debug(
+      `applyWizardResult: ${ns}.${prefix} → segmentCount=${result.segmentCount}, ` +
+        `manualMode=${device.manualMode}, list="${result.manualList}"`,
+    );
   }
 
   /**

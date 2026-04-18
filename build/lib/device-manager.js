@@ -19,8 +19,10 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var device_manager_exports = {};
 __export(device_manager_exports, {
   DeviceManager: () => DeviceManager,
+  SEGMENT_HARD_MAX: () => SEGMENT_HARD_MAX,
   getEffectiveSegmentIndices: () => getEffectiveSegmentIndices,
-  parseMqttSegmentData: () => parseMqttSegmentData
+  parseMqttSegmentData: () => parseMqttSegmentData,
+  resolveSegmentCount: () => resolveSegmentCount
 });
 module.exports = __toCommonJS(device_manager_exports);
 var import_command_router = require("./command-router.js");
@@ -95,6 +97,36 @@ function getEffectiveSegmentIndices(device) {
   }
   return Array.from({ length: count }, (_, i) => i);
 }
+function resolveSegmentCount(device) {
+  if (typeof device.segmentCount === "number" && device.segmentCount > 0) {
+    return device.segmentCount;
+  }
+  const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
+  let min = Number.POSITIVE_INFINITY;
+  for (const c of caps) {
+    if (!c || typeof c.type !== "string" || !c.type.includes("segment_color_setting")) {
+      continue;
+    }
+    const params = c.parameters;
+    const fields = Array.isArray(params == null ? void 0 : params.fields) ? params.fields : [];
+    for (const f of fields) {
+      if (!f || typeof f !== "object") {
+        continue;
+      }
+      const fn = f.fieldName;
+      const er = f.elementRange;
+      const rawMax = er && typeof er.max === "number" ? er.max : -1;
+      if (fn === "segment" && rawMax >= 0) {
+        const n = rawMax + 1;
+        if (n > 0 && n < min) {
+          min = n;
+        }
+      }
+    }
+  }
+  return Number.isFinite(min) ? min : 0;
+}
+const SEGMENT_HARD_MAX = 55;
 class DeviceManager {
   log;
   devices = /* @__PURE__ */ new Map();
@@ -670,13 +702,14 @@ class DeviceManager {
     }
     Object.assign(device.state, state);
     (_a = this.onDeviceUpdate) == null ? void 0 : _a.call(this, device, state);
-    if (((_b = update.op) == null ? void 0 : _b.command) && device.segmentCount) {
+    if ((_b = update.op) == null ? void 0 : _b.command) {
       const segData = parseMqttSegmentData(update.op.command);
       if (segData.length > 0) {
         const maxSeen = Math.max(...segData.map((s) => s.index)) + 1;
-        if (maxSeen > ((_c = device.segmentCount) != null ? _c : 0)) {
+        const current = (_c = device.segmentCount) != null ? _c : 0;
+        if (maxSeen > current) {
           this.log.info(
-            `${device.name}: MQTT shows ${maxSeen} segments (Cloud reported ${device.segmentCount}) \u2014 updating state tree`
+            `${device.name}: detected ${maxSeen} segments via MQTT (was ${current}) \u2014 rebuilding state tree`
           );
           device.segmentCount = maxSeen;
           if (this.skuCache) {
@@ -883,23 +916,32 @@ class DeviceManager {
       snapshotBleCmds: cached.snapshotBleCmds,
       scenesChecked: cached.scenesChecked,
       lastSeenOnNetwork: cached.lastSeenOnNetwork,
-      // Restore the MQTT-discovered count so it wins over Cloud capability
-      // after a restart. Without this the next createSegmentStates would
-      // immediately delete segments 15-19 as "excess" before MQTT gets a
-      // chance to rediscover.
-      segmentCount: cached.discoveredSegmentCount,
+      // Restore learned count so it wins over Cloud capability on next start.
+      segmentCount: cached.segmentCount,
+      manualMode: cached.manualMode,
+      manualSegments: cached.manualSegments,
       state: { online: false },
       channels: { lan: false, mqtt: false, cloud: false }
     };
   }
   /**
-   * Extract cacheable data from a GoveeDevice
+   * Persist a device's current runtime state to the SKU cache.
+   * Safe no-op when no cache is configured.
+   *
+   * @param device Target device
+   */
+  persistDeviceToCache(device) {
+    if (!this.skuCache) {
+      return;
+    }
+    this.skuCache.save(this.goveeDeviceToCached(device));
+  }
+  /**
+   * Extract cacheable data from a GoveeDevice.
    *
    * @param device Runtime device
    */
   goveeDeviceToCached(device) {
-    const capabilityCount = this.capabilityCountFor(device);
-    const discoveredSegmentCount = typeof device.segmentCount === "number" && device.segmentCount > capabilityCount ? device.segmentCount : void 0;
     return {
       sku: device.sku,
       deviceId: device.deviceId,
@@ -916,33 +958,11 @@ class DeviceManager {
       snapshotBleCmds: device.snapshotBleCmds,
       scenesChecked: device.scenesChecked,
       lastSeenOnNetwork: device.lastSeenOnNetwork,
-      discoveredSegmentCount,
+      segmentCount: typeof device.segmentCount === "number" && device.segmentCount > 0 ? device.segmentCount : void 0,
+      manualMode: device.manualMode ? true : void 0,
+      manualSegments: device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0 ? device.manualSegments.slice() : void 0,
       cachedAt: Date.now()
     };
-  }
-  /**
-   * Max segment count advertised by capabilities (0 if none).
-   *
-   * @param device Target device
-   */
-  capabilityCountFor(device) {
-    let max = 0;
-    const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
-    for (const c of caps) {
-      if (c && typeof c.type === "string" && c.type.includes("segment_color_setting")) {
-        const params = c.parameters;
-        const fields = Array.isArray(params == null ? void 0 : params.fields) ? params.fields : [];
-        for (const f of fields) {
-          const fieldName = f.fieldName;
-          const range = f.elementRange;
-          const rawMax = range && typeof range.max === "number" ? range.max : -1;
-          if (fieldName === "segment" && rawMax + 1 > max) {
-            max = rawMax + 1;
-          }
-        }
-      }
-    }
-    return max;
   }
   /**
    * Generate diagnostics data for a device — structured JSON for GitHub issue submission.
@@ -1018,7 +1038,9 @@ class DeviceManager {
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   DeviceManager,
+  SEGMENT_HARD_MAX,
   getEffectiveSegmentIndices,
-  parseMqttSegmentData
+  parseMqttSegmentData,
+  resolveSegmentCount
 });
 //# sourceMappingURL=device-manager.js.map

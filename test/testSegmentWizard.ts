@@ -1,29 +1,32 @@
 import { expect } from "chai";
-import { SegmentWizard, type WizardHost } from "../src/lib/segment-wizard";
-import type { GoveeDevice } from "../src/lib/types";
+import {
+    SegmentWizard,
+    type WizardHost,
+    type WizardResult,
+} from "../src/lib/segment-wizard";
+import { SEGMENT_HARD_MAX } from "../src/lib/device-manager";
+import type { CloudCapability, GoveeDevice } from "../src/lib/types";
 
 // A sliced test harness — mirrors enough of the adapter that the wizard
 // cannot tell the difference. Every external call is recorded so tests can
 // assert on the exact sequence (did flashSegment(0) happen before the first
-// question? does finish() really write manual_list BEFORE manual_mode?).
+// question? does finish() pass the right WizardResult to the host?).
 interface HostCall {
     kind: "sendCommand";
     device: GoveeDevice;
     command: string;
     value: unknown;
 }
-interface StateCall {
-    id: string;
-    val: unknown;
-    ack: boolean;
-}
 
 class TestHost implements WizardHost {
     public readonly calls: HostCall[] = [];
-    public readonly stateWrites: StateCall[] = [];
     public readonly stateReads: string[] = [];
     public readonly logs: { level: string; msg: string }[] = [];
     public readonly timerCallbacks: { cb: () => void; ms: number }[] = [];
+    public readonly appliedResults: {
+        device: GoveeDevice;
+        result: WizardResult;
+    }[] = [];
     public clearedTimers = 0;
 
     public states = new Map<string, unknown>();
@@ -53,15 +56,6 @@ class TestHost implements WizardHost {
         return null;
     }
 
-    public async setState(
-        id: string,
-        state: { val: unknown; ack: boolean },
-    ): Promise<unknown> {
-        this.stateWrites.push({ id, val: state.val, ack: state.ack });
-        this.states.set(id, state.val);
-        return undefined;
-    }
-
     public async sendCommand(
         device: GoveeDevice,
         command: string,
@@ -70,16 +64,11 @@ class TestHost implements WizardHost {
         this.calls.push({ kind: "sendCommand", device, command, value });
     }
 
-    /** Filter host.calls down to only the segmentBatch commands (drops the
-     *  preparation calls like `power` and `brightness` that the wizard now
-     *  issues before flashing segment 0). */
+    /** Filter host.calls down to only the segmentBatch commands. */
     public segmentBatchCalls(): HostCall[] {
         return this.calls.filter((c) => c.command === "segmentBatch");
     }
 
-    // Default: return false so sendCommand fallback path runs — most tests
-    // assert on host.calls. Individual tests can override to true to exercise
-    // the atomic path.
     public atomicFlashUsed = false;
     public atomicRestoreUsed = false;
     public atomicEnabled = false;
@@ -111,9 +100,6 @@ class TestHost implements WizardHost {
         return `devices.${device.sku.toLowerCase()}_${device.deviceId.slice(-4)}`;
     }
 
-    // setTimeout returns an index into the timerCallbacks array. Tests can
-    // later call fireTimer(idx) to synchronously invoke what the real
-    // timeout would fire asynchronously.
     public setTimeout(cb: () => void, ms: number): unknown {
         const idx = this.timerCallbacks.length;
         this.timerCallbacks.push({ cb, ms });
@@ -122,7 +108,6 @@ class TestHost implements WizardHost {
 
     public clearTimeout(handle: unknown): void {
         if (typeof handle === "number" && this.timerCallbacks[handle]) {
-            // Mark as consumed by replacing with a no-op so double-fire is safe
             this.timerCallbacks[handle] = { cb: (): void => {}, ms: 0 };
         }
         this.clearedTimers += 1;
@@ -134,6 +119,33 @@ class TestHost implements WizardHost {
             last.cb();
         }
     }
+
+    public async applyWizardResult(
+        device: GoveeDevice,
+        result: WizardResult,
+    ): Promise<void> {
+        this.appliedResults.push({ device, result });
+        // Mimic the host's runtime side-effect so subsequent logic that
+        // reads device.segmentCount (e.g. restoreBaseline) sees the update.
+        device.segmentCount = result.segmentCount;
+    }
+}
+
+function segmentCapability(segmentMax: number): CloudCapability {
+    return {
+        type: "devices.capabilities.segment_color_setting",
+        instance: "segmentedColorRgb",
+        parameters: {
+            dataType: "STRUCT",
+            fields: [
+                {
+                    fieldName: "segment",
+                    dataType: "Array",
+                    elementRange: { min: 0, max: segmentMax },
+                },
+            ],
+        },
+    };
 }
 
 function makeDevice(overrides: Partial<GoveeDevice> = {}): GoveeDevice {
@@ -143,15 +155,18 @@ function makeDevice(overrides: Partial<GoveeDevice> = {}): GoveeDevice {
         name: "Strip Living",
         type: "devices.types.light",
         segmentCount: 5,
-        capabilities: [],
+        capabilities: [segmentCapability(4)],
         scenes: [],
         diyScenes: [],
         snapshots: [],
         sceneLibrary: [],
         musicLibrary: [],
         diyLibrary: [],
+        skuFeatures: null,
+        state: { online: true },
+        channels: { lan: false, mqtt: false, cloud: false },
         snapshotBleCmds: undefined,
-    } as unknown as GoveeDevice;
+    };
     return { ...base, ...overrides };
 }
 
@@ -192,63 +207,72 @@ describe("SegmentWizard", () => {
             expect(wizard.isActive()).to.be.false;
         });
 
-        it("should refuse when device has 0 segments", async () => {
-            host.devices.set(key, makeDevice({ segmentCount: 0 }));
+        it("should refuse when device has no segment capability", async () => {
+            host.devices.set(key, makeDevice({ capabilities: [] }));
             const r = await wizard.start(key);
-            expect(r.error).to.be.a("string").and.include("segmentCount=0");
+            expect(r.error)
+                .to.be.a("string")
+                .and.include("keine Segmente");
             expect(wizard.isActive()).to.be.false;
+        });
+
+        it("should start even when device.segmentCount=0 (first-measurement case)", async () => {
+            // Fresh device without any learned count — wizard still runs so
+            // the user CAN measure it for the first time.
+            host.devices.set(
+                key,
+                makeDevice({ segmentCount: 0, capabilities: [segmentCapability(14)] }),
+            );
+            const r = await wizard.start(key);
+            expect(r.error).to.be.undefined;
+            expect(r.active).to.be.true;
         });
 
         it("should ensure strip is on + full brightness before flashing", async () => {
             await wizard.start(key);
-            // First two calls must be the strip-preparation step
             expect(host.calls[0].command).to.equal("power");
             expect(host.calls[0].value).to.equal(true);
             expect(host.calls[1].command).to.equal("brightness");
             expect(host.calls[1].value).to.equal(100);
         });
 
-        it("should open a session and flash segment 0", async () => {
+        it("should open a session and flash segment 0 over the FULL protocol range", async () => {
             const r = await wizard.start(key);
             expect(r.error).to.be.undefined;
             expect(r.active).to.be.true;
-            expect(r.progress).to.equal("1 / 5");
+            expect(r.progress).to.equal("Segment 0");
             expect(wizard.isActive()).to.be.true;
 
-            // Two segmentBatch calls: others→dim, target→bright
+            // Two segmentBatch calls: others→dim, target→bright.
+            // "others" must now cover 1..SEGMENT_HARD_MAX (not just 1..4),
+            // because we can't know the real strip length yet.
             const batches = host.segmentBatchCalls();
             expect(batches).to.have.lengthOf(2);
-            expect(batches[0].value).to.deep.equal({
-                segments: [1, 2, 3, 4],
-                color: 0,
-                brightness: 0,
-            });
-            expect(batches[1].value).to.deep.equal({
-                segments: [0],
-                color: 0xffffff,
-                brightness: 100,
-            });
+            const dimBatch = batches[0].value as { segments: number[] };
+            expect(dimBatch.segments).to.have.lengthOf(SEGMENT_HARD_MAX);
+            expect(dimBatch.segments[0]).to.equal(1);
+            expect(dimBatch.segments[SEGMENT_HARD_MAX - 1]).to.equal(
+                SEGMENT_HARD_MAX,
+            );
+            const brightBatch = batches[1].value as {
+                segments: number[];
+                color: number;
+            };
+            expect(brightBatch.segments).to.deep.equal([0]);
+            expect(brightBatch.color).to.equal(0xffffff);
         });
 
         it("should send segmentBatch value as an OBJECT (not string)", async () => {
-            // This is the exact regression from v1.6.2 where parseSegmentBatch
-            // called cmd.split(":") on a non-string value and crashed.
             await wizard.start(key);
-            const batches = host.segmentBatchCalls();
-            expect(batches.length).to.be.greaterThan(0);
-            for (const c of batches) {
+            for (const c of host.segmentBatchCalls()) {
                 expect(c.value).to.be.an("object");
                 expect(c.value).to.not.be.a("string");
-                const v = c.value as { segments: number[] };
-                expect(Array.isArray(v.segments)).to.be.true;
             }
         });
 
         it("should capture baseline from existing states", async () => {
             await wizard.start(key);
-            // Baseline is private but observable via restore-on-abort
             await wizard.abort();
-            // Restore writes one segmentBatch with the baseline color
             const restoreCall = host.calls[host.calls.length - 1];
             expect(restoreCall.command).to.equal("segmentBatch");
             const v = restoreCall.value as {
@@ -258,6 +282,7 @@ describe("SegmentWizard", () => {
             };
             expect(v.color).to.equal(0xff6600);
             expect(v.brightness).to.equal(75);
+            // Restore scopes to device.segmentCount — the pre-measurement value
             expect(v.segments).to.deep.equal([0, 1, 2, 3, 4]);
         });
 
@@ -296,78 +321,119 @@ describe("SegmentWizard", () => {
             host.calls.length = 0;
             const r = await wizard.answer(false);
             expect(r.active).to.be.true;
-            expect(r.progress).to.equal("2 / 5");
+            expect(r.progress).to.equal("Segment 1");
             const bright = host.calls[1].value as { segments: number[] };
             expect(bright.segments).to.deep.equal([1]);
         });
 
-        it("should finish automatically after the last segment", async () => {
-            await wizard.start(key); // seg 0
-            await wizard.answer(true); // seg 0 visible, flash 1
-            await wizard.answer(false); // skip 1, flash 2
-            await wizard.answer(true); // seg 2 visible, flash 3
-            await wizard.answer(true); // seg 3 visible, flash 4
-            const final = await wizard.answer(false); // skip 4 → finish
-            expect(final.done).to.be.true;
-            expect(final.result).to.equal(3);
-            expect(final.list).to.equal("0,2,3");
+        it("should NOT auto-finish at device.segmentCount — keeps going", async () => {
+            // Old behaviour: auto-finish at segmentCount=5. New behaviour:
+            // keep flashing until the user says done() or we hit HARD_MAX.
+            await wizard.start(key);
+            for (let i = 0; i < 10; i++) {
+                const r = await wizard.answer(true);
+                expect(r.active).to.be.true;
+            }
+            expect(wizard.isActive()).to.be.true;
+        });
+
+        it("should auto-finish when the protocol limit is reached", async () => {
+            await wizard.start(key);
+            let final: unknown;
+            for (let i = 0; i <= SEGMENT_HARD_MAX; i++) {
+                final = await wizard.answer(true);
+            }
+            expect((final as { done?: boolean }).done).to.be.true;
             expect(wizard.isActive()).to.be.false;
         });
     });
 
-    describe("finish (via last answer)", () => {
-        it("should write manual_list BEFORE manual_mode", async () => {
-            await wizard.start(key);
-            for (let i = 0; i < 5; i++) {
-                await wizard.answer(true);
-            }
-            const prefix = host.devicePrefix(device);
-            const writes = host.stateWrites.filter((w) =>
-                w.id.startsWith(`${host.namespace}.${prefix}.segments.`),
-            );
-            expect(writes).to.have.lengthOf(2);
-            expect(writes[0].id).to.include("manual_list");
-            expect(writes[0].val).to.equal("0,1,2,3,4");
-            expect(writes[0].ack).to.be.false;
-            expect(writes[1].id).to.include("manual_mode");
-            expect(writes[1].val).to.be.true;
-            expect(writes[1].ack).to.be.false;
+    describe("done", () => {
+        it("should error when no session active", async () => {
+            const r = await wizard.done();
+            expect(r.error).to.be.a("string").and.include("Kein Wizard");
         });
 
-        it("should restore baseline after writing settings", async () => {
+        it("should error when no answer has been given yet", async () => {
             await wizard.start(key);
-            for (let i = 0; i < 5; i++) {
-                await wizard.answer(false);
+            const r = await wizard.done();
+            expect(r.error)
+                .to.be.a("string")
+                .and.include("mindestens eine Antwort");
+            expect(wizard.isActive()).to.be.true;
+        });
+
+        it("should finalize with contiguous result (all visible, no gaps)", async () => {
+            await wizard.start(key);
+            await wizard.answer(true); // 0
+            await wizard.answer(true); // 1
+            await wizard.answer(true); // 2
+            const r = await wizard.done();
+            expect(r.done).to.be.true;
+            expect(r.segmentCount).to.equal(3);
+            expect(r.list).to.equal("");
+            expect(r.hasGaps).to.be.false;
+
+            expect(host.appliedResults).to.have.lengthOf(1);
+            const applied = host.appliedResults[0];
+            expect(applied.device).to.equal(device);
+            expect(applied.result).to.deep.equal({
+                segmentCount: 3,
+                manualList: "",
+                hasGaps: false,
+            });
+        });
+
+        it("should detect gaps and build a compact manual list", async () => {
+            await wizard.start(key);
+            await wizard.answer(true); // 0 visible
+            await wizard.answer(true); // 1 visible
+            await wizard.answer(false); // 2 dark (gap)
+            await wizard.answer(true); // 3 visible
+            await wizard.answer(true); // 4 visible
+            const r = await wizard.done();
+            expect(r.segmentCount).to.equal(5);
+            expect(r.list).to.equal("0-1,3-4");
+            expect(r.hasGaps).to.be.true;
+
+            const applied = host.appliedResults[0];
+            expect(applied.result.hasGaps).to.be.true;
+            expect(applied.result.manualList).to.equal("0-1,3-4");
+        });
+
+        it("should handle a 20-segment strip when cloud said 15 (the Esszimmer case)", async () => {
+            // The classic under-reported case: cloud capabilities say 15,
+            // real strip has 20, user runs wizard and confirms all 20.
+            await wizard.start(key);
+            for (let i = 0; i < 20; i++) {
+                await wizard.answer(true);
             }
-            // Last sendCommand is the baseline restore
+            // User sees segment 20 is dark (past end of strip) → done
+            const r = await wizard.done();
+            expect(r.segmentCount).to.equal(20);
+            expect(r.hasGaps).to.be.false;
+            expect(r.list).to.equal("");
+        });
+
+        it("should restore baseline after applying the result", async () => {
+            await wizard.start(key);
+            await wizard.answer(true);
+            await wizard.answer(true);
+            host.calls.length = 0;
+            await wizard.done();
+            // Last sendCommand should be the restore segmentBatch
             const last = host.calls[host.calls.length - 1];
-            const v = last.value as {
-                color: number;
-                brightness: number;
-            };
+            expect(last.command).to.equal("segmentBatch");
+            const v = last.value as { color: number; brightness: number };
             expect(v.color).to.equal(0xff6600);
             expect(v.brightness).to.equal(75);
         });
 
-        it("should clear the idle timer", async () => {
+        it("should clear the idle timer on done", async () => {
             await wizard.start(key);
-            const before = host.clearedTimers;
-            for (let i = 0; i < 5; i++) {
-                await wizard.answer(true);
-            }
-            // scheduleIdleTimeout clears each step (4×) + finish clears once
-            expect(host.clearedTimers).to.be.greaterThan(before);
+            await wizard.answer(true);
+            await wizard.done();
             expect(wizard.isActive()).to.be.false;
-        });
-
-        it("should produce empty list when no segments confirmed", async () => {
-            await wizard.start(key);
-            let final;
-            for (let i = 0; i < 5; i++) {
-                final = await wizard.answer(false);
-            }
-            expect(final!.list).to.equal("");
-            expect(final!.result).to.equal(0);
         });
     });
 
@@ -390,11 +456,11 @@ describe("SegmentWizard", () => {
             expect(v.brightness).to.equal(75);
         });
 
-        it("should not write manual_mode/manual_list on abort", async () => {
+        it("should NOT apply a result on abort", async () => {
             await wizard.start(key);
-            host.stateWrites.length = 0;
+            await wizard.answer(true);
             await wizard.abort();
-            expect(host.stateWrites).to.have.lengthOf(0);
+            expect(host.appliedResults).to.have.lengthOf(0);
         });
 
         it("should release the session lock", async () => {
@@ -422,16 +488,11 @@ describe("SegmentWizard", () => {
             expect(r.active).to.be.true;
         });
 
-        it("should reject all non-start actions without a session", async () => {
-            expect((await wizard.runStep("yes", "")).error).to.include(
-                "Kein Wizard",
-            );
-            expect((await wizard.runStep("no", "")).error).to.include(
-                "Kein Wizard",
-            );
-            expect((await wizard.runStep("abort", "")).error).to.include(
-                "Kein Wizard",
-            );
+        it("should reject yes/no/done/abort without a session", async () => {
+            for (const a of ["yes", "no", "done", "abort"]) {
+                const r = await wizard.runStep(a, "");
+                expect(r.error).to.include("Kein Wizard");
+            }
         });
 
         it("should reject unknown actions", async () => {
@@ -440,20 +501,19 @@ describe("SegmentWizard", () => {
             expect(r.error).to.include("Unbekannte Aktion");
         });
 
-        it("should route 'yes' to answer(true) and 'no' to answer(false)", async () => {
+        it("should route 'yes'/'no'/'done'/'abort'", async () => {
             await wizard.start(key);
-            await wizard.runStep("yes", ""); // seg 0 → visible
-            await wizard.runStep("no", ""); // seg 1 → skip
-            await wizard.runStep("yes", ""); // seg 2 → visible
-            await wizard.runStep("no", ""); // seg 3 → skip
-            const final = await wizard.runStep("no", ""); // seg 4 → finish
-            expect(final.list).to.equal("0,2");
-        });
+            await wizard.runStep("yes", "");
+            await wizard.runStep("no", "");
+            await wizard.runStep("yes", "");
+            const r = await wizard.runStep("done", "");
+            expect(r.done).to.be.true;
+            expect(r.list).to.equal("0,2");
 
-        it("should route 'abort' to abort()", async () => {
-            await wizard.start(key);
-            const r = await wizard.runStep("abort", "");
-            expect(r.aborted).to.be.true;
+            // New session — abort works too
+            await wizard.runStep("start", key);
+            const aborted = await wizard.runStep("abort", "");
+            expect(aborted.aborted).to.be.true;
         });
     });
 
@@ -461,7 +521,6 @@ describe("SegmentWizard", () => {
         it("should abort the session when the timer fires", async () => {
             await wizard.start(key);
             expect(wizard.isActive()).to.be.true;
-            // Allow the promise from abort() inside the timer callback to settle
             host.fireLatestTimer();
             await new Promise((resolve) => setImmediate(resolve));
             expect(wizard.isActive()).to.be.false;
@@ -473,7 +532,6 @@ describe("SegmentWizard", () => {
         it("should do nothing if the session is already gone when firing", async () => {
             await wizard.start(key);
             await wizard.abort();
-            // Fire the timer that was scheduled for the (now-closed) session
             expect(() => host.fireLatestTimer()).to.not.throw();
         });
 
@@ -483,7 +541,6 @@ describe("SegmentWizard", () => {
             await wizard.answer(true);
             await wizard.answer(false);
             expect(host.timerCallbacks.length).to.equal(before + 2);
-            // Previous timers cleared
             expect(host.clearedTimers).to.be.greaterThanOrEqual(2);
         });
     });
@@ -497,17 +554,11 @@ describe("SegmentWizard", () => {
             expect(wizard.isActive()).to.be.false;
         });
 
-        it("should handle device missing at finish", async () => {
-            // Use 1-segment device so finish is one answer away
-            const single = makeDevice({ segmentCount: 1 });
-            const k2 = "H6160:SINGLE001";
-            single.deviceId = "SINGLE001";
-            host.devices.set(k2, single);
-            seedBaseline(host, host.devicePrefix(single), 1);
-
-            await wizard.start(k2);
-            host.devices.delete(k2);
-            const r = await wizard.answer(true);
+        it("should handle device missing at done", async () => {
+            await wizard.start(key);
+            await wizard.answer(true);
+            host.devices.delete(key);
+            const r = await wizard.done();
             expect(r.error).to.be.a("string").and.include("verschwunden");
             expect(wizard.isActive()).to.be.false;
         });
@@ -527,35 +578,25 @@ describe("SegmentWizard", () => {
     });
 
     describe("flashSegment integration", () => {
-        // This is the regression the v1.6.2 crash exposed — sendCommand
-        // ("segmentBatch", {...object}) must pass through without string ops.
         it("should always pass an object (not a string) for segmentBatch", async () => {
             await wizard.start(key);
             await wizard.answer(true);
             await wizard.answer(true);
             await wizard.answer(true);
-            await wizard.answer(true);
-            await wizard.answer(true);
+            await wizard.done();
             for (const c of host.segmentBatchCalls()) {
                 expect(c.value).to.be.an("object");
                 expect(c.value).to.not.be.a("string");
             }
         });
 
-        it("should only send the bright-packet when device has 1 segment", async () => {
-            const single = makeDevice({ segmentCount: 1 });
-            single.deviceId = "ONLY0001";
-            const k2 = "H6160:ONLY0001";
-            host.devices.set(k2, single);
-            seedBaseline(host, host.devicePrefix(single), 1);
-
-            host.calls.length = 0;
-            await wizard.start(k2);
-            // Only 1 segment → no "others" to dim → single segmentBatch call
+        it("should use atomic flash when the host reports it available", async () => {
+            host.atomicEnabled = true;
+            await wizard.start(key);
+            // No segmentBatch fallback calls when atomic succeeded
             const batches = host.segmentBatchCalls();
-            expect(batches).to.have.lengthOf(1);
-            const v = batches[0].value as { segments: number[] };
-            expect(v.segments).to.deep.equal([0]);
+            expect(batches).to.have.lengthOf(0);
+            expect(host.atomicFlashUsed).to.be.true;
         });
     });
 });

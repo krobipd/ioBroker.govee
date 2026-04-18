@@ -21,6 +21,7 @@ __export(state_manager_exports, {
   StateManager: () => StateManager
 });
 module.exports = __toCommonJS(state_manager_exports);
+var import_device_manager = require("./device-manager.js");
 var import_types = require("./types.js");
 function sanitize(str) {
   return str.replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase();
@@ -268,29 +269,15 @@ class StateManager {
    * @param device Govee device
    */
   async createSegmentStates(device) {
-    var _a;
     const prefix = this.devicePrefix(device);
     await this.adapter.extendObjectAsync(`${prefix}.segments`, {
       type: "channel",
       common: { name: "LED Segments" },
       native: {}
     });
-    let capabilityCount = 0;
-    const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
-    for (const c of caps) {
-      if (c && typeof c.type === "string" && c.type.includes("segment_color_setting")) {
-        const count = this.getSegmentCount(c);
-        if (count > capabilityCount) {
-          capabilityCount = count;
-        }
-      }
-    }
+    const resolved = (0, import_device_manager.resolveSegmentCount)(device);
     const manualMax = Array.isArray(device.manualSegments) && device.manualSegments.length > 0 ? Math.max(...device.manualSegments) + 1 : 0;
-    const segmentCount = Math.max(
-      capabilityCount,
-      (_a = device.segmentCount) != null ? _a : 0,
-      manualMax
-    );
+    const segmentCount = Math.max(resolved, manualMax);
     device.segmentCount = segmentCount;
     const validIndices = device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0 ? device.manualSegments.slice().sort((a, b) => a - b) : Array.from({ length: segmentCount }, (_, i) => i);
     const reportedCount = validIndices.length;
@@ -330,6 +317,16 @@ class StateManager {
         desc: 'Comma-separated indices + ranges, e.g. "0-9" or "0-8,10-14" (only used when manual_mode=true)'
       },
       native: {}
+    });
+    const manualModeVal = device.manualMode === true;
+    const manualListVal = device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0 ? device.manualSegments.join(",") : "";
+    await this.adapter.setStateAsync(`${prefix}.segments.manual_mode`, {
+      val: manualModeVal,
+      ack: true
+    });
+    await this.adapter.setStateAsync(`${prefix}.segments.manual_list`, {
+      val: manualListVal,
+      ack: true
     });
     for (const i of validIndices) {
       await this.adapter.extendObjectAsync(`${prefix}.segments.${i}`, {
@@ -612,24 +609,6 @@ class StateManager {
    */
   deviceKey(device) {
     return `${device.sku}_${(0, import_types.normalizeDeviceId)(device.deviceId)}`;
-  }
-  /**
-   * Determine segment count from capability
-   *
-   * @param cap Segment color capability definition
-   */
-  getSegmentCount(cap) {
-    var _a, _b;
-    if (!((_a = cap == null ? void 0 : cap.parameters) == null ? void 0 : _a.fields)) {
-      return 0;
-    }
-    const segField = cap.parameters.fields.find(
-      (f) => f.fieldName === "segment"
-    );
-    if (((_b = segField == null ? void 0 : segField.elementRange) == null ? void 0 : _b.max) !== void 0) {
-      return segField.elementRange.max + 1;
-    }
-    return 0;
   }
   /**
    * Create a state if it doesn't exist

@@ -1,5 +1,6 @@
 import type * as utils from "@iobroker/adapter-core";
 import type { StateDefinition } from "./capability-mapper.js";
+import { resolveSegmentCount } from "./device-manager.js";
 import {
   normalizeDeviceId,
   type DeviceState,
@@ -317,33 +318,16 @@ export class StateManager {
       native: {},
     });
 
-    // Determine segment count: take the max of capability-reported, any
-    // already-discovered count (Cloud under-reports, MQTT reveals more),
-    // and the highest index in a manual override list. Capabilities are
-    // the Cloud's claim — we trust other sources if they report more.
-    let capabilityCount = 0;
-    const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
-    for (const c of caps) {
-      if (
-        c &&
-        typeof c.type === "string" &&
-        c.type.includes("segment_color_setting")
-      ) {
-        const count = this.getSegmentCount(c);
-        if (count > capabilityCount) {
-          capabilityCount = count;
-        }
-      }
-    }
+    // Resolve the authoritative count: cache/MQTT-learned wins over Cloud
+    // capabilities. A manual list can only grow the count (never shrink it)
+    // so users editing manual_list can reveal hidden indices without losing
+    // the already-learned total.
+    const resolved = resolveSegmentCount(device);
     const manualMax =
       Array.isArray(device.manualSegments) && device.manualSegments.length > 0
         ? Math.max(...device.manualSegments) + 1
         : 0;
-    const segmentCount = Math.max(
-      capabilityCount,
-      device.segmentCount ?? 0,
-      manualMax,
-    );
+    const segmentCount = Math.max(resolved, manualMax);
     device.segmentCount = segmentCount;
 
     // Effective segment list — honor manual override if active (cut-strip support)
@@ -393,6 +377,25 @@ export class StateManager {
         desc: 'Comma-separated indices + ranges, e.g. "0-9" or "0-8,10-14" (only used when manual_mode=true)',
       } as ioBroker.StateCommon,
       native: {},
+    });
+
+    // Sync manual_mode / manual_list states back from the runtime device
+    // (restored from cache on startup, or updated by the wizard). Using
+    // ack=true keeps this out of the user-change handler path.
+    const manualModeVal = device.manualMode === true;
+    const manualListVal =
+      device.manualMode &&
+      Array.isArray(device.manualSegments) &&
+      device.manualSegments.length > 0
+        ? device.manualSegments.join(",")
+        : "";
+    await this.adapter.setStateAsync(`${prefix}.segments.manual_mode`, {
+      val: manualModeVal,
+      ack: true,
+    });
+    await this.adapter.setStateAsync(`${prefix}.segments.manual_list`, {
+      val: manualListVal,
+      ack: true,
     });
 
     for (const i of validIndices) {
@@ -720,36 +723,6 @@ export class StateManager {
     // Use normalizeDeviceId which is defensive against non-string input —
     // cached data on disk could theoretically be tampered with.
     return `${device.sku}_${normalizeDeviceId(device.deviceId)}`;
-  }
-
-  /**
-   * Determine segment count from capability
-   *
-   * @param cap Segment color capability definition
-   */
-  private getSegmentCount(
-    cap:
-      | {
-          parameters?: {
-            fields?: Array<{
-              fieldName?: string;
-              elementRange?: { min?: number; max?: number };
-            }>;
-          };
-        }
-      | undefined,
-  ): number {
-    if (!cap?.parameters?.fields) {
-      return 0;
-    }
-    // Segment count from "segment" field's elementRange (0-based max → count = max + 1)
-    const segField = cap.parameters.fields.find(
-      (f) => f.fieldName === "segment",
-    );
-    if (segField?.elementRange?.max !== undefined) {
-      return segField.elementRange.max + 1;
-    }
-    return 0;
   }
 
   /**

@@ -7,7 +7,7 @@
 
 **ioBroker Govee Smart Adapter** — Steuert Govee Smart Lights (LED-Strips, Lampen, Panels). LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig. Nur Lichter, keine Haushaltsgeräte.
 
-- **Version:** 1.6.3 (April 2026)
+- **Version:** 1.7.0 (April 2026)
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** https://www.npmjs.com/package/iobroker.govee-smart
 - **Runtime-Deps:** `@iobroker/adapter-core`, `@iobroker/types`, `mqtt`, `node-forge`
@@ -57,12 +57,12 @@ Gleicher API Key → gleiches 10.000/Tag Budget. **Dynamische Erkennung** via `s
 
 ```
 src/main.ts                   → Lifecycle, StateChange, Cloud State Loading, Local Snapshots, Dropdown-Reset
-src/lib/segment-wizard.ts     → SegmentWizard + WizardHost-Interface (v1.6.3 extracted for testability)
+src/lib/segment-wizard.ts     → SegmentWizard + WizardHost — misst echte Strip-Länge, erkennt Lücken (v1.7.0 done-Flow)
 src/lib/cloud-retry.ts        → CloudRetryLoop + CloudRetryHost-Interface (v1.6.3 extracted for testability)
-src/lib/device-manager.ts     → Device-Map, Cloud-Loading, LAN/MQTT Status+Segment Handling (1053 Zeilen)
+src/lib/device-manager.ts     → Device-Map, Cloud-Loading, MQTT Status+Segment Handling, resolveSegmentCount (v1.7.0)
 src/lib/capability-mapper.ts  → Capability → State Definition + buildDeviceStateDefs + Quirks + Scene Speed (907 Zeilen)
 src/lib/command-router.ts     → Command Routing LAN → Cloud + Segment ptReal + Snapshot ptReal (677 Zeilen)
-src/lib/state-manager.ts      → State CRUD + Cleanup + Channel Routing + Groups Online (678 Zeilen)
+src/lib/state-manager.ts      → State CRUD + Cleanup + Channel Routing + Groups Online + manual-state sync (v1.7.0)
 src/lib/govee-lan-client.ts   → LAN UDP (Discovery + Control + Status + ptReal BLE + Segments + Speed) (711 Zeilen)
 src/lib/govee-mqtt-client.ts  → AWS IoT MQTT (Auth + Status-Push, kein Command-Senden) (391 Zeilen)
 src/lib/types.ts              → Interfaces + Shared Utilities (rgbToHex, hexToRgb, classifyError) (435 Zeilen)
@@ -214,8 +214,9 @@ Single Page, drei Sektionen:
 39. **Snapshot ptReal** — `fetchSnapshots()` holt BLE-Pakete von `/bff-app/v1/devices/snapshots`, gespeichert als `snapshotBleCmds` auf Device + SKU-Cache; Aktivierung lokal via `sendPtReal()`, Cloud-Fallback wenn keine BLE-Daten
 40. **Scene Variants** — `fetchSceneLibrary()` iteriert alle `lightEffects` pro Szene (nicht nur [0]); Multi-Varianten werden als "Name-Suffix" gespeichert (z.B. "Aurora-A", "Aurora-B"); bestehende Name-Matching-Logik mit Suffix-Stripping funktioniert weiterhin
 41. **Manual Segments (v1.6.0)** — `segments.manual_mode` + `segments.manual_list` pro Gerät für gekürzte LED-Strips. `parseSegmentList()` in types.ts akzeptiert `"0-9"`, `"0-8,10-14"`, Kommas, whitespace; validiert primär gegen device.segmentCount-1, Backstop 0-99. Toggle-Change triggert `handleManualSegmentsChange` in main.ts → `createSegmentStates` baut Segment-Tree neu, löscht überflüssige States. `parseSegmentBatch "all"` und `parseMqttSegmentData`-Filter honor `device.manualSegments` wenn manualMode=true
-42. **Segment Detection Wizard (v1.6.0)** — jsonConfig `tabs`-Layout mit Tab "Segment-Erkennung": selectSendTo-Dropdown + sendTo-Buttons. `onMessage`-Handler routet `getSegmentDevices` / `segmentWizard` (start/yes/no/abort). In-Memory `SegmentWizardSession`, Baseline-Capture, flashSegment(idx) bright-white, 5-Min-Idle-Timeout, globaler Session-Lock. Am Ende: schreibt `manual_list` + `manual_mode=true` → triggert Rekonfig
+42. **Segment Detection Wizard (v1.7.0 redesign)** — jsonConfig `tabs`-Layout mit Tab "Segment-Erkennung". Der Wizard MISST die echte Strip-Länge unabhängig von Cloud (läuft bis zum Protokoll-Limit 55 oder bis User "Fertig – Strip zu Ende" klickt). Drei Action-Buttons: `yes`/`no`/`done`. `onMessage`-Handler routet `getSegmentDevices` / `segmentWizard` (start/yes/no/done/abort). In-Memory `SegmentWizardSession`, Baseline-Capture, flashSegment(idx) bright-white, 5-Min-Idle-Timeout, globaler Session-Lock. Ergebnis wird via `applyWizardResult`-Host-Callback angewendet: setzt `device.segmentCount`, setzt `manualMode` nur bei erkannten Lücken, persistiert Cache
 43. **Cloud-Retry-Loop (v1.6.0)** — `CloudLoadResult` union type (`ok`/`transient`/`rate-limited`/`auth-failed`). Bei Fail: `handleCloudFailure` entscheidet — Auth-Fail stoppt permanent, Rate-Limit wartet Retry-After, transient 5min. Retry ruft `retryCloudOnce` auf, "Govee Cloud connection restored"-Log bei Erfolg. Cloud-Init via Promise.race 60s-Timeout
+44. **Segment-Count Single-Source-of-Truth (v1.7.0)** — `resolveSegmentCount(device)` ist DIE eine Funktion für die Segmentzahl. Priorität: `device.segmentCount` (wenn gesetzt — aus Cache oder MQTT gelernt) → Min über positive `segment_color_setting`-Caps → 0. Warum Min: Govee meldet Brightness + ColorRgb separat, diese widersprechen sich (H70D1: 10 vs 15 echter Wert 10). MQTT AA A5 darf nach oben korrigieren; jede Änderung wird sofort im SKU-Cache persistiert (überlebt Restart). Cache persistiert auch `manualMode`+`manualSegments` — Cut-Strip-Einstellungen gehen nicht mehr verloren
 
 ## Logging-Philosophie (seit 0.9.4)
 
@@ -226,7 +227,7 @@ Single Page, drei Sektionen:
 - **info:** Nur Start, Verbindungen, Ready-Summary, Snapshot-Ops
 - **MQTT:** Erstverbindung = info, Reconnect-Versuche = debug, Restored = info
 
-## Tests (511)
+## Tests (530)
 
 ```
 test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping + Quirks + Groups + Drift (80 Tests)
@@ -299,13 +300,13 @@ test/testPackageFiles.ts     → @iobroker/testing (57 Tests)
 
 | Version | Highlights |
 |---------|------------|
+| 1.7.0 | Segment-Count Single-Source-of-Truth (resolveSegmentCount + Cache-persist → 20m-Strips korrekt erkannt, Cloud-Widersprüche aufgelöst). Wizard komplett neu gedacht: misst die echte Länge, 3 Buttons (Ja/Nein/Fertig), erkennt Lücken automatisch. manualMode+List überleben Neustarts. 530 Tests (war 511) |
+| 1.6.7 | Fix Race-Condition beim MQTT-Discovery-Push — Segment-State-Sync übersprungen wenn Count wächst, damit Objects-Tree erst fertig gebaut wird |
+| 1.6.6 | MQTT-Bump bei Under-Reporting: wenn AA A5 mehr Segmente zeigt als Cloud meldet, wird segmentCount hochgezählt (reaktiv, war ohne Persist — in 1.7.0 richtig gelöst) |
+| 1.6.5 | Wizard-Flash atomic via ptReal — alle 3 BLE-Pakete in einem UDP. Vor Flash: Power ON + Brightness 100. info.wizardStatus als Live-State |
+| 1.6.4 | Wizard UX: nur online-Geräte im Dropdown, persistente Status-Box, multi-line Toasts |
 | 1.6.3 | Fix Wizard-Start-Crash (cmd.split in parseSegmentBatch), alle async Event-Handler mit .catch gegen SIGKILL-6, komplette API-Boundary-Härtung über alle Clients (Array.isArray+typeof), rgbToHex NaN/clamp + hexToRgb typeof-guard, SegmentWizard + CloudRetryLoop in eigene testbare Module, 511 Tests (war 427) |
 | 1.6.2 | Fix jsonConfig-Schema-Warnungen für Wizard (button-Prop entfernt, variant/color korrigiert, xs=12) |
-| 1.6.1 | Fix Wizard in Admin-UI — `sendto` → `sendTo` camelCase, selectSendTo response bare array statt `{list:[]}` |
-| 1.6.0 | Manual Segments für cut strips (`segments.manual_mode`/`manual_list`) + Admin-UI-Wizard (Segment-Flash + Ja/Nein), 60s Startup-Grace für MQTT+Cloud, Cloud-Retry-Loop mit Rate-Limit-Handling, SKU-Cache-Pruning (14-Tage-Aging + `scenesChecked`-Flag + Hard-Filter stale Cloud-Einträge), info.mqttConnected-Fix, 427 Tests |
-| 1.5.2 | API-Drift-Härtung: alle Cloud-Boundaries mit typeof/Array.isArray + String-Coercion, 45 neue Regression-Tests (399 total), `parameters` als optional |
-| 1.5.1 | Fix Device-Type-Matching (Szenen nur via Fallback geladen), dynamische Rate-Limit-Aufteilung, Non-Light-Filter, 354 Tests |
-| 1.5.0 | Lokale Segment-Steuerung (ptReal 33 05 15), Scene Variants (A/B/C/D), Snapshot ptReal, Scene Speed, Local Snapshot Segments, 352 Tests |
 
 ## Befehle
 

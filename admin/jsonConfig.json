@@ -135,15 +135,6 @@
                     "color": "primary",
                     "xs": 12, "sm": 6, "md": 3, "lg": 2, "xl": 2
                 },
-                "_wizAbort": {
-                    "type": "sendTo",
-                    "command": "segmentWizard",
-                    "jsonData": "{ \"action\": \"abort\" }",
-                    "label": "wizardBtnAbort",
-                    "variant": "outlined",
-                    "color": "secondary",
-                    "xs": 12, "sm": 6, "md": 3, "lg": 2, "xl": 2
-                },
                 "_wizStatus": {
                     "newLine": true,
                     "type": "state",
@@ -163,7 +154,7 @@
                     "label": "wizardBtnYes",
                     "variant": "contained",
                     "color": "primary",
-                    "xs": 12, "sm": 6, "md": 4, "lg": 3, "xl": 3
+                    "xs": 12, "sm": 4, "md": 3, "lg": 2, "xl": 2
                 },
                 "_wizNo": {
                     "type": "sendTo",
@@ -172,7 +163,27 @@
                     "label": "wizardBtnNo",
                     "variant": "outlined",
                     "color": "secondary",
-                    "xs": 12, "sm": 6, "md": 4, "lg": 3, "xl": 3
+                    "xs": 12, "sm": 4, "md": 3, "lg": 2, "xl": 2
+                },
+                "_wizDone": {
+                    "type": "sendTo",
+                    "command": "segmentWizard",
+                    "jsonData": "{ \"action\": \"done\" }",
+                    "label": "wizardBtnDone",
+                    "variant": "contained",
+                    "color": "primary",
+                    "xs": 12, "sm": 4, "md": 3, "lg": 2, "xl": 2
+                },
+                "_wizAbort": {
+                    "newLine": true,
+                    "type": "sendTo",
+                    "command": "segmentWizard",
+                    "jsonData": "{ \"action\": \"abort\" }",
+                    "label": "wizardBtnAbort",
+                    "variant": "text",
+                    "color": "secondary",
+                    "xs": 12, "sm": 6, "md": 3, "lg": 2, "xl": 2,
+                    "style": { "marginTop": 16 }
                 },
                 "_wizHelp": {
                     "newLine": true,
