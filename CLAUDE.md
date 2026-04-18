@@ -7,7 +7,7 @@
 
 **ioBroker Govee Smart Adapter** — Steuert Govee Smart Lights (LED-Strips, Lampen, Panels). LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig. Nur Lichter, keine Haushaltsgeräte.
 
-- **Version:** 1.5.2 (April 2026)
+- **Version:** 1.6.3 (April 2026)
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** https://www.npmjs.com/package/iobroker.govee-smart
 - **Runtime-Deps:** `@iobroker/adapter-core`, `@iobroker/types`, `mqtt`, `node-forge`
@@ -56,7 +56,9 @@ Gleicher API Key → gleiches 10.000/Tag Budget. **Dynamische Erkennung** via `s
 ## Architektur
 
 ```
-src/main.ts                   → Lifecycle, StateChange, Cloud State Loading, Local Snapshots, Dropdown-Reset (1225 Zeilen)
+src/main.ts                   → Lifecycle, StateChange, Cloud State Loading, Local Snapshots, Dropdown-Reset
+src/lib/segment-wizard.ts     → SegmentWizard + WizardHost-Interface (v1.6.3 extracted for testability)
+src/lib/cloud-retry.ts        → CloudRetryLoop + CloudRetryHost-Interface (v1.6.3 extracted for testability)
 src/lib/device-manager.ts     → Device-Map, Cloud-Loading, LAN/MQTT Status+Segment Handling (1053 Zeilen)
 src/lib/capability-mapper.ts  → Capability → State Definition + buildDeviceStateDefs + Quirks + Scene Speed (907 Zeilen)
 src/lib/command-router.ts     → Command Routing LAN → Cloud + Segment ptReal + Snapshot ptReal (677 Zeilen)
@@ -224,7 +226,7 @@ Single Page, drei Sektionen:
 - **info:** Nur Start, Verbindungen, Ready-Summary, Snapshot-Ops
 - **MQTT:** Erstverbindung = info, Reconnect-Versuche = debug, Restored = info
 
-## Tests (427)
+## Tests (511)
 
 ```
 test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping + Quirks + Groups + Drift (80 Tests)
@@ -297,12 +299,13 @@ test/testPackageFiles.ts     → @iobroker/testing (57 Tests)
 
 | Version | Highlights |
 |---------|------------|
+| 1.6.3 | Fix Wizard-Start-Crash (cmd.split in parseSegmentBatch), alle async Event-Handler mit .catch gegen SIGKILL-6, komplette API-Boundary-Härtung über alle Clients (Array.isArray+typeof), rgbToHex NaN/clamp + hexToRgb typeof-guard, SegmentWizard + CloudRetryLoop in eigene testbare Module, 511 Tests (war 427) |
+| 1.6.2 | Fix jsonConfig-Schema-Warnungen für Wizard (button-Prop entfernt, variant/color korrigiert, xs=12) |
+| 1.6.1 | Fix Wizard in Admin-UI — `sendto` → `sendTo` camelCase, selectSendTo response bare array statt `{list:[]}` |
 | 1.6.0 | Manual Segments für cut strips (`segments.manual_mode`/`manual_list`) + Admin-UI-Wizard (Segment-Flash + Ja/Nein), 60s Startup-Grace für MQTT+Cloud, Cloud-Retry-Loop mit Rate-Limit-Handling, SKU-Cache-Pruning (14-Tage-Aging + `scenesChecked`-Flag + Hard-Filter stale Cloud-Einträge), info.mqttConnected-Fix, 427 Tests |
 | 1.5.2 | API-Drift-Härtung: alle Cloud-Boundaries mit typeof/Array.isArray + String-Coercion, 45 neue Regression-Tests (399 total), `parameters` als optional |
 | 1.5.1 | Fix Device-Type-Matching (Szenen nur via Fallback geladen), dynamische Rate-Limit-Aufteilung, Non-Light-Filter, 354 Tests |
 | 1.5.0 | Lokale Segment-Steuerung (ptReal 33 05 15), Scene Variants (A/B/C/D), Snapshot ptReal, Scene Speed, Local Snapshot Segments, 352 Tests |
-| 1.4.1 | Fix fetchGroupMembers API-Feldnamen (gId/name statt groupId/groupName), Bearer-Token Pre-Check |
-| 1.4.0 | Group Fan-Out Redesign (LAN/ptReal statt Cloud), info.members, membersUnreachable, 327 Tests |
 
 ## Befehle
 
