@@ -14,5 +14,6 @@
     "networkInterfaceTooltip": "选择用于 LAN 设备发现的网络接口。留空以使用所有接口（推荐用于大多数设置）。",
     "passwordLabel": "密码",
     "supportHeader": "支持",
-    "docLinkText": "完整文档 → [Wiki (English)](https://github.com/krobipd/ioBroker.govee-smart/wiki/Home)"
+    "docLinkLabelDe": "Wiki (Deutsch)",
+    "docLinkLabelEn": "Wiki (English)"
 }

@@ -97,6 +97,9 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ## Changelog
 
+### 1.7.5 (2026-04-19)
+- **Fix the Wiki link at the top of the adapter settings.** The Markdown in the previous `staticText` wasn't rendered as a clickable link. Replaced with two `staticLink` buttons side by side: **Wiki (Deutsch)** pointing to the Startseite and **Wiki (English)** pointing to the Home page. Consistent with the Ko-Fi/PayPal button pattern used in the other adapters in the workspace.
+
 ### 1.7.4 (2026-04-19)
 - **Admin UI: language-aware Wiki link at the top of the main configuration tab.** On a German Admin instance it points to the Startseite, every other language to the English Home. All 11 translation files carry a localised label. No runtime change — this is purely the Admin config page.
 
@@ -119,12 +122,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ### 1.6.7 (2026-04-19)
 - Fix race when MQTT reveals more segments than Cloud — the discovery push skips the segment-state sync so the new datapoints get created first (no more "State has no existing object" warnings). The next AA A5 push seconds later populates the fully-built tree.
-
-### 1.6.6 (2026-04-19)
-- Fix under-reporting of segment count — when Govee Cloud advertises fewer segments than the strip physically has, MQTT `AA A5` packets reveal the real count, and the adapter now bumps `segmentCount` and rebuilds the state tree so datapoints appear for ALL segments (fixes 20 m strips where Cloud says 15 but physical is 20)
-- `parseMqttSegmentData` no longer caps output at Cloud's segmentCount; trailing all-zero padding slots are stripped so packet-padding is not mistaken for real segments
-- Wizard's flash dims segments 0-55 (Govee bitmask maximum) rather than only up to Cloud segmentCount, so under-reported strips cannot leave any residual lit segments during the wizard
-- `manual_list` validation accepts indices up to 55 instead of the Cloud-reported count, so users can declare more physical segments than the Cloud knows about
 
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

@@ -14,5 +14,6 @@
     "networkInterfaceTooltip": "Выберите сетевой интерфейс для обнаружения устройств в локальной сети. Оставьте пустым, чтобы использовать все интерфейсы (рекомендуется для большинства настроек).",
     "passwordLabel": "Пароль",
     "supportHeader": "Поддерживать",
-    "docLinkText": "Полная документация → [Wiki (English)](https://github.com/krobipd/ioBroker.govee-smart/wiki/Home)"
+    "docLinkLabelDe": "Wiki (Deutsch)",
+    "docLinkLabelEn": "Wiki (English)"
 }

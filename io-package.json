@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "govee-smart",
-        "version": "1.7.4",
+        "version": "1.7.5",
         "news": {
+            "1.7.5": {
+                "en": "Fix the Wiki link at the top of the adapter settings — the Markdown in the previous staticText was not rendered as a clickable link. Replaced with two staticLink buttons side by side: \"Wiki (Deutsch)\" pointing to the Startseite and \"Wiki (English)\" pointing to the Home page. Consistent with the Ko-Fi/PayPal button pattern used in the other adapters.",
+                "de": "Wiki-Link oben in den Adapter-Einstellungen reparieren — das Markdown im vorherigen staticText wurde nicht als klickbarer Link gerendert. Jetzt zwei nebeneinander liegende staticLink-Buttons: \"Wiki (Deutsch)\" zeigt auf die Startseite und \"Wiki (English)\" auf die Home-Seite. Konsistent mit dem Ko-Fi/PayPal-Button-Muster der anderen Adapter.",
+                "ru": "Ссылка на вики вверху настроек адаптера исправлена — staticText с Markdown не рендерился как кликабельная ссылка. Теперь две кнопки staticLink рядом: \"Wiki (Deutsch)\" и \"Wiki (English)\".",
+                "pt": "Correção do link do Wiki no topo das configurações — o Markdown em staticText não era renderizado como link clicável. Agora dois botões staticLink lado a lado: \"Wiki (Deutsch)\" e \"Wiki (English)\".",
+                "nl": "Wiki-link bovenaan de adapterinstellingen gerepareerd — Markdown in staticText werd niet als klikbare link weergegeven. Nu twee staticLink-knoppen naast elkaar: \"Wiki (Deutsch)\" en \"Wiki (English)\".",
+                "fr": "Correction du lien Wiki en haut des paramètres de l'adaptateur — le Markdown dans staticText n'était pas rendu comme un lien cliquable. Maintenant deux boutons staticLink côte à côte : \"Wiki (Deutsch)\" et \"Wiki (English)\".",
+                "it": "Corretto il link al Wiki in cima alle impostazioni dell'adattatore — il Markdown in staticText non veniva reso come link cliccabile. Ora due pulsanti staticLink affiancati: \"Wiki (Deutsch)\" e \"Wiki (English)\".",
+                "es": "Corregido el enlace al Wiki en la parte superior de la configuración del adaptador — el Markdown en staticText no se renderizaba como enlace cliqueable. Ahora dos botones staticLink uno al lado del otro: \"Wiki (Deutsch)\" y \"Wiki (English)\".",
+                "pl": "Naprawiono link do Wiki u góry ustawień adaptera — Markdown w staticText nie był renderowany jako klikalny link. Teraz dwa przyciski staticLink obok siebie: \"Wiki (Deutsch)\" i \"Wiki (English)\".",
+                "uk": "Виправлено посилання на Wiki вгорі налаштувань адаптера — Markdown у staticText не рендерився як клікабельне посилання. Тепер дві кнопки staticLink поруч: \"Wiki (Deutsch)\" та \"Wiki (English)\".",
+                "zh-cn": "修复适配器设置顶部的 Wiki 链接 — staticText 中的 Markdown 未渲染为可点击链接。现在使用两个并排的 staticLink 按钮: \"Wiki (Deutsch)\" 和 \"Wiki (English)\"。"
+            },
             "1.7.4": {
                 "en": "Admin UI: language-aware Wiki link at the top of the main configuration tab. German Admin points to the Startseite, all other languages to the English Home. No runtime change.",
                 "de": "Admin-UI: sprachabhängiger Wiki-Link oben im Hauptkonfigurations-Tab. Deutsches Admin zeigt auf die Startseite, alle anderen Sprachen auf die englische Home. Keine Laufzeit-Änderung.",
@@ -80,19 +93,6 @@
                 "pl": "Naprawiono wyścig przy wykrywaniu większej liczby segmentów przez MQTT",
                 "uk": "Виправлено race condition під час виявлення сегментів через MQTT",
                 "zh-cn": "修复通过 MQTT 发现更多分段时的竞态条件"
-            },
-            "1.6.6": {
-                "en": "Fix under-reporting of segment count from Cloud — when MQTT AA A5 packets reveal more physical segments than Cloud advertised, bump segmentCount and rebuild state tree so datapoints appear for ALL segments\nparseMqttSegmentData no longer caps at Cloud segmentCount, returns every real segment it sees; trailing all-zero padding slots are still stripped\nflashSingleSegment dims segments 0-55 (Govee bitmask maximum) instead of capping at segmentCount, so under-reported strips cannot leave extra segments lit during wizard runs\nmanual_list validation accepts indices up to 55 instead of capping at Cloud segmentCount",
-                "de": "Fix Under-Reporting der Segmentzahl von der Cloud — wenn MQTT AA A5 mehr echte Segmente zeigt als Cloud meldet, wird segmentCount hochgezählt und der State-Tree neu gebaut, Datenpunkte erscheinen für ALLE Segmente\nparseMqttSegmentData cappt nicht mehr bei Cloud segmentCount, gibt jedes echte Segment zurück; trailing all-zero Padding-Slots werden trotzdem entfernt\nflashSingleSegment dimmt Segmente 0-55 (Govee-Bitmask-Max) statt bei segmentCount zu cappen, damit unter-gemeldete Strips keine hellen Restsegmente mehr zurücklassen\nmanual_list-Validierung akzeptiert Indizes bis 55 statt bei Cloud segmentCount zu cappen",
-                "ru": "Исправлено занижение числа сегментов облаком — MQTT AA A5 показывает реальное число, сегменты добавляются в дерево состояний автоматически",
-                "pt": "Corrigido sub-relato de contagem de segmentos pela Cloud — MQTT AA A5 mostra contagem real, árvore de estado é reconstruída automaticamente",
-                "nl": "Onderrapportage van segmentaantal door Cloud opgelost — MQTT AA A5 toont echt aantal, state-tree wordt automatisch herbouwd",
-                "fr": "Sous-signalement du nombre de segments par le Cloud corrigé — MQTT AA A5 indique le vrai nombre, arborescence reconstruite automatiquement",
-                "it": "Risolto sotto-reporting del conteggio segmenti dalla Cloud — MQTT AA A5 mostra il numero reale, state tree ricostruito automaticamente",
-                "es": "Corregido sub-reporte del recuento de segmentos por la Cloud — MQTT AA A5 muestra el número real, árbol de estado reconstruido automáticamente",
-                "pl": "Naprawiono zaniżanie liczby segmentów przez Cloud — MQTT AA A5 pokazuje rzeczywistą liczbę, drzewo stanu odbudowywane automatycznie",
-                "uk": "Виправлено заниження кількості сегментів Cloud — MQTT AA A5 показує реальну кількість, дерево станів перебудовується автоматично",
-                "zh-cn": "修复 Cloud 报告分段数量偏低 — MQTT AA A5 包显示真实数量, 状态树自动重建"
             }
         },
         "titleLang": {

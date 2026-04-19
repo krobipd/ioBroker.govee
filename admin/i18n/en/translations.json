@@ -26,5 +26,6 @@
     "wizardBtnDone": "■ Done – end of strip",
     "wizardBtnAbort": "Abort",
     "wizardHelp": "How it works: the current segment flashes WHITE, all others stay dark. Click 'Yes, visible' or 'No, dark'. When you've reached the physical end of the strip, click 'Done – end of strip'. The wizard determines the real segment count and, if gaps were found, saves a manual_list automatically. Session auto-aborts after 5 minutes of inactivity.",
-    "docLinkText": "Full documentation → [Wiki (English)](https://github.com/krobipd/ioBroker.govee-smart/wiki/Home)"
+    "docLinkLabelDe": "Wiki (Deutsch)",
+    "docLinkLabelEn": "Wiki (English)"
 }
