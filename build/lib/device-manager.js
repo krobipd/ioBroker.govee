@@ -137,10 +137,14 @@ class DeviceManager {
   onDeviceUpdate = null;
   onDeviceListChanged = null;
   lastErrorCategory = null;
-  /** @param log ioBroker logger */
-  constructor(log) {
+  /**
+   * @param log    ioBroker logger
+   * @param timers Adapter timer wrapper (forwarded to CommandRouter for
+   *   onUnload-safe delays).
+   */
+  constructor(log, timers) {
     this.log = log;
-    this.commandRouter = new import_command_router.CommandRouter(log);
+    this.commandRouter = new import_command_router.CommandRouter(log, timers);
   }
   /**
    * Register the LAN client

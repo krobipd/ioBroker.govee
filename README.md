@@ -453,6 +453,9 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### 1.7.3 (2026-04-19)
+- **Latest-repo review compliance.** `common.messagebox=true` added to `io-package.json` because the Segment Wizard uses `onMessage`. The two 150 ms delays used for Govee's colour-mode preamble (in the LAN client and the CommandRouter) are now routed through the adapter timer wrapper, so pending delays get cancelled on `onUnload` instead of firing into a torn-down adapter. No runtime-visible change.
+
 ### 1.7.2 (2026-04-19)
 - **Test infrastructure aligned with the ioBroker standard.** `test/package.js` and `test/integration.js` are now plain JS calling `tests.packageFiles` / `tests.integration` directly, matching the template every other adapter in this workspace uses. Previously only a TypeScript-based package-files test existed, and the `test:integration` script silently re-ran the unit tests instead of spinning up a real js-controller. No runtime change — this only affects CI and the Latest-repo review.
 

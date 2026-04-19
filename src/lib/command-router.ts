@@ -1,9 +1,8 @@
-import { hexToRgb } from "./types.js";
+import { hexToRgb, type GoveeDevice, type TimerAdapter } from "./types.js";
 import type { GoveeCloudClient } from "./govee-cloud-client.js";
 import type { GoveeLanClient } from "./govee-lan-client.js";
 import { applySceneSpeed } from "./govee-lan-client.js";
 import type { RateLimiter } from "./rate-limiter.js";
-import type { GoveeDevice } from "./types.js";
 
 /**
  * Command router — routes device commands through the fastest available
@@ -11,6 +10,7 @@ import type { GoveeDevice } from "./types.js";
  */
 export class CommandRouter {
   private readonly log: ioBroker.Logger;
+  private readonly timers: TimerAdapter;
   private lanClient: GoveeLanClient | null = null;
   private cloudClient: GoveeCloudClient | null = null;
   private rateLimiter: RateLimiter | null = null;
@@ -21,9 +21,14 @@ export class CommandRouter {
     batch: { segments: number[]; color?: number; brightness?: number },
   ) => void;
 
-  /** @param log ioBroker logger */
-  constructor(log: ioBroker.Logger) {
+  /**
+   * @param log ioBroker logger
+   * @param timers Adapter timer wrapper — routed through `this.setTimeout` so
+   *   pending color-mode delays get cleared on onUnload.
+   */
+  constructor(log: ioBroker.Logger, timers: TimerAdapter) {
     this.log = log;
+    this.timers = timers;
   }
 
   /**
@@ -94,7 +99,12 @@ export class CommandRouter {
       ? hexToRgb(current)
       : { r: 255, g: 255, b: 255 };
     this.lanClient.setColor(device.lanIp, r, g, b);
-    await new Promise<void>((resolve) => setTimeout(resolve, 150));
+    // Delay routed through the adapter's timer wrapper so it gets cancelled
+    // if the adapter unloads mid-delay. Native setTimeout would leave a
+    // pending handle that fires into a half-torn-down adapter.
+    await new Promise<void>((resolve) =>
+      this.timers.setTimeout(() => resolve(), 150),
+    );
   }
 
   /**

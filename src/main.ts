@@ -159,7 +159,7 @@ class GoveeAdapter extends utils.Adapter {
     this.stateManager = new StateManager(this);
     // General groups online state (reflects Cloud connection)
     await this.stateManager.createGroupsOnlineState(false);
-    this.deviceManager = new DeviceManager(this.log);
+    this.deviceManager = new DeviceManager(this.log, this);
     const dataDir = utils.getAbsoluteInstanceDataDir(this);
 
     // Load community quirks from persistent data directory

@@ -17,6 +17,18 @@ const mockLog: ioBroker.Logger = {
     level: "debug",
 };
 
+/** Mock timer adapter — setTimeout fires immediately so async-await paths
+ *  (forceColorMode → 150 ms delay) don't stall the test runner. */
+const mockTimers = {
+    setInterval: () => undefined,
+    clearInterval: () => undefined,
+    setTimeout: (cb: () => void) => {
+        cb();
+        return undefined;
+    },
+    clearTimeout: () => undefined,
+} as never;
+
 /** Standard light capabilities for testing */
 function lightCapabilities(): CloudCapability[] {
     return [
@@ -84,7 +96,7 @@ describe("DeviceManager", () => {
     let dm: DeviceManager;
 
     beforeEach(() => {
-        dm = new DeviceManager(mockLog);
+        dm = new DeviceManager(mockLog, mockTimers);
     });
 
     describe("handleLanDiscovery", () => {
@@ -1023,7 +1035,7 @@ describe("DeviceManager", () => {
                 level: "debug",
             };
 
-            const dedupDm = new DeviceManager(dedupLog);
+            const dedupDm = new DeviceManager(dedupLog, mockTimers);
 
             // First call — new category, should warn
             (dedupDm as any).logDedup("Cloud failed", new Error("ECONNREFUSED"));
@@ -1243,7 +1255,7 @@ describe("DeviceManager", () => {
                 silly: () => {},
                 level: "debug",
             };
-            const noDm = new DeviceManager(warnLog);
+            const noDm = new DeviceManager(warnLog, mockTimers);
 
             const device = createTestDevice({
                 lanIp: undefined,

@@ -152,7 +152,7 @@ class GoveeAdapter extends utils.Adapter {
     });
     this.stateManager = new import_state_manager.StateManager(this);
     await this.stateManager.createGroupsOnlineState(false);
-    this.deviceManager = new import_device_manager.DeviceManager(this.log);
+    this.deviceManager = new import_device_manager.DeviceManager(this.log, this);
     const dataDir = utils.getAbsoluteInstanceDataDir(this);
     const quirksPath = path.join(dataDir, "community-quirks.json");
     (0, import_device_quirks.loadCommunityQuirks)(quirksPath, this.log);

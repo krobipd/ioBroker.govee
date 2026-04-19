@@ -16,6 +16,7 @@ import {
   type GoveeDevice,
   type LanDevice,
   type MqttStatusUpdate,
+  type TimerAdapter,
 } from "./types.js";
 import { HttpError } from "./http-client.js";
 
@@ -211,10 +212,14 @@ export class DeviceManager {
   private onDeviceListChanged: ((devices: GoveeDevice[]) => void) | null = null;
   private lastErrorCategory: ErrorCategory | null = null;
 
-  /** @param log ioBroker logger */
-  constructor(log: ioBroker.Logger) {
+  /**
+   * @param log    ioBroker logger
+   * @param timers Adapter timer wrapper (forwarded to CommandRouter for
+   *   onUnload-safe delays).
+   */
+  constructor(log: ioBroker.Logger, timers: TimerAdapter) {
     this.log = log;
-    this.commandRouter = new CommandRouter(log);
+    this.commandRouter = new CommandRouter(log, timers);
   }
 
   /**

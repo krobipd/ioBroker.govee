@@ -315,7 +315,7 @@ class GoveeLanClient {
     );
     this.setColor(ip, 255, 255, 255);
     const delayMs = 150;
-    setTimeout(() => {
+    this.timers.setTimeout(() => {
       this.sendPtReal(ip, [
         buildSegmentBrightnessPacket(0, others),
         buildSegmentColorPacket(255, 255, 255, [idx]),

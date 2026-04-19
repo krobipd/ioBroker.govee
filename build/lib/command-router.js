@@ -25,14 +25,20 @@ var import_types = require("./types.js");
 var import_govee_lan_client = require("./govee-lan-client.js");
 class CommandRouter {
   log;
+  timers;
   lanClient = null;
   cloudClient = null;
   rateLimiter = null;
   /** Callback for batch segment state sync */
   onSegmentBatchUpdate;
-  /** @param log ioBroker logger */
-  constructor(log) {
+  /**
+   * @param log ioBroker logger
+   * @param timers Adapter timer wrapper — routed through `this.setTimeout` so
+   *   pending color-mode delays get cleared on onUnload.
+   */
+  constructor(log, timers) {
     this.log = log;
+    this.timers = timers;
   }
   /**
    * Register the LAN client
@@ -92,7 +98,9 @@ class CommandRouter {
     const current = typeof device.state.colorRgb === "string" ? device.state.colorRgb : null;
     const { r, g, b } = current ? (0, import_types.hexToRgb)(current) : { r: 255, g: 255, b: 255 };
     this.lanClient.setColor(device.lanIp, r, g, b);
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    await new Promise(
+      (resolve) => this.timers.setTimeout(() => resolve(), 150)
+    );
   }
   /**
    * Send a command to a device — routes through LAN → MQTT → Cloud.

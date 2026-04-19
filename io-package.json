@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "govee-smart",
-        "version": "1.7.2",
+        "version": "1.7.3",
         "news": {
+            "1.7.3": {
+                "en": "Compliance with ioBroker Latest-repo review: set common.messagebox=true because the Segment Wizard uses the onMessage handler, and route the two setTimeout delays in the LAN client + command router through the adapter timer wrapper so they get cancelled on onUnload instead of firing into a torn-down adapter.",
+                "de": "Compliance mit dem ioBroker-Latest-Repo-Review: common.messagebox=true setzen weil der Segment-Wizard den onMessage-Handler nutzt, und die zwei setTimeout-Delays in LAN-Client + CommandRouter über den Adapter-Timer-Wrapper laufen lassen damit sie beim onUnload gecancelled werden statt in einen abbauenden Adapter zu feuern.",
+                "ru": "Соответствие требованиям ioBroker Latest: messagebox=true для Segment Wizard, таймеры через adapter.setTimeout.",
+                "pt": "Conformidade ioBroker Latest: messagebox=true para o Segment Wizard, timers via adapter.setTimeout.",
+                "nl": "Compliance ioBroker Latest: messagebox=true voor de Segment Wizard, timers via adapter.setTimeout.",
+                "fr": "Conformité ioBroker Latest : messagebox=true pour Segment Wizard, timers via adapter.setTimeout.",
+                "it": "Conformità ioBroker Latest: messagebox=true per il Segment Wizard, timer via adapter.setTimeout.",
+                "es": "Cumplimiento ioBroker Latest: messagebox=true para el Segment Wizard, timers vía adapter.setTimeout.",
+                "pl": "Zgodność z ioBroker Latest: messagebox=true dla Segment Wizard, timery przez adapter.setTimeout.",
+                "uk": "Відповідність ioBroker Latest: messagebox=true для Segment Wizard, таймери через adapter.setTimeout.",
+                "zh-cn": "符合 ioBroker Latest 仓库规范: Segment Wizard 需要 messagebox=true, 定时器走 adapter.setTimeout 包装器。"
+            },
             "1.7.2": {
                 "en": "Move test infrastructure to the ioBroker standard: test/package.js and test/integration.js as plain JS, calling tests.packageFiles / tests.integration directly. Previously only a TS-based packageFiles test existed and the integration script re-ran the unit tests instead of spinning up a real js-controller. No runtime change — this only affects CI and the Latest-repo review.",
                 "de": "Test-Infrastruktur auf ioBroker-Standard umgestellt: test/package.js und test/integration.js als plain JS, ruft tests.packageFiles / tests.integration direkt auf. Bisher gab es nur den TS-basierten PackageFiles-Test und das Integration-Script hat die Unit-Tests erneut ausgeführt statt einen echten js-controller hochzufahren. Keine Laufzeit-Änderung — betrifft nur CI und Latest-Repo-Review.",
@@ -80,19 +93,6 @@
                 "pl": "Naprawa flash kreatora — trzy pakiety BLE w jednym UDP ptReal\nPrzed flash: Power ON + jasność 100\nStatus na żywo przez state info.wizardStatus",
                 "uk": "Виправлено flash майстра — три BLE-пакети в одній ptReal UDP\nПеред flash: Power ON + яскравість 100\nЖивий статус через state info.wizardStatus",
                 "zh-cn": "修复向导闪烁 — 三个 BLE 数据包合并到一个 ptReal UDP\n闪烁前: Power ON + 亮度 100\n通过 state info.wizardStatus 实时显示状态"
-            },
-            "1.6.4": {
-                "en": "Wizard UX rewrite — only online devices in dropdown, persistent status box shows which segment is being checked, multi-line toast feedback on every button click\nStatus box via textSendTo (refreshes when device is re-selected), button responses now use `message` field so admin shows info-toasts correctly",
-                "de": "Wizard UX-Überarbeitung — nur online-Geräte im Dropdown, permanente Status-Box zeigt welches Segment gerade geprüft wird, mehrzeiliger Toast-Text bei jedem Button-Klick\nStatus-Box via textSendTo (refreshed bei Device-Neuauswahl), Button-Responses nutzen jetzt `message`-Feld damit Admin Info-Toasts korrekt anzeigt",
-                "ru": "Переработка UX мастера — только онлайн-устройства в выпадающем списке, постоянная строка статуса показывает проверяемый сегмент, многострочный toast на каждый клик",
-                "pt": "Reformulação UX do assistente — apenas dispositivos online no dropdown, caixa de status persistente mostra o segmento sendo verificado, toast multi-linha a cada clique",
-                "nl": "Wizard UX-herzien — alleen online apparaten in dropdown, persistente statusbox toont welk segment wordt gecontroleerd, multi-line toast bij elke klik",
-                "fr": "Refonte UX de l'assistant — uniquement les appareils en ligne dans la liste déroulante, boîte de statut persistante indique le segment vérifié, toast multiligne à chaque clic",
-                "it": "Riscrittura UX wizard — solo dispositivi online nel dropdown, casella di stato persistente mostra il segmento in verifica, toast multi-riga ad ogni click",
-                "es": "Reescritura UX del asistente — solo dispositivos en línea en el desplegable, cuadro de estado persistente muestra el segmento que se comprueba, toast multilínea en cada clic",
-                "pl": "Przepisanie UX kreatora — tylko urządzenia online w dropdown, trwałe pole statusu pokazuje sprawdzany segment, wielolinijkowy toast przy każdym kliknięciu",
-                "uk": "Переробка UX майстра — лише онлайн-пристрої у випадаючому списку, постійне поле статусу показує сегмент, що перевіряється",
-                "zh-cn": "向导 UX 重写 — 下拉列表仅显示在线设备,持久状态框显示当前检查的分段,每次点击显示多行 toast"
             }
         },
         "titleLang": {
@@ -136,6 +136,7 @@
         "tier": 3,
         "loglevel": "info",
         "mode": "daemon",
+        "messagebox": true,
         "keywords": [
             "govee",
             "lights",

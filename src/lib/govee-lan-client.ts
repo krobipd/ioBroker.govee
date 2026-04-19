@@ -342,9 +342,11 @@ export class GoveeLanClient {
     // state that accepts segment-level overrides.
     this.setColor(ip, 0xff, 0xff, 0xff);
     // Small delay so the firmware can apply the mode switch before the
-    // next UDP burst — Govee's observed minimum is ~50 ms.
+    // next UDP burst — Govee's observed minimum is ~50 ms. Routed through
+    // the adapter timer wrapper so it gets cancelled on onUnload instead
+    // of firing into a half-torn-down adapter.
     const delayMs = 150;
-    setTimeout(() => {
+    this.timers.setTimeout(() => {
       this.sendPtReal(ip, [
         buildSegmentBrightnessPacket(0, others),
         buildSegmentColorPacket(0xff, 0xff, 0xff, [idx]),
