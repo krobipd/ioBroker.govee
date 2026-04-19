@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "govee-smart",
-        "version": "1.7.3",
+        "version": "1.7.4",
         "news": {
+            "1.7.4": {
+                "en": "Admin UI: language-aware Wiki link at the top of the main configuration tab. German Admin points to the Startseite, all other languages to the English Home. No runtime change.",
+                "de": "Admin-UI: sprachabhängiger Wiki-Link oben im Hauptkonfigurations-Tab. Deutsches Admin zeigt auf die Startseite, alle anderen Sprachen auf die englische Home. Keine Laufzeit-Änderung.",
+                "ru": "Admin UI: ссылка на вики в зависимости от языка вверху главной вкладки конфигурации. Изменений во время выполнения нет.",
+                "pt": "Admin UI: link para o Wiki conforme o idioma no topo da aba principal de configuração. Sem mudanças em runtime.",
+                "nl": "Admin UI: taalafhankelijke Wiki-link bovenaan het hoofdconfiguratietabblad. Geen runtime-wijziging.",
+                "fr": "Admin UI : lien vers le Wiki selon la langue en haut de l'onglet de configuration principal. Aucun changement runtime.",
+                "it": "Admin UI: link al Wiki in base alla lingua in cima alla scheda di configurazione principale. Nessuna modifica a runtime.",
+                "es": "Admin UI: enlace al Wiki según el idioma en la parte superior de la pestaña de configuración principal. Sin cambios en runtime.",
+                "pl": "Admin UI: link do Wiki zależny od języka u góry głównej zakładki konfiguracji. Bez zmian w runtime.",
+                "uk": "Admin UI: посилання на Wiki залежно від мови вгорі головної вкладки конфігурації. Без змін у runtime.",
+                "zh-cn": "管理界面: 主配置选项卡顶部添加与语言相关的 Wiki 链接。运行时无变化。"
+            },
             "1.7.3": {
                 "en": "Compliance with ioBroker Latest-repo review: set common.messagebox=true because the Segment Wizard uses the onMessage handler, and route the two setTimeout delays in the LAN client + command router through the adapter timer wrapper so they get cancelled on onUnload instead of firing into a torn-down adapter.",
                 "de": "Compliance mit dem ioBroker-Latest-Repo-Review: common.messagebox=true setzen weil der Segment-Wizard den onMessage-Handler nutzt, und die zwei setTimeout-Delays in LAN-Client + CommandRouter über den Adapter-Timer-Wrapper laufen lassen damit sie beim onUnload gecancelled werden statt in einen abbauenden Adapter zu feuern.",
@@ -80,19 +93,6 @@
                 "pl": "Naprawiono zaniżanie liczby segmentów przez Cloud — MQTT AA A5 pokazuje rzeczywistą liczbę, drzewo stanu odbudowywane automatycznie",
                 "uk": "Виправлено заниження кількості сегментів Cloud — MQTT AA A5 показує реальну кількість, дерево станів перебудовується автоматично",
                 "zh-cn": "修复 Cloud 报告分段数量偏低 — MQTT AA A5 包显示真实数量, 状态树自动重建"
-            },
-            "1.6.5": {
-                "en": "Fix Wizard flash — all three BLE packets (others dim + target color + target brightness) now bundled in one ptReal UDP datagram, no more dropped packets on Govee back-pressure\nBefore flashing: set power ON + global brightness 100 so user sees the strip regardless of previous dim state\nLive status via state — new info.wizardStatus state written on every wizard step, admin panel uses type:\"state\" to show it live (Admin 7.1+)",
-                "de": "Fix Wizard-Flash — alle drei BLE-Pakete (others dim + target color + target brightness) jetzt in einem ptReal-UDP gebündelt, keine verschluckten Pakete mehr bei Govee-Rückstau\nVor dem Flash: Power AN + globale Helligkeit 100, damit der Strip sichtbar ist egal wie er vorher gedimmt war\nLive-Status via State — neuer info.wizardStatus wird bei jedem Schritt geschrieben, Admin-Panel zeigt ihn live via type:\"state\" (Admin 7.1+)",
-                "ru": "Исправлен flash мастера — все три BLE-пакета в одной ptReal UDP-дейтаграмме\nПеред flash: Power ON + яркость 100\nЖивой статус через state info.wizardStatus",
-                "pt": "Fix flash do assistente — três pacotes BLE em um UDP ptReal\nAntes do flash: Power ON + brilho 100\nStatus ao vivo via state info.wizardStatus",
-                "nl": "Wizard flash fix — drie BLE-pakketten in één ptReal UDP\nVoor flash: Power AAN + helderheid 100\nLive status via state info.wizardStatus",
-                "fr": "Correction flash assistant — trois paquets BLE dans un seul UDP ptReal\nAvant flash: Power ON + luminosité 100\nStatut en direct via state info.wizardStatus",
-                "it": "Fix flash wizard — tre pacchetti BLE in un singolo UDP ptReal\nPrima del flash: Power ON + luminosità 100\nStato live via state info.wizardStatus",
-                "es": "Corrección flash asistente — tres paquetes BLE en un UDP ptReal\nAntes del flash: Power ON + brillo 100\nEstado en vivo via state info.wizardStatus",
-                "pl": "Naprawa flash kreatora — trzy pakiety BLE w jednym UDP ptReal\nPrzed flash: Power ON + jasność 100\nStatus na żywo przez state info.wizardStatus",
-                "uk": "Виправлено flash майстра — три BLE-пакети в одній ptReal UDP\nПеред flash: Power ON + яскравість 100\nЖивий статус через state info.wizardStatus",
-                "zh-cn": "修复向导闪烁 — 三个 BLE 数据包合并到一个 ptReal UDP\n闪烁前: Power ON + 亮度 100\n通过 state info.wizardStatus 实时显示状态"
             }
         },
         "titleLang": {

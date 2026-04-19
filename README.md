@@ -97,6 +97,9 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ## Changelog
 
+### 1.7.4 (2026-04-19)
+- **Admin UI: language-aware Wiki link at the top of the main configuration tab.** On a German Admin instance it points to the Startseite, every other language to the English Home. All 11 translation files carry a localised label. No runtime change — this is purely the Admin config page.
+
 ### 1.7.3 (2026-04-19)
 - **Latest-repo review compliance.** `common.messagebox=true` added to `io-package.json` because the Segment Wizard uses `onMessage`. The two 150 ms delays used for Govee's colour-mode preamble (in the LAN client and the CommandRouter) are now routed through the adapter timer wrapper, so pending delays get cancelled on `onUnload` instead of firing into a torn-down adapter. No runtime-visible change.
 
@@ -122,11 +125,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - `parseMqttSegmentData` no longer caps output at Cloud's segmentCount; trailing all-zero padding slots are stripped so packet-padding is not mistaken for real segments
 - Wizard's flash dims segments 0-55 (Govee bitmask maximum) rather than only up to Cloud segmentCount, so under-reported strips cannot leave any residual lit segments during the wizard
 - `manual_list` validation accepts indices up to 55 instead of the Cloud-reported count, so users can declare more physical segments than the Cloud knows about
-
-### 1.6.5 (2026-04-19)
-- Fix wizard flash — all three BLE packets (others-dim + target-color + target-brightness) are now bundled into one `ptReal` UDP datagram. Previously separate datagrams were dropped by the device under back-pressure, leading to "only some segments went dark" symptoms
-- Wizard now switches the strip ON and sets global brightness to 100 before the first flash, so the selected segment is visible regardless of the previous dim state (baseline is still captured and restored on abort/finish)
-- Live status box — new `info.wizardStatus` state, written on every wizard step; admin panel uses `type: "state"` to show the current segment, the total and the next action live (Admin 7.1+)
 
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
