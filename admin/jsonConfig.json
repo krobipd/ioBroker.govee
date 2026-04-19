@@ -6,6 +6,12 @@
             "type": "panel",
             "label": "tabMain",
             "items": {
+                "_docLink": {
+                    "type": "staticText",
+                    "text": "docLinkText",
+                    "xs": 12, "sm": 12, "md": 12, "lg": 12, "xl": 12,
+                    "style": { "fontSize": 14, "marginBottom": 16 }
+                },
                 "_lanHeader": {
                     "newLine": true,
                     "type": "header",

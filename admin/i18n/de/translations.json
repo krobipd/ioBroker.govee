@@ -25,5 +25,6 @@
     "wizardBtnNo": "✗ Nein, dunkel",
     "wizardBtnDone": "■ Fertig – Strip zu Ende",
     "wizardBtnAbort": "Abbrechen",
-    "wizardHelp": "So läufts ab: Das aktuelle Segment leuchtet WEISS, alle anderen bleiben dunkel. Klicke 'Ja, sichtbar' oder 'Nein, dunkel'. Wenn der Strip physisch zu Ende ist, klicke 'Fertig – Strip zu Ende'. Der Wizard ermittelt die echte Segmentanzahl und speichert bei Lücken automatisch eine manual_list. Session bricht nach 5 Minuten Inaktivität ab."
+    "wizardHelp": "So läufts ab: Das aktuelle Segment leuchtet WEISS, alle anderen bleiben dunkel. Klicke 'Ja, sichtbar' oder 'Nein, dunkel'. Wenn der Strip physisch zu Ende ist, klicke 'Fertig – Strip zu Ende'. Der Wizard ermittelt die echte Segmentanzahl und speichert bei Lücken automatisch eine manual_list. Session bricht nach 5 Minuten Inaktivität ab.",
+    "docLinkText": "Volle Dokumentation → [Wiki (Deutsch)](https://github.com/krobipd/ioBroker.govee-smart/wiki/Startseite)"
 }

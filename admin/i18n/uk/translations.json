@@ -13,5 +13,6 @@
     "networkInterfaceLabel": "Мережевий інтерфейс",
     "networkInterfaceTooltip": "Виберіть мережевий інтерфейс для виявлення пристроїв у локальній мережі. Залиште порожнім, щоб використовувати всі інтерфейси (рекомендовано для більшості налаштувань).",
     "passwordLabel": "Пароль",
-    "supportHeader": "Підтримка"
+    "supportHeader": "Підтримка",
+    "docLinkText": "Повна документація → [Wiki (English)](https://github.com/krobipd/ioBroker.govee-smart/wiki/Home)"
 }

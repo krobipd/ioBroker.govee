@@ -13,5 +13,6 @@
     "networkInterfaceLabel": "Interface réseau",
     "networkInterfaceTooltip": "Sélectionnez l'interface réseau pour la découverte des appareils LAN. Laissez vide pour utiliser toutes les interfaces (recommandé pour la plupart des configurations).",
     "passwordLabel": "Mot de passe",
-    "supportHeader": "Soutien"
+    "supportHeader": "Soutien",
+    "docLinkText": "Documentation complète → [Wiki (English)](https://github.com/krobipd/ioBroker.govee-smart/wiki/Home)"
 }
