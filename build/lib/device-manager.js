@@ -232,6 +232,9 @@ class DeviceManager {
         existing.snapshotBleCmds = entry.snapshotBleCmds;
         existing.scenesChecked = entry.scenesChecked;
         existing.lastSeenOnNetwork = entry.lastSeenOnNetwork;
+        existing.segmentCount = entry.segmentCount;
+        existing.manualMode = entry.manualMode;
+        existing.manualSegments = entry.manualSegments;
         existing.channels.cloud = entry.capabilities.length > 0;
         changed = true;
       } else {

@@ -307,7 +307,12 @@ export class DeviceManager {
       const key = this.deviceKey(entry.sku, entry.deviceId);
       const existing = this.devices.get(key);
       if (existing) {
-        // Merge cached data into LAN-discovered device
+        // Merge cached data into LAN-discovered device. Segment-specific
+        // fields (segmentCount, manualMode, manualSegments) MUST be merged
+        // too — LAN discovery runs before the cache load on every start, so
+        // the existing-branch is the normal path. Missing these three meant
+        // every restart threw away the wizard/MQTT-learned segment state and
+        // fell back to Cloud's min-advertised count.
         existing.name = entry.name || existing.name;
         existing.type = entry.type || existing.type;
         existing.capabilities = entry.capabilities;
@@ -321,6 +326,9 @@ export class DeviceManager {
         existing.snapshotBleCmds = entry.snapshotBleCmds;
         existing.scenesChecked = entry.scenesChecked;
         existing.lastSeenOnNetwork = entry.lastSeenOnNetwork;
+        existing.segmentCount = entry.segmentCount;
+        existing.manualMode = entry.manualMode;
+        existing.manualSegments = entry.manualSegments;
         existing.channels.cloud = entry.capabilities.length > 0;
         changed = true;
       } else {

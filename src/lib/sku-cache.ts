@@ -96,7 +96,18 @@ export class SkuCache {
   save(data: CachedDeviceData): void {
     const file = this.cacheFile(data.sku, data.deviceId);
     try {
-      fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf-8");
+      // openSync + writeSync + fsyncSync + closeSync instead of writeFileSync
+      // so the data hits disk before the call returns. Plain writeFileSync
+      // only pushes to the kernel page cache — if the adapter gets SIGKILLed
+      // within the dirty-writeback window (~30s), the save is silently lost
+      // and cache-load on the next start sees stale data.
+      const fd = fs.openSync(file, "w");
+      try {
+        fs.writeSync(fd, JSON.stringify(data, null, 2), 0, "utf-8");
+        fs.fsyncSync(fd);
+      } finally {
+        fs.closeSync(fd);
+      }
       this.log.debug(`Cache saved for ${data.sku}`);
     } catch (e) {
       this.log.warn(

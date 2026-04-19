@@ -97,6 +97,10 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ## Changelog
 
+### 1.7.7 (2026-04-19)
+- **Fix: Wizard and MQTT-learned segment state was lost on every restart.** `loadFromCache` didn't merge `segmentCount`, `manualMode` and `manualSegments` into LAN-discovered devices (the existing-branch merge was incomplete). Since the LAN scan always runs before the cache load on startup, every adapter restart fell back to Cloud's min-advertised segment count and forgot the cut-strip list — the wizard's result "lived" for exactly one session. The three fields are now merged alongside the other cached data.
+- **Cache writes now force `fsync` after writing.** Plain `writeFileSync` only pushes data to the kernel page cache; if the adapter gets SIGKILLed during stop (e.g. Admin-UI "Save & Close" exceeding the 1 s SIGTERM grace period), the save was silently dropped. `openSync → writeSync → fsyncSync → closeSync` guarantees the bytes hit disk before the call returns.
+
 ### 1.7.6 (2026-04-19)
 - **Manual-segment rollback no longer bounces the rejected value back.** When a user wrote an invalid `segments.manual_list`, the handler rewrote `manual_mode=false` but the outer state-change loop acked the original `true` right after, leaving the UI and the device model out of sync. The handler now owns the ack for both manual states, and `manual_list` is also reset when manual mode is disabled on parse error.
 - **Admin UI shows wizard labels in all 11 languages.** The Segment-Detection tab had only English + German translations — nine languages showed raw keys like `wizardBtnStart` instead of buttons. All keys are now present and the worst machine-translation bloopers (`pl: Poronić` → `Przerwij`, `zh-cn: 地位` → `状态`, fr/es/pt/it Abort-buttons) are hand-corrected.
@@ -119,13 +123,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ### 1.7.1 (2026-04-19)
 - **Segment commands now force color mode before sending.** Previously, setting `segments.5.color` (or any segment-level state) while the strip was running a Scene, Gradient, or Music mode had no visible effect — the device silently ignored the ptReal packet. The CommandRouter now emits a `colorwc` pre-amble using the device's last-known colorRgb (so the strip doesn't visibly flicker if it was already in color mode) and waits 150 ms before sending the segment packet.
 - **Side effect: automatic segment-count learning.** Because the color-mode switch also makes the device push MQTT AA A5 packets, the adapter now learns the real segment count the first time you touch any segment control — no manual Wizard run needed for strips that under-report via Cloud.
-
-### 1.7.0 (2026-04-19)
-- **Reliable segment count.** The adapter now uses a single source of truth for how many segments your strip has: cache → MQTT-learned → minimum of Cloud-advertised. Once the real length is discovered it's persisted and survives restarts. No more "Cloud said 15, strip really has 20" headaches
-- **Segment Wizard redesign — one clear flow.** Three buttons: **✓ Ja sichtbar / ✗ Nein dunkel / ■ Fertig – Strip zu Ende**. The wizard measures the REAL length regardless of what Cloud reports (runs up to the Govee protocol limit of 55), detects gaps automatically (cut strips), and applies the result atomically — segmentCount, manualMode, manualList get set together, state tree gets rebuilt, everything persists
-- **Wizard now forces color mode before each flash.** Previously the flash packets were silently ignored when the strip happened to be in Scene/Gradient/Music mode. The wizard now sends a `colorwc` pre-amble that moves the device into static-color mode, so the segment-level white flash is always visible
-- **Manual-mode survives restarts.** Cut-strip settings (`manual_mode` + `manual_list`) are now part of the SKU cache — previously they could be lost on the first rebuild after startup
-- Cloud-internal contradictions (e.g. H70D1 Icicle reporting `segmentedBrightness=10` and `segmentedColorRgb=15` in the same response) are resolved conservatively: take the smaller value and let MQTT correct upwards if the real device proves bigger
 
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

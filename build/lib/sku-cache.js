@@ -55,7 +55,13 @@ class SkuCache {
   save(data) {
     const file = this.cacheFile(data.sku, data.deviceId);
     try {
-      fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf-8");
+      const fd = fs.openSync(file, "w");
+      try {
+        fs.writeSync(fd, JSON.stringify(data, null, 2), 0, "utf-8");
+        fs.fsyncSync(fd);
+      } finally {
+        fs.closeSync(fd);
+      }
       this.log.debug(`Cache saved for ${data.sku}`);
     } catch (e) {
       this.log.warn(

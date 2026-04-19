@@ -1730,3 +1730,96 @@ describe("resolveSegmentCount", () => {
         expect(SEGMENT_HARD_MAX).to.equal(55);
     });
 });
+
+describe("DeviceManager — loadFromCache merge", () => {
+    /**
+     * Regression test for v1.7.6 bug: when a device is already present in
+     * the device-map via LAN discovery (the normal case on every adapter
+     * start, because LAN scan runs before cache load), the existing-branch
+     * merge dropped segmentCount, manualMode and manualSegments. Every
+     * restart threw away the wizard/MQTT-learned segment state and fell
+     * back to Cloud's min-advertised count.
+     */
+    function makeMockSkuCache(entries: Array<Record<string, unknown>>) {
+        return {
+            loadAll: () => entries as never,
+            save: () => {},
+            pruneStale: () => 0,
+            clear: () => {},
+        };
+    }
+
+    it("merges segmentCount + manualMode + manualSegments into existing LAN-discovered device", () => {
+        const dm = new DeviceManager(mockLog, mockTimers);
+        // Simulate LAN discovery — device gets created without segment data.
+        dm.handleLanDiscovery({
+            sku: "H61BE",
+            device: "AA:BB:CC:DD:EE:FF:12:34",
+            ip: "192.168.1.50",
+        } as LanDevice);
+
+        const cached = [{
+            sku: "H61BE",
+            deviceId: "AA:BB:CC:DD:EE:FF:12:34",
+            name: "Eating Room",
+            type: "devices.types.light",
+            capabilities: lightCapabilities(),
+            scenes: [],
+            diyScenes: [],
+            snapshots: [],
+            sceneLibrary: [],
+            musicLibrary: [],
+            diyLibrary: [],
+            skuFeatures: null,
+            segmentCount: 22,
+            manualMode: true,
+            manualSegments: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+            scenesChecked: true,
+            cachedAt: Date.now(),
+        }];
+        dm.setSkuCache(makeMockSkuCache(cached) as never);
+
+        dm.loadFromCache();
+
+        const [device] = dm.getDevices();
+        expect(device.sku).to.equal("H61BE");
+        expect(device.segmentCount).to.equal(22);
+        expect(device.manualMode).to.equal(true);
+        expect(device.manualSegments).to.deep.equal([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
+    });
+
+    it("leaves merged fields undefined when cache entry has none (no segment data ever captured)", () => {
+        const dm = new DeviceManager(mockLog, mockTimers);
+        dm.handleLanDiscovery({
+            sku: "H6102",
+            device: "00:11:22:33:44:55:66:77",
+            ip: "192.168.1.51",
+        } as LanDevice);
+
+        const cached = [{
+            sku: "H6102",
+            deviceId: "00:11:22:33:44:55:66:77",
+            name: "Plain Light",
+            type: "devices.types.light",
+            capabilities: lightCapabilities(),
+            scenes: [],
+            diyScenes: [],
+            snapshots: [],
+            sceneLibrary: [],
+            musicLibrary: [],
+            diyLibrary: [],
+            skuFeatures: null,
+            scenesChecked: true,
+            cachedAt: Date.now(),
+            // no segmentCount / manualMode / manualSegments
+        }];
+        dm.setSkuCache(makeMockSkuCache(cached) as never);
+
+        dm.loadFromCache();
+
+        const [device] = dm.getDevices();
+        expect(device.segmentCount).to.equal(undefined);
+        expect(device.manualMode).to.equal(undefined);
+        expect(device.manualSegments).to.equal(undefined);
+    });
+});
