@@ -1,5 +1,9 @@
 # Older Changes
 
+## 1.7.1 (2026-04-19)
+- Segment commands force color mode before sending — previously silently ignored in Scene/Gradient/Music mode
+- Side effect: automatic segment-count learning once you touch any segment control
+
 ## 1.7.0 (2026-04-19)
 - Reliable segment count via single source of truth — cache → MQTT-learned → min of Cloud-advertised, persists across restarts
 - Wizard redesign — three buttons (visible / dark / end-of-strip), measures real length up to Govee protocol limit 55, detects gaps automatically for cut strips

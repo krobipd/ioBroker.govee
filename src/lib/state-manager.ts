@@ -16,9 +16,22 @@ function sanitize(str: string): string {
   return str.replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase();
 }
 
-/** All managed channels (for cleanup of stale states) */
+/**
+ * Channels whose state-set is fully described by capability-driven stateDefs.
+ * Only these get the stale-state cleanup pass — `info` is intentionally absent
+ * because it mixes capability-driven states (diagnostics_export/result) with
+ * adapter-managed ones (online, model, serial, ip, members) that come from
+ * ensureState instead of stateDefs. Cleaning `info` by stateDef-set would
+ * delete the adapter-managed ones.
+ */
 const MANAGED_CHANNELS = ["control", "scenes", "music", "snapshots"];
-/** Channel display names */
+/**
+ * Display names used when the channel object is (re-)created. `info` is
+ * listed here even though it's not in MANAGED_CHANNELS — capability-mapper
+ * emits states with `channel: "info"`, and without this entry the create
+ * path would overwrite the original "Device Information" name with the
+ * literal "info".
+ */
 const CHANNEL_NAMES: Record<string, string> = {
   control: "Controls",
   scenes: "Scenes",

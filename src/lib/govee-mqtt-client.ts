@@ -49,6 +49,9 @@ export type MqttStatusCallback = (update: MqttStatusUpdate) => void;
 /** Callback for MQTT connection state changes */
 export type MqttConnectionCallback = (connected: boolean) => void;
 
+/** Callback fired each time the login hands us a fresh bearer token */
+export type MqttTokenCallback = (token: string) => void;
+
 /**
  * Govee AWS IoT MQTT client for real-time status and control.
  * Authenticates via Govee account, connects to AWS IoT Core with mutual TLS.
@@ -68,6 +71,7 @@ export class GoveeMqttClient {
   private lastErrorCategory: ErrorCategory | null = null;
   private onStatus: MqttStatusCallback | null = null;
   private onConnection: MqttConnectionCallback | null = null;
+  private onToken: MqttTokenCallback | null = null;
 
   /**
    * @param email Govee account email
@@ -98,13 +102,18 @@ export class GoveeMqttClient {
    *
    * @param onStatus Called on device status updates
    * @param onConnection Called on connection state changes
+   * @param onToken Called with every fresh bearer token (initial + each reconnect-login)
    */
   async connect(
     onStatus: MqttStatusCallback,
     onConnection: MqttConnectionCallback,
+    onToken?: MqttTokenCallback,
   ): Promise<void> {
     this.onStatus = onStatus;
     this.onConnection = onConnection;
+    if (onToken) {
+      this.onToken = onToken;
+    }
 
     try {
       // Step 1: Login
@@ -138,6 +147,9 @@ export class GoveeMqttClient {
       this._bearerToken = loginResp.client.token;
       this.accountId = String(loginResp.client.accountId);
       this.accountTopic = loginResp.client.topic;
+      // Notify dependents (e.g. api-client for authenticated library endpoints)
+      // so they don't keep a stale token after a long-delay reconnect.
+      this.onToken?.(this._bearerToken);
 
       // Step 2: Get IoT credentials
       const iotResp = await this.getIotKey();

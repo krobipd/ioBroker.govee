@@ -77,6 +77,7 @@ class GoveeMqttClient {
   lastErrorCategory = null;
   onStatus = null;
   onConnection = null;
+  onToken = null;
   /**
    * @param email Govee account email
    * @param password Govee account password
@@ -99,11 +100,15 @@ class GoveeMqttClient {
    *
    * @param onStatus Called on device status updates
    * @param onConnection Called on connection state changes
+   * @param onToken Called with every fresh bearer token (initial + each reconnect-login)
    */
-  async connect(onStatus, onConnection) {
-    var _a, _b, _c, _d;
+  async connect(onStatus, onConnection, onToken) {
+    var _a, _b, _c, _d, _e;
     this.onStatus = onStatus;
     this.onConnection = onConnection;
+    if (onToken) {
+      this.onToken = onToken;
+    }
     try {
       const loginResp = await this.login();
       if (!loginResp.client) {
@@ -126,8 +131,9 @@ class GoveeMqttClient {
       this._bearerToken = loginResp.client.token;
       this.accountId = String(loginResp.client.accountId);
       this.accountTopic = loginResp.client.topic;
+      (_c = this.onToken) == null ? void 0 : _c.call(this, this._bearerToken);
       const iotResp = await this.getIotKey();
-      if (!((_c = iotResp.data) == null ? void 0 : _c.endpoint)) {
+      if (!((_d = iotResp.data) == null ? void 0 : _d.endpoint)) {
         throw new Error("IoT key response missing endpoint/certificate data");
       }
       const { endpoint, p12, p12Pass } = iotResp.data;
@@ -182,7 +188,7 @@ class GoveeMqttClient {
     } catch (err) {
       const category = (0, import_types.classifyError)(err);
       const msg = `MQTT connection failed: ${err instanceof Error ? err.message : String(err)}`;
-      (_d = this.onConnection) == null ? void 0 : _d.call(this, false);
+      (_e = this.onConnection) == null ? void 0 : _e.call(this, false);
       if (category === "AUTH") {
         this.authFailCount++;
         if (this.authFailCount >= MAX_AUTH_FAILURES) {

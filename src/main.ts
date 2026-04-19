@@ -67,6 +67,10 @@ class GoveeAdapter extends utils.Adapter {
   private readyTimer: ioBroker.Timeout | undefined;
   private cloudRetry: CloudRetryLoop | null = null;
   private segmentWizard: SegmentWizard | null = null;
+  private unhandledRejectionHandler: ((reason: unknown) => void) | null = null;
+  private uncaughtExceptionHandler: ((err: Error) => void) | null = null;
+  /** Per-device timestamp of the last diagnostics export — throttle gate */
+  private diagnosticsLastRun = new Map<string, number>();
 
   /** @param options Adapter options */
   public constructor(options: Partial<utils.AdapterOptions> = {}) {
@@ -89,6 +93,20 @@ class GoveeAdapter extends utils.Adapter {
     );
     this.on("message", (obj) => this.onMessage(obj));
     this.on("unload", (callback) => this.onUnload(callback));
+    // Last-line-of-defence against unhandled rejections / sync throws from
+    // fire-and-forget paths. The per-handler .catch() wrappers cover the
+    // direct entry points; this catches whatever slips past them so the
+    // adapter logs the cause instead of triggering js-controller SIGKILL.
+    this.unhandledRejectionHandler = (reason: unknown) => {
+      this.log.error(
+        `Unhandled rejection: ${reason instanceof Error ? (reason.stack ?? reason.message) : String(reason)}`,
+      );
+    };
+    this.uncaughtExceptionHandler = (err: Error) => {
+      this.log.error(`Uncaught exception: ${err.stack ?? err.message}`);
+    };
+    process.on("unhandledRejection", this.unhandledRejectionHandler);
+    process.on("uncaughtException", this.uncaughtExceptionHandler);
   }
 
   /** Adapter started — initialize all channels */
@@ -254,8 +272,12 @@ class GoveeAdapter extends utils.Adapter {
     this.lanClient.start(
       (lanDevice) => {
         this.deviceManager!.handleLanDiscovery(lanDevice);
-        // Request status after discovery
-        this.lanClient!.requestStatus(lanDevice.ip);
+        // Poll status only when MQTT is unavailable. With an active MQTT
+        // subscription Govee pushes state changes authoritatively, so the
+        // LAN devStatus request would be duplicate traffic.
+        if (!this.mqttClient?.connected) {
+          this.lanClient!.requestStatus(lanDevice.ip);
+        }
       },
       (sourceIp, status) => {
         this.deviceManager!.handleLanStatus(sourceIp, status);
@@ -292,12 +314,10 @@ class GoveeAdapter extends utils.Adapter {
           }
           this.updateConnectionState();
         },
+        // Forward every fresh bearer token — fires on initial login and on
+        // each reconnect-login, so the API client never runs with a stale one.
+        (token) => apiClient.setBearerToken(token),
       );
-
-      // Forward bearer token to API client for authenticated library endpoints
-      if (this.mqttClient.token) {
-        apiClient.setBearerToken(this.mqttClient.token);
-      }
     }
 
     // --- Device data: Cache first, Cloud only on cache miss ---
@@ -465,9 +485,24 @@ class GoveeAdapter extends utils.Adapter {
       this.lanClient?.stop();
       this.mqttClient?.disconnect();
       this.rateLimiter?.stop();
+      // Remove process-level handlers so an adapter restart doesn't stack them.
+      if (this.unhandledRejectionHandler) {
+        process.off("unhandledRejection", this.unhandledRejectionHandler);
+        this.unhandledRejectionHandler = null;
+      }
+      if (this.uncaughtExceptionHandler) {
+        process.off("uncaughtException", this.uncaughtExceptionHandler);
+        this.uncaughtExceptionHandler = null;
+      }
       // onUnload MUST be synchronous — don't await, but silence potential
       // promise rejection during teardown to avoid "unhandled rejection" warnings.
       this.setState("info.connection", { val: false, ack: true }).catch(
+        () => {},
+      );
+      this.setState("info.mqttConnected", { val: false, ack: true }).catch(
+        () => {},
+      );
+      this.setState("info.cloudConnected", { val: false, ack: true }).catch(
         () => {},
       );
     } catch {
@@ -566,8 +601,20 @@ class GoveeAdapter extends utils.Adapter {
       return;
     }
 
-    // Diagnostics export button
+    // Diagnostics export button — throttled to 2 s per device so a repeated
+    // or scripted trigger can't produce a burst of JSON serialisations.
     if (stateSuffix === "info.diagnostics_export" && state.val) {
+      const deviceKey = `${device.sku}:${device.deviceId}`;
+      const now = Date.now();
+      const last = this.diagnosticsLastRun.get(deviceKey) ?? 0;
+      if (now - last < 2000) {
+        this.log.debug(
+          `Diagnostics export throttled for ${device.name} — last run ${now - last}ms ago`,
+        );
+        await this.setStateAsync(id, { val: false, ack: true });
+        return;
+      }
+      this.diagnosticsLastRun.set(deviceKey, now);
       const diag = this.deviceManager.generateDiagnostics(
         device,
         this.version ?? "unknown",
@@ -991,7 +1038,14 @@ class GoveeAdapter extends utils.Adapter {
           `createDeviceStates failed for ${device.name}: ${e instanceof Error ? e.message : String(e)}`,
         );
       });
-    this.stateCreationQueue.push(p);
+    // Until ready, collect so onReady can await the whole initial batch.
+    // After ready, fire-and-forget — the queue would otherwise keep growing
+    // with resolved promises for the lifetime of the adapter.
+    if (!this.statesReady) {
+      this.stateCreationQueue.push(p);
+    } else {
+      void p;
+    }
   }
 
   /**

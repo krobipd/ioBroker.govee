@@ -61,6 +61,10 @@ class GoveeAdapter extends utils.Adapter {
   readyTimer;
   cloudRetry = null;
   segmentWizard = null;
+  unhandledRejectionHandler = null;
+  uncaughtExceptionHandler = null;
+  /** Per-device timestamp of the last diagnostics export — throttle gate */
+  diagnosticsLastRun = /* @__PURE__ */ new Map();
   /** @param options Adapter options */
   constructor(options = {}) {
     super({ ...options, name: "govee-smart" });
@@ -85,6 +89,18 @@ class GoveeAdapter extends utils.Adapter {
     );
     this.on("message", (obj) => this.onMessage(obj));
     this.on("unload", (callback) => this.onUnload(callback));
+    this.unhandledRejectionHandler = (reason) => {
+      var _a;
+      this.log.error(
+        `Unhandled rejection: ${reason instanceof Error ? (_a = reason.stack) != null ? _a : reason.message : String(reason)}`
+      );
+    };
+    this.uncaughtExceptionHandler = (err) => {
+      var _a;
+      this.log.error(`Uncaught exception: ${(_a = err.stack) != null ? _a : err.message}`);
+    };
+    process.on("unhandledRejection", this.unhandledRejectionHandler);
+    process.on("uncaughtException", this.uncaughtExceptionHandler);
   }
   /** Adapter started — initialize all channels */
   async onReady() {
@@ -231,8 +247,11 @@ class GoveeAdapter extends utils.Adapter {
     this.deviceManager.setLanClient(this.lanClient);
     this.lanClient.start(
       (lanDevice) => {
+        var _a2;
         this.deviceManager.handleLanDiscovery(lanDevice);
-        this.lanClient.requestStatus(lanDevice.ip);
+        if (!((_a2 = this.mqttClient) == null ? void 0 : _a2.connected)) {
+          this.lanClient.requestStatus(lanDevice.ip);
+        }
       },
       (sourceIp, status) => {
         this.deviceManager.handleLanStatus(sourceIp, status);
@@ -263,11 +282,11 @@ class GoveeAdapter extends utils.Adapter {
             this.checkAllReady();
           }
           this.updateConnectionState();
-        }
+        },
+        // Forward every fresh bearer token — fires on initial login and on
+        // each reconnect-login, so the API client never runs with a stale one.
+        (token) => apiClient.setBearerToken(token)
       );
-      if (this.mqttClient.token) {
-        apiClient.setBearerToken(this.mqttClient.token);
-      }
     }
     const cachedOk = this.deviceManager.loadFromCache();
     if (config.apiKey) {
@@ -414,7 +433,23 @@ class GoveeAdapter extends utils.Adapter {
       (_c = this.lanClient) == null ? void 0 : _c.stop();
       (_d = this.mqttClient) == null ? void 0 : _d.disconnect();
       (_e = this.rateLimiter) == null ? void 0 : _e.stop();
+      if (this.unhandledRejectionHandler) {
+        process.off("unhandledRejection", this.unhandledRejectionHandler);
+        this.unhandledRejectionHandler = null;
+      }
+      if (this.uncaughtExceptionHandler) {
+        process.off("uncaughtException", this.uncaughtExceptionHandler);
+        this.uncaughtExceptionHandler = null;
+      }
       this.setState("info.connection", { val: false, ack: true }).catch(
+        () => {
+        }
+      );
+      this.setState("info.mqttConnected", { val: false, ack: true }).catch(
+        () => {
+        }
+      );
+      this.setState("info.cloudConnected", { val: false, ack: true }).catch(
         () => {
         }
       );
@@ -429,7 +464,7 @@ class GoveeAdapter extends utils.Adapter {
    * @param state New state value
    */
   async onStateChange(id, state) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     if (id === SIBLING_ALIVE_ID) {
       this.applySiblingLimits((state == null ? void 0 : state.val) === true);
       return;
@@ -481,9 +516,20 @@ class GoveeAdapter extends utils.Adapter {
       return;
     }
     if (stateSuffix === "info.diagnostics_export" && state.val) {
+      const deviceKey = `${device.sku}:${device.deviceId}`;
+      const now = Date.now();
+      const last = (_a = this.diagnosticsLastRun.get(deviceKey)) != null ? _a : 0;
+      if (now - last < 2e3) {
+        this.log.debug(
+          `Diagnostics export throttled for ${device.name} \u2014 last run ${now - last}ms ago`
+        );
+        await this.setStateAsync(id, { val: false, ack: true });
+        return;
+      }
+      this.diagnosticsLastRun.set(deviceKey, now);
       const diag = this.deviceManager.generateDiagnostics(
         device,
-        (_a = this.version) != null ? _a : "unknown"
+        (_b = this.version) != null ? _b : "unknown"
       );
       const resultId = `${this.namespace}.${prefix}.info.diagnostics_result`;
       await this.setStateAsync(resultId, {
@@ -497,8 +543,8 @@ class GoveeAdapter extends utils.Adapter {
     const command = this.stateToCommand(stateSuffix);
     if (!command) {
       const obj = await this.getObjectAsync(id);
-      const capType = (_b = obj == null ? void 0 : obj.native) == null ? void 0 : _b.capabilityType;
-      const capInstance = (_c = obj == null ? void 0 : obj.native) == null ? void 0 : _c.capabilityInstance;
+      const capType = (_c = obj == null ? void 0 : obj.native) == null ? void 0 : _c.capabilityType;
+      const capInstance = (_d = obj == null ? void 0 : obj.native) == null ? void 0 : _d.capabilityInstance;
       if (typeof capType === "string" && typeof capInstance === "string") {
         try {
           await this.deviceManager.sendCapabilityCommand(
@@ -791,7 +837,11 @@ class GoveeAdapter extends utils.Adapter {
         `createDeviceStates failed for ${device.name}: ${e instanceof Error ? e.message : String(e)}`
       );
     });
-    this.stateCreationQueue.push(p);
+    if (!this.statesReady) {
+      this.stateCreationQueue.push(p);
+    } else {
+      void p;
+    }
   }
   /**
    * Called by device-manager when the device list changes

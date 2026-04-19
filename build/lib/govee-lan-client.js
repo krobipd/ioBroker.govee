@@ -416,6 +416,12 @@ class GoveeLanClient {
     };
     const key = `${lanDevice.device}:${lanDevice.ip}`;
     if (!this.seenDeviceIps.has(key)) {
+      const staleSuffix = `${lanDevice.device}:`;
+      for (const existing of this.seenDeviceIps) {
+        if (existing.startsWith(staleSuffix) && existing !== key) {
+          this.seenDeviceIps.delete(existing);
+        }
+      }
       this.seenDeviceIps.add(key);
       this.log.debug(
         `LAN: Found ${lanDevice.sku} (${lanDevice.device}) at ${lanDevice.ip}`

@@ -97,6 +97,12 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ## Changelog
 
+### 1.7.8 (2026-04-19)
+- Fix MQTT bearer-token went stale after reconnect — api-client is now refreshed on every fresh login
+- LAN devStatus poll skipped when MQTT is connected (MQTT push is authoritative)
+- Added process-level unhandledRejection / uncaughtException handlers as a last line of defence
+- Minor hygiene — seenDeviceIps evicts old IPs on device IP change, stateCreationQueue bounded to startup, info.mqttConnected / info.cloudConnected reset on unload, diagnostics export throttled per device (2 s)
+
 ### 1.7.7 (2026-04-19)
 - Fix wizard result and MQTT-learned segment count lost on every restart — cache load didn't merge the segment fields into LAN-discovered devices
 - Cache write now fsyncs so a SIGKILL during adapter stop can't silently drop the save
@@ -120,10 +126,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ### 1.7.2 (2026-04-19)
 - Test infrastructure aligned with ioBroker standard — plain-JS package.js + integration.js
-
-### 1.7.1 (2026-04-19)
-- Segment commands force color mode before sending — previously silently ignored in Scene/Gradient/Music mode
-- Side effect: automatic segment-count learning once you touch any segment control
 
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
