@@ -80,7 +80,7 @@ const STATE_TO_COMMAND: Readonly<Record<string, string>> = {
   "music.music_mode": "music",
   "music.music_sensitivity": "music",
   "music.music_auto_color": "music",
-  "snapshots.snapshot": "snapshot",
+  "snapshots.snapshot_cloud": "snapshot",
   "segments.command": "segmentBatch",
 };
 
@@ -209,9 +209,26 @@ class GoveeAdapter extends utils.Adapter {
       },
       native: {},
     });
+    await this.setObjectNotExistsAsync("info.refresh_cloud_data", {
+      type: "state",
+      common: {
+        name: "Refresh Cloud Data",
+        desc: "Write true to re-fetch scenes, snapshots and device list from the Govee Cloud for all devices. Use this after creating a new snapshot in the Govee Home app to see it in the dropdown without restarting the adapter.",
+        type: "boolean",
+        role: "button",
+        read: true,
+        write: true,
+        def: false,
+      },
+      native: {},
+    });
     await this.setStateAsync("info.connection", { val: false, ack: true });
     await this.setStateAsync("info.mqttConnected", { val: false, ack: true });
     await this.setStateAsync("info.cloudConnected", { val: false, ack: true });
+    await this.setStateAsync("info.refresh_cloud_data", {
+      val: false,
+      ack: true,
+    });
     // Load admin language from system.config so wizard prose matches the
     // user's Admin UI. Falls back to English on any lookup failure.
     try {
@@ -441,6 +458,7 @@ class GoveeAdapter extends utils.Adapter {
     // Subscribe to all writable device and group states
     await this.subscribeStatesAsync("devices.*");
     await this.subscribeStatesAsync("groups.*");
+    await this.subscribeStatesAsync("info.refresh_cloud_data");
 
     // Cleanup stale devices after initial discovery (30s delay for LAN scan).
     // Reaps devices from every adapter-level map that was keyed on them so the
@@ -528,6 +546,36 @@ class GoveeAdapter extends utils.Adapter {
   }
 
   /**
+   * React to the user writing `info.refresh_cloud_data = true`. Performs one
+   * full Cloud reload cycle so newly created scenes/snapshots from the Govee
+   * Home app show up without an adapter restart.
+   */
+  private async handleManualCloudRefresh(): Promise<void> {
+    if (!this.deviceManager || !this.cloudClient) {
+      this.log.info(
+        "Refresh cloud data: no Cloud client configured (API key missing) — nothing to do",
+      );
+      return;
+    }
+    this.log.info(
+      "Refresh cloud data: re-fetching scenes and snapshots for all devices",
+    );
+    const result = await this.cloudInitWithTimeout();
+    if (result.ok) {
+      this.cloudWasConnected = true;
+      this.ensureCloudRetry().setConnected(true);
+      this.setStateAsync("info.cloudConnected", {
+        val: true,
+        ack: true,
+      }).catch(() => {});
+      await this.loadCloudStates();
+      this.log.info("Refresh cloud data: done");
+    } else {
+      this.handleCloudFailure(result);
+    }
+  }
+
+  /**
    * Adapter stopping — MUST be synchronous.
    *
    * @param callback Completion callback
@@ -602,6 +650,15 @@ class GoveeAdapter extends utils.Adapter {
     }
 
     if (!state || state.ack || !this.deviceManager || !this.stateManager) {
+      return;
+    }
+
+    // Global refresh button — triggers one fresh cloud fetch across all
+    // devices and re-builds the state tree. Handy after creating a new
+    // snapshot in the Govee Home app without restarting the adapter.
+    if (id === `${this.namespace}.info.refresh_cloud_data` && state.val) {
+      await this.handleManualCloudRefresh();
+      await this.setStateAsync(id, { val: false, ack: true });
       return;
     }
 
@@ -1879,7 +1936,7 @@ class GoveeAdapter extends utils.Adapter {
     const ALL_DROPDOWNS = [
       "scenes.light_scene",
       "scenes.diy_scene",
-      "snapshots.snapshot",
+      "snapshots.snapshot_cloud",
       "snapshots.snapshot_local",
       "music.music_mode",
     ];
@@ -1888,7 +1945,7 @@ class GoveeAdapter extends utils.Adapter {
     const COMMAND_DROPDOWN: Record<string, string> = {
       lightScene: "scenes.light_scene",
       diyScene: "scenes.diy_scene",
-      snapshot: "snapshots.snapshot",
+      snapshot: "snapshots.snapshot_cloud",
       snapshotLocal: "snapshots.snapshot_local",
       music: "music.music_mode",
       colorRgb: "",

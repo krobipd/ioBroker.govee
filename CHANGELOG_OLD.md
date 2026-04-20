@@ -1,5 +1,9 @@
 # Older Changes
 
+## 1.7.3 (2026-04-19)
+- `common.messagebox=true` for onMessage wizard (latest-repo review compliance)
+- Color-mode preamble delays routed through adapter timer wrapper (onUnload-safe)
+
 ## 1.7.2 (2026-04-19)
 - Test infrastructure aligned with ioBroker standard — plain-JS package.js + integration.js
 

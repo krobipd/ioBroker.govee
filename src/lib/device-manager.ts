@@ -353,15 +353,17 @@ export class DeviceManager {
       this.log.info(`Loaded ${cached.length} device(s) from cache`);
     }
 
-    // Refetch trigger: a light device where we never confirmed the scene situation.
-    // scenesChecked=true means we already asked Cloud (empty result is legitimate).
-    const needsRefetch = Array.from(this.devices.values()).some(
-      (d) => d.type === "devices.types.light" && !d.scenesChecked,
+    // Always refetch cloud data on startup — scenesChecked is purely diagnostic
+    // now, not a gate. Snapshots are user-content (created dynamically in the
+    // Govee Home app) and would miss new entries if we relied solely on the
+    // cache. The refetch costs one call per light device per startup, well
+    // within rate limits. Users can also trigger a fresh fetch without
+    // restart via `info.refresh_cloud_data`.
+    const hasLight = Array.from(this.devices.values()).some(
+      (d) => d.type === "devices.types.light",
     );
-    if (needsRefetch) {
-      this.log.info(
-        "Cache has unchecked scene data — will confirm once via Cloud",
-      );
+    if (hasLight) {
+      this.log.debug("Cache loaded — will refresh scenes/snapshots via Cloud");
       return false;
     }
 

@@ -256,13 +256,11 @@ class DeviceManager {
     if (changed) {
       this.log.info(`Loaded ${cached.length} device(s) from cache`);
     }
-    const needsRefetch = Array.from(this.devices.values()).some(
-      (d) => d.type === "devices.types.light" && !d.scenesChecked
+    const hasLight = Array.from(this.devices.values()).some(
+      (d) => d.type === "devices.types.light"
     );
-    if (needsRefetch) {
-      this.log.info(
-        "Cache has unchecked scene data \u2014 will confirm once via Cloud"
-      );
+    if (hasLight) {
+      this.log.debug("Cache loaded \u2014 will refresh scenes/snapshots via Cloud");
       return false;
     }
     for (const device of this.devices.values()) {

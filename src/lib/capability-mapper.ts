@@ -12,6 +12,12 @@ export interface StateDefinition {
   id: string;
   /** Display name */
   name: string;
+  /**
+   * Human-readable description shown in the object browser — used to clarify
+   * ambiguous state names (e.g. cloud vs local snapshots) where the id alone
+   * isn't enough for a user to know what the state does.
+   */
+  desc?: string;
   /** ioBroker value type */
   type: ioBroker.CommonType;
   /** ioBroker role */
@@ -803,8 +809,9 @@ export function buildDeviceStateDefs(
       states[i + 1] = s.name;
     });
     stateDefs.push({
-      id: "snapshot",
-      name: "Snapshot",
+      id: "snapshot_cloud",
+      name: "Cloud Snapshot",
+      desc: "Snapshots you saved in the Govee Home app. Selecting one replays that state on the device.",
       type: "string",
       role: "text",
       write: true,
@@ -826,6 +833,7 @@ export function buildDeviceStateDefs(
   stateDefs.push({
     id: "snapshot_local",
     name: "Local Snapshot",
+    desc: "Snapshots saved by this adapter on the ioBroker server. Independent of the Govee Home app.",
     type: "string",
     role: "text",
     write: true,
@@ -838,6 +846,7 @@ export function buildDeviceStateDefs(
   stateDefs.push({
     id: "snapshot_save",
     name: "Save Local Snapshot",
+    desc: "Write a name to save the current device state (power, brightness, colour, per-segment colours) as a new local snapshot.",
     type: "string",
     role: "text",
     write: true,
@@ -849,6 +858,7 @@ export function buildDeviceStateDefs(
   stateDefs.push({
     id: "snapshot_delete",
     name: "Delete Local Snapshot",
+    desc: "Write a local snapshot name to delete it. Does not affect Govee Home app snapshots.",
     type: "string",
     role: "text",
     write: true,

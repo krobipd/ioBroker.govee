@@ -56,7 +56,7 @@ const STATE_TO_COMMAND = {
   "music.music_mode": "music",
   "music.music_sensitivity": "music",
   "music.music_auto_color": "music",
-  "snapshots.snapshot": "snapshot",
+  "snapshots.snapshot_cloud": "snapshot",
   "segments.command": "segmentBatch"
 };
 class GoveeAdapter extends utils.Adapter {
@@ -182,9 +182,26 @@ class GoveeAdapter extends utils.Adapter {
       },
       native: {}
     });
+    await this.setObjectNotExistsAsync("info.refresh_cloud_data", {
+      type: "state",
+      common: {
+        name: "Refresh Cloud Data",
+        desc: "Write true to re-fetch scenes, snapshots and device list from the Govee Cloud for all devices. Use this after creating a new snapshot in the Govee Home app to see it in the dropdown without restarting the adapter.",
+        type: "boolean",
+        role: "button",
+        read: true,
+        write: true,
+        def: false
+      },
+      native: {}
+    });
     await this.setStateAsync("info.connection", { val: false, ack: true });
     await this.setStateAsync("info.mqttConnected", { val: false, ack: true });
     await this.setStateAsync("info.cloudConnected", { val: false, ack: true });
+    await this.setStateAsync("info.refresh_cloud_data", {
+      val: false,
+      ack: true
+    });
     try {
       const sysConf = await this.getForeignObjectAsync("system.config");
       const lang = (_a = sysConf == null ? void 0 : sysConf.common) == null ? void 0 : _a.language;
@@ -371,6 +388,7 @@ class GoveeAdapter extends utils.Adapter {
     this.statesReady = true;
     await this.subscribeStatesAsync("devices.*");
     await this.subscribeStatesAsync("groups.*");
+    await this.subscribeStatesAsync("info.refresh_cloud_data");
     this.cleanupTimer = this.setTimeout(() => {
       this.reapStaleDevices().catch(
         (e) => this.log.debug(
@@ -447,6 +465,36 @@ class GoveeAdapter extends utils.Adapter {
     this.ensureCloudRetry().handleResult(result);
   }
   /**
+   * React to the user writing `info.refresh_cloud_data = true`. Performs one
+   * full Cloud reload cycle so newly created scenes/snapshots from the Govee
+   * Home app show up without an adapter restart.
+   */
+  async handleManualCloudRefresh() {
+    if (!this.deviceManager || !this.cloudClient) {
+      this.log.info(
+        "Refresh cloud data: no Cloud client configured (API key missing) \u2014 nothing to do"
+      );
+      return;
+    }
+    this.log.info(
+      "Refresh cloud data: re-fetching scenes and snapshots for all devices"
+    );
+    const result = await this.cloudInitWithTimeout();
+    if (result.ok) {
+      this.cloudWasConnected = true;
+      this.ensureCloudRetry().setConnected(true);
+      this.setStateAsync("info.cloudConnected", {
+        val: true,
+        ack: true
+      }).catch(() => {
+      });
+      await this.loadCloudStates();
+      this.log.info("Refresh cloud data: done");
+    } else {
+      this.handleCloudFailure(result);
+    }
+  }
+  /**
    * Adapter stopping — MUST be synchronous.
    *
    * @param callback Completion callback
@@ -511,6 +559,11 @@ class GoveeAdapter extends utils.Adapter {
       return;
     }
     if (!state || state.ack || !this.deviceManager || !this.stateManager) {
+      return;
+    }
+    if (id === `${this.namespace}.info.refresh_cloud_data` && state.val) {
+      await this.handleManualCloudRefresh();
+      await this.setStateAsync(id, { val: false, ack: true });
       return;
     }
     const localId = id.replace(`${this.namespace}.`, "");
@@ -1502,14 +1555,14 @@ class GoveeAdapter extends utils.Adapter {
     const ALL_DROPDOWNS = [
       "scenes.light_scene",
       "scenes.diy_scene",
-      "snapshots.snapshot",
+      "snapshots.snapshot_cloud",
       "snapshots.snapshot_local",
       "music.music_mode"
     ];
     const COMMAND_DROPDOWN = {
       lightScene: "scenes.light_scene",
       diyScene: "scenes.diy_scene",
-      snapshot: "snapshots.snapshot",
+      snapshot: "snapshots.snapshot_cloud",
       snapshotLocal: "snapshots.snapshot_local",
       music: "music.music_mode",
       colorRgb: "",

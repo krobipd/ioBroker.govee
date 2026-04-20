@@ -229,6 +229,9 @@ class StateManager {
         if (def.def !== void 0) {
           common.def = def.def;
         }
+        if (def.desc) {
+          common.desc = def.desc;
+        }
         await this.adapter.extendObjectAsync(`${prefix}.${channel}.${def.id}`, {
           type: "state",
           common,
