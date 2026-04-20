@@ -97,6 +97,9 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ## Changelog
 
+### 1.9.1 (2026-04-20)
+- Hotfix — Govee's `/device/scenes` endpoint occasionally returns e.g. 149 scenes + 0 snapshots on the same device where a snapshot clearly exists. The old combined guard (`if any of the three lists is non-empty, overwrite all three`) wiped the snapshot list in that case, and the cloud-snapshot dropdown then errored out with `invalid snapshot index 1` on click. Each of scenes, DIY scenes and snapshots is now guarded independently — a lucky list no longer clobbers an unlucky one. Applies to every device with cloud-side snapshots, not just the device where it first surfaced.
+
 ### 1.9.0 (2026-04-20)
 - **BREAKING** — the cloud-snapshot dropdown has been renamed from `snapshots.snapshot` to `snapshots.snapshot_cloud`. The new id is unambiguous next to `snapshots.snapshot_local`, `snapshots.snapshot_save` and `snapshots.snapshot_delete`. If your scripts or VIS widgets reference the old id, update them to the new one. The old state is simply removed on first start — nothing is migrated because the value (a dropdown index) is set again on the next selection anyway.
 - Fix — scenes and snapshots are now re-fetched from the Govee Cloud on every adapter start. Previously, once `scenesChecked` was set on the cache, the adapter skipped the Cloud round-trip even when you had created a new snapshot in the Govee Home app, so new snapshots only appeared after wiping the cache. This was a genuine bug. Scene data is essentially static, but snapshots are user content — refreshing is cheap (one call per light device per startup) and much less surprising.
@@ -135,9 +138,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ### 1.7.5 (2026-04-19)
 - Fix Wiki link in adapter settings — Markdown in staticText wasn't rendered, replaced with two staticLink buttons (DE + EN)
-
-### 1.7.4 (2026-04-19)
-- Add language-aware Wiki link at the top of the main configuration tab
 
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

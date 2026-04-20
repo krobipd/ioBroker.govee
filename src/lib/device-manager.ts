@@ -550,18 +550,24 @@ export class DeviceManager {
     device: GoveeDevice,
     cd: CloudDevice,
   ): Promise<boolean> {
-    // Scenes from dedicated scenes endpoint (rate-limited)
+    // Scenes from dedicated scenes endpoint (rate-limited).
+    // Guards are per-list, not combined: Govee's /device/scenes sometimes
+    // returns 149 lightScenes + 0 snapshots (or vice versa) on back-to-back
+    // calls even though the snapshot exists. A combined guard (if any list
+    // non-empty, overwrite all) would wipe the other lists on that call and
+    // break the dropdown until the next lucky round-trip. One guard per
+    // list keeps the last-known-good data in place.
     const loadScenes = async (): Promise<void> => {
       try {
         const { lightScenes, diyScenes, snapshots } =
           await this.cloudClient!.getScenes(cd.sku, cd.device);
-        if (
-          lightScenes.length > 0 ||
-          diyScenes.length > 0 ||
-          snapshots.length > 0
-        ) {
+        if (lightScenes.length > 0) {
           device.scenes = lightScenes;
+        }
+        if (diyScenes.length > 0) {
           device.diyScenes = diyScenes;
+        }
+        if (snapshots.length > 0) {
           device.snapshots = snapshots;
         }
       } catch {

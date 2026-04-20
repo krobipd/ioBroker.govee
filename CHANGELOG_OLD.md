@@ -1,5 +1,8 @@
 # Older Changes
 
+## 1.7.4 (2026-04-19)
+- Add language-aware Wiki link at the top of the main configuration tab
+
 ## 1.7.3 (2026-04-19)
 - `common.messagebox=true` for onMessage wizard (latest-repo review compliance)
 - Color-mode preamble delays routed through adapter timer wrapper (onUnload-safe)

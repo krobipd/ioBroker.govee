@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "govee-smart",
-        "version": "1.9.0",
+        "version": "1.9.1",
         "news": {
+            "1.9.1": {
+                "en": "Hotfix — cloud-side scene/snapshot updates are now merged per list instead of all-or-nothing. Govee’s /device/scenes occasionally returns e.g. 149 scenes + 0 snapshots on the same device where a snapshot clearly exists; the old combined guard wiped the snapshots list in that case, breaking the cloud-snapshot dropdown with “invalid snapshot index” errors. Each of scenes, DIY scenes and snapshots is now guarded independently so a lucky list never clobbers an unlucky one.",
+                "de": "Hotfix — Cloud-Aktualisierungen für Szenen/Snapshots werden jetzt pro Liste gemerged statt alles-oder-nichts. Govees /device/scenes liefert gelegentlich z.B. 149 Szenen + 0 Snapshots obwohl ein Snapshot existiert; der alte kombinierte Guard hat die Snapshot-Liste in dem Fall geleert und damit das Cloud-Snapshot-Dropdown mit „invalid snapshot index“-Fehlern gebrochen. Szenen, DIY-Szenen und Snapshots werden jetzt unabhängig gegen leeres Cloud-Ergebnis geschützt.",
+                "ru": "Хотфикс — обновление сцен/снапшотов из облака теперь мержится по отдельным спискам, а не всё сразу. Govee иногда возвращает сцены + 0 снапшотов там где снапшот реально существует; старая логика стирала список снапшотов, ломая dropdown с ошибкой \"invalid snapshot index\". Списки теперь защищены независимо.",
+                "pt": "Hotfix — atualizações cloud de cenas/snapshots agora são mescladas por lista. Govee às vezes retorna cenas + 0 snapshots quando o snapshot existe; o guard antigo apagava a lista de snapshots, causando erros \"invalid snapshot index\" no dropdown. Agora cada lista é protegida separadamente.",
+                "nl": "Hotfix — cloud-updates van scenes/snapshots worden nu per lijst samengevoegd. Govee retourneert soms scenes + 0 snapshots terwijl de snapshot bestaat; de oude guard wiste de snapshot-lijst in dat geval, waardoor het dropdown brak met \"invalid snapshot index\". Elke lijst wordt nu afzonderlijk beschermd.",
+                "fr": "Hotfix — les mises à jour cloud des scènes/snapshots sont maintenant fusionnées par liste. Govee renvoie parfois des scènes + 0 snapshot alors que le snapshot existe ; l’ancien guard effaçait la liste des snapshots, cassant le dropdown avec l’erreur « invalid snapshot index ». Chaque liste est maintenant protégée séparément.",
+                "it": "Hotfix — gli aggiornamenti cloud di scene/snapshot ora vengono uniti per lista. Govee talvolta restituisce scene + 0 snapshot quando lo snapshot esiste; il vecchio guard cancellava la lista degli snapshot, rompendo il dropdown con errori \"invalid snapshot index\". Ora ogni lista è protetta separatamente.",
+                "es": "Hotfix — las actualizaciones cloud de escenas/snapshots ahora se fusionan por lista. Govee a veces devuelve escenas + 0 snapshots cuando el snapshot existe; el guard antiguo borraba la lista de snapshots, rompiendo el dropdown con errores \"invalid snapshot index\". Cada lista ahora está protegida por separado.",
+                "pl": "Hotfix — aktualizacje cloud scen/snapshotów są teraz mergeowane osobno dla każdej listy. Govee czasem zwraca sceny + 0 snapshotów gdy snapshot istnieje; stary guard czyścił listę snapshotów, psując dropdown z błędem \"invalid snapshot index\". Każda lista jest teraz chroniona osobno.",
+                "uk": "Хотфікс — оновлення сцен/снепшотів з клауду тепер мержаться посписочно. Govee іноді повертає сцени + 0 снепшотів коли снепшот існує; старий guard стирав список снепшотів, ламаючи dropdown з помилкою \"invalid snapshot index\". Кожен список тепер захищено окремо.",
+                "zh-cn": "热修复 — 云端场景/快照更新现在按列表分别合并。Govee 有时返回场景 + 0 快照（快照实际存在），旧的 guard 会清空快照列表，导致 dropdown 出现 \"invalid snapshot index\" 错误。每个列表现在独立保护。"
+            },
             "1.9.0": {
                 "en": "BREAKING: the cloud-snapshot dropdown has been renamed from snapshots.snapshot to snapshots.snapshot_cloud — update your scripts if they reference the old id. Plus: scene and snapshot data are now re-fetched from the Govee Cloud on every adapter start (a new snapshot you created in the Govee Home app now appears after restart) and a new info.refresh_cloud_data button lets you trigger the same refresh without a restart. Every snapshot state now carries a clear description telling you whether it is the Cloud or the Local kind.",
                 "de": "BREAKING: der Cloud-Snapshot-Datenpunkt heißt jetzt snapshots.snapshot_cloud statt snapshots.snapshot — Skripte mit der alten ID anpassen. Außerdem: Szenen- und Snapshot-Daten werden bei jedem Adapter-Start frisch aus der Govee Cloud geholt (ein neuer Snapshot aus der Govee Home App ist nach einem Restart sichtbar), plus neuer Button info.refresh_cloud_data für den manuellen Refresh ohne Restart. Alle vier Snapshot-States haben jetzt eine Beschreibung die Cloud vs. Lokal klar benennt.",
@@ -80,19 +93,6 @@
                 "pl": "Naprawiono link do Wiki u góry ustawień adaptera — Markdown w staticText nie był renderowany jako klikalny link. Teraz dwa przyciski staticLink obok siebie: \"Wiki (Deutsch)\" i \"Wiki (English)\".",
                 "uk": "Виправлено посилання на Wiki вгорі налаштувань адаптера — Markdown у staticText не рендерився як клікабельне посилання. Тепер дві кнопки staticLink поруч: \"Wiki (Deutsch)\" та \"Wiki (English)\".",
                 "zh-cn": "修复适配器设置顶部的 Wiki 链接 — staticText 中的 Markdown 未渲染为可点击链接。现在使用两个并排的 staticLink 按钮: \"Wiki (Deutsch)\" 和 \"Wiki (English)\"。"
-            },
-            "1.7.4": {
-                "en": "Admin UI: language-aware Wiki link at the top of the main configuration tab. German Admin points to the Startseite, all other languages to the English Home. No runtime change.",
-                "de": "Admin-UI: sprachabhängiger Wiki-Link oben im Hauptkonfigurations-Tab. Deutsches Admin zeigt auf die Startseite, alle anderen Sprachen auf die englische Home. Keine Laufzeit-Änderung.",
-                "ru": "Admin UI: ссылка на вики в зависимости от языка вверху главной вкладки конфигурации. Изменений во время выполнения нет.",
-                "pt": "Admin UI: link para o Wiki conforme o idioma no topo da aba principal de configuração. Sem mudanças em runtime.",
-                "nl": "Admin UI: taalafhankelijke Wiki-link bovenaan het hoofdconfiguratietabblad. Geen runtime-wijziging.",
-                "fr": "Admin UI : lien vers le Wiki selon la langue en haut de l'onglet de configuration principal. Aucun changement runtime.",
-                "it": "Admin UI: link al Wiki in base alla lingua in cima alla scheda di configurazione principale. Nessuna modifica a runtime.",
-                "es": "Admin UI: enlace al Wiki según el idioma en la parte superior de la pestaña de configuración principal. Sin cambios en runtime.",
-                "pl": "Admin UI: link do Wiki zależny od języka u góry głównej zakładki konfiguracji. Bez zmian w runtime.",
-                "uk": "Admin UI: посилання на Wiki залежно від мови вгорі головної вкладки конфігурації. Без змін у runtime.",
-                "zh-cn": "管理界面: 主配置选项卡顶部添加与语言相关的 Wiki 链接。运行时无变化。"
             }
         },
         "titleLang": {

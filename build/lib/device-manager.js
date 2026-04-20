@@ -395,9 +395,13 @@ class DeviceManager {
     const loadScenes = async () => {
       try {
         const { lightScenes, diyScenes, snapshots } = await this.cloudClient.getScenes(cd.sku, cd.device);
-        if (lightScenes.length > 0 || diyScenes.length > 0 || snapshots.length > 0) {
+        if (lightScenes.length > 0) {
           device.scenes = lightScenes;
+        }
+        if (diyScenes.length > 0) {
           device.diyScenes = diyScenes;
+        }
+        if (snapshots.length > 0) {
           device.snapshots = snapshots;
         }
       } catch {
