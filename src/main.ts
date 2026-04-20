@@ -560,18 +560,16 @@ class GoveeAdapter extends utils.Adapter {
     this.log.info(
       "Refresh cloud data: re-fetching scenes and snapshots for all devices",
     );
-    const result = await this.cloudInitWithTimeout();
-    if (result.ok) {
-      this.cloudWasConnected = true;
-      this.ensureCloudRetry().setConnected(true);
-      this.setStateAsync("info.cloudConnected", {
-        val: true,
-        ack: true,
-      }).catch(() => {});
-      await this.loadCloudStates();
+    try {
+      const changed = await this.deviceManager.refreshSceneData();
+      if (changed) {
+        await this.loadCloudStates();
+      }
       this.log.info("Refresh cloud data: done");
-    } else {
-      this.handleCloudFailure(result);
+    } catch (e) {
+      this.log.warn(
+        `Refresh cloud data failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
   }
 

@@ -494,6 +494,51 @@ export class DeviceManager {
   }
 
   /**
+   * Re-fetch scenes and snapshots for all known light devices without
+   * re-running the full Cloud bootstrap. Skips `loadDeviceLibraries` — the
+   * undocumented library/sku-features endpoints are static (libraries never
+   * change for a given SKU) and some return 403 for many accounts, so
+   * running them again on every user-triggered refresh only produces a
+   * multi-minute rate-limiter backlog without adding data.
+   *
+   * Used by the `info.refresh_cloud_data` button for "new snapshot/scene
+   * was saved in the Govee Home app, show it here".
+   *
+   * @returns true when any device's scene/snapshot data changed
+   */
+  async refreshSceneData(): Promise<boolean> {
+    if (!this.cloudClient) {
+      return false;
+    }
+    let anyChanged = false;
+    const lights = Array.from(this.devices.values()).filter(
+      (d) => d.type === "devices.types.light",
+    );
+    for (const device of lights) {
+      const cd: CloudDevice = {
+        sku: device.sku,
+        device: device.deviceId,
+        deviceName: device.name,
+        type: device.type,
+        capabilities: Array.isArray(device.capabilities)
+          ? device.capabilities
+          : [],
+      };
+      if (await this.loadDeviceScenes(device, cd)) {
+        anyChanged = true;
+      }
+    }
+    if (anyChanged) {
+      this.saveDevicesToCache();
+      for (const device of this.devices.values()) {
+        this.populateScenesFromLibrary(device);
+      }
+      this.onDeviceListChanged?.(this.getDevices());
+    }
+    return anyChanged;
+  }
+
+  /**
    * Merge Cloud device list into local device map.
    * Updates existing devices, adds new ones.
    *

@@ -1,5 +1,12 @@
 # Older Changes
 
+## 1.7.6 (2026-04-19)
+- Fix manual_mode rollback on invalid manual_list no longer bounces the rejected value back into the state
+- Complete wizard translations in 9 admin languages (previously raw keys), worst machine-translation glitches hand-corrected
+- info channel keeps its "Device Information" display name
+- Drop "~100 ms" latency claim from LAN section, reworded in all 11 languages
+- Internal: applyManualSegments helper, targeted state refresh on snapshot ops, dynamic_scene mapping cleanup, prefix-map cleanup on device removal, loadDeviceScenes dead-logic removed, MQTT/Cloud routing docstrings corrected
+
 ## 1.7.5 (2026-04-19)
 - Fix Wiki link in adapter settings — Markdown in staticText wasn't rendered, replaced with two staticLink buttons (DE + EN)
 

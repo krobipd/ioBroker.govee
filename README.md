@@ -97,6 +97,9 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ## Changelog
 
+### 1.10.1 (2026-04-20)
+- Fix — the `info.refresh_cloud_data` button was re-fetching every device's scene / music / DIY / SKU-features libraries on each click. Libraries never change for a given SKU, and several of those endpoints return 403 for many accounts, so running them again on every refresh only produced a multi-minute rate-limiter backlog — visible in the log as minute-spaced POSTs to `/device/scenes` and `/device/diy-scenes` in the minutes after each click. The button now only re-fetches the scene/snapshot endpoint, which is where new Govee-app snapshots actually show up. Call count per click drops from ~7 to 2 per light device.
+
 ### 1.10.0 (2026-04-20)
 - Scenes with a `scenceParam` (the multi-packet A3 BLE payload that drives per-segment animation) are now skipped on devices without segments and activated via the Govee Cloud instead. Curtain Lights (H70B3) and bulbs silently drop those A3 packets, which left complex scenes unplayed; the simple presets without `scenceParam` kept working. With this fix every scene reaches the device, at the cost of one Cloud call per scene change on non-segmented hardware.
 - Powering a device off now resets every mode dropdown (scene, DIY scene, Cloud/local snapshot, music) to "---", whether the off was triggered from ioBroker or from the Govee Home app. A device that is off cannot be "playing Aurora-A" — the UI now reflects that.
@@ -132,13 +135,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ### 1.7.7 (2026-04-19)
 - Fix wizard result and MQTT-learned segment count lost on every restart — cache load didn't merge the segment fields into LAN-discovered devices
 - Cache write now fsyncs so a SIGKILL during adapter stop can't silently drop the save
-
-### 1.7.6 (2026-04-19)
-- Fix manual_mode rollback on invalid manual_list no longer bounces the rejected value back into the state
-- Complete wizard translations in 9 admin languages (previously raw keys), worst machine-translation glitches hand-corrected
-- info channel keeps its "Device Information" display name
-- Drop "~100 ms" latency claim from LAN section, reworded in all 11 languages
-- Internal: applyManualSegments helper, targeted state refresh on snapshot ops, dynamic_scene mapping cleanup, prefix-map cleanup on device removal, loadDeviceScenes dead-logic removed, MQTT/Cloud routing docstrings corrected
 
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
