@@ -6,20 +6,16 @@ import * as path from "node:path";
  * its behaviour for a specific Govee device. New fields are added here as
  * the schema evolves; the loader silently ignores unknown fields so a
  * v2.x devices.json on a v2.0 adapter still works.
+ *
+ * Each field listed here MUST be wired up in code (capability-mapper,
+ * device-manager, …). Doc-only hints for a SKU belong in the entry's
+ * `notes` field instead.
  */
 export interface DeviceQuirks {
   /** Override color-temperature range (Govee API often claims a flat 2000-9000K, real range is narrower). */
   colorTempRange?: { min: number; max: number };
   /** Cloud platform-API metadata is unreliable — adapter falls back to default LAN states. */
   brokenPlatformApi?: boolean;
-  /** State comes from the Govee app2.govee.com endpoint (sensors like H5179 — OpenAPI v2 returns empty for them). */
-  preferAppApi?: boolean;
-  /** Device is not reachable over LAN — skip UDP-multicast discovery for this SKU. */
-  skipLanDiscovery?: boolean;
-  /** Device sends OpenAPI-MQTT events (lackWater, iceFull, bodyAppeared, …) — adapter creates an events/ channel. */
-  expectEvents?: boolean;
-  /** Power state arrives as 1/0 instead of true/false (govee2mqtt-compatible quirk). */
-  powerValueWorkaround?: boolean;
 }
 
 /** Trust tiers used to decide whether a device's quirks are applied by default. */
@@ -47,10 +43,6 @@ export interface DeviceEntry {
   status: DeviceStatus;
   /** Adapter version when this device was first supported (semver). Optional. */
   since?: string;
-  /** "YYYY-MM-DD by handle" — last confirmed working test. Optional. */
-  tested?: string;
-  /** Free-form notes — quirks rationale, edge cases. Optional. */
-  notes?: string;
   /** Per-SKU quirks the adapter applies at runtime. Optional. */
   quirks?: DeviceQuirks;
 }

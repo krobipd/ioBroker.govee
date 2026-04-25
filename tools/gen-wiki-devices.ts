@@ -20,8 +20,6 @@ interface DeviceEntry {
   type: string;
   status: "verified" | "reported" | "seed";
   since?: string;
-  tested?: string;
-  notes?: string;
   quirks?: Record<string, unknown>;
 }
 
@@ -72,7 +70,6 @@ interface Texts {
   colName: string;
   colStatus: string;
   colSince: string;
-  colNotes: string;
   /** „Mein Gerät steht auf ⚪" section */
   experimentalHeading: string;
   experimentalBody: string;
@@ -114,7 +111,6 @@ einzelne Funktionen fehlen.`,
   colName: "Govee-Name",
   colStatus: "Status",
   colSince: "Seit",
-  colNotes: "Hinweis",
   experimentalHeading: "## Dein Gerät steht auf ⚪? So hilfst du uns",
   experimentalBody: `Wir haben dein Gerät noch nicht selbst getestet. Wenn du es ausprobierst,
 hast du echte Daten — und unser Adapter wird mit jedem Bericht besser.
@@ -185,7 +181,6 @@ Problems or missing functions are possible.`,
   colName: "Govee name",
   colStatus: "Status",
   colSince: "Since",
-  colNotes: "Notes",
   experimentalHeading: "## Your device shows ⚪? Here's how to help",
   experimentalBody: `We haven't tested your device ourselves yet. If you try it, you have
 real data — and the adapter improves with every report.
@@ -224,38 +219,18 @@ experimental toggle.`,
   footer: "This page is auto-generated.",
 };
 
-function renderQuirkSummary(q: Record<string, unknown> | undefined): string {
-  if (!q) return "";
-  const parts: string[] = [];
-  if (q.colorTempRange && typeof q.colorTempRange === "object") {
-    const r = q.colorTempRange as { min?: number; max?: number };
-    parts.push(`Color-Temp ${r.min}–${r.max}K`);
-  }
-  if (q.brokenPlatformApi) parts.push("Platform-API broken");
-  if (q.preferAppApi) parts.push("App-API only");
-  if (q.skipLanDiscovery) parts.push("No LAN");
-  if (q.expectEvents) parts.push("MQTT events");
-  if (q.powerValueWorkaround) parts.push("Power 1/0");
-  return parts.join(", ");
-}
-
 function escapePipe(s: string): string {
   return s.replace(/\|/g, "\\|");
 }
 
 function renderTable(entries: Array<[string, DeviceEntry]>, t: Texts): string {
   const rows: string[] = [];
-  rows.push(`| ${t.colSku} | ${t.colName} | ${t.colStatus} | ${t.colSince} | ${t.colNotes} |`);
-  rows.push(`| --- | --- | --- | --- | --- |`);
+  rows.push(`| ${t.colSku} | ${t.colName} | ${t.colStatus} | ${t.colSince} |`);
+  rows.push(`| --- | --- | --- | --- |`);
   for (const [sku, e] of entries) {
-    const noteParts: string[] = [];
-    const quirkSummary = renderQuirkSummary(e.quirks);
-    if (quirkSummary) noteParts.push(quirkSummary);
-    if (e.notes) noteParts.push(e.notes);
-    const noteCell = noteParts.length ? escapePipe(noteParts.join(". ")) : "—";
     const since = e.since ? `v${e.since}` : "—";
     rows.push(
-      `| \`${sku}\` | ${escapePipe(e.name)} | ${STATUS_ICON[e.status]} | ${since} | ${noteCell} |`,
+      `| \`${sku}\` | ${escapePipe(e.name)} | ${STATUS_ICON[e.status]} | ${since} |`,
     );
   }
   return rows.join("\n");

@@ -35,20 +35,18 @@ const SAMPLE = {
             type: "light",
             status: "verified",
             since: "1.0.0",
-            tested: "2026-04-25 by krobi",
         },
         H5179: {
             name: "Wifi Thermometer",
             type: "thermometer",
             status: "verified",
             since: "2.0.0",
-            quirks: { preferAppApi: true },
         },
         H7160: {
             name: "Smart Space Heater",
             type: "heater",
             status: "reported",
-            quirks: { brokenPlatformApi: true, expectEvents: true },
+            quirks: { brokenPlatformApi: true },
         },
     },
 } as const;
@@ -109,16 +107,16 @@ describe("DeviceRegistry", () => {
     });
 
     describe("Status filter (default: experimental=false)", () => {
-        it("activates verified quirks", () => {
+        it("activates verified entries (no quirks set)", () => {
             const reg = new DeviceRegistry({ data: SAMPLE as never });
-            expect(reg.getQuirks("H5179")).to.deep.equal({ preferAppApi: true });
+            expect(reg.getEntry("H5179")?.status).to.equal("verified");
+            expect(reg.getQuirks("H5179")).to.be.undefined;
         });
 
         it("activates reported quirks", () => {
             const reg = new DeviceRegistry({ data: SAMPLE as never });
             expect(reg.getQuirks("H7160")).to.deep.equal({
                 brokenPlatformApi: true,
-                expectEvents: true,
             });
         });
 
@@ -177,7 +175,7 @@ describe("DeviceRegistry", () => {
         });
 
         it("SKU lookup is case-insensitive", () => {
-            expect(reg.getQuirks("h5179")).to.deep.equal({ preferAppApi: true });
+            expect(reg.getQuirks("h7160")).to.deep.equal({ brokenPlatformApi: true });
             expect(reg.getStatus("h61be")).to.equal("verified");
             expect(reg.getName("h7160")).to.equal("Smart Space Heater");
         });
@@ -250,7 +248,7 @@ describe("DeviceRegistry", () => {
 
         it("initDeviceRegistry installs the singleton", () => {
             initDeviceRegistry({ data: SAMPLE as never });
-            expect(getDeviceQuirks("H5179")).to.deep.equal({ preferAppApi: true });
+            expect(getDeviceQuirks("H7160")).to.deep.equal({ brokenPlatformApi: true });
         });
 
         it("module-level applyColorTempQuirk uses the singleton when set", () => {

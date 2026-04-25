@@ -58,14 +58,6 @@
                     "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
                     "description": "Adapter version when this device was first supported (semver)."
                 },
-                "tested": {
-                    "type": "string",
-                    "description": "Free-form 'YYYY-MM-DD by handle' marker for last confirmed working test."
-                },
-                "notes": {
-                    "type": "string",
-                    "description": "Free-form notes about the device — quirks rationale, edge cases, etc."
-                },
                 "quirks": {
                     "$ref": "#/definitions/quirks"
                 }
@@ -88,22 +80,6 @@
                 "brokenPlatformApi": {
                     "type": "boolean",
                     "description": "Cloud platform-API metadata is unreliable — adapter falls back to default LAN states."
-                },
-                "preferAppApi": {
-                    "type": "boolean",
-                    "description": "State comes from the Govee app2.govee.com endpoint instead of OpenAPI v2 /device/state (which returns empty for sensors like H5179)."
-                },
-                "skipLanDiscovery": {
-                    "type": "boolean",
-                    "description": "Device is not reachable over LAN — skip the UDP-multicast discovery for this SKU."
-                },
-                "expectEvents": {
-                    "type": "boolean",
-                    "description": "Device sends OpenAPI-MQTT events (lackWater, iceFull, bodyAppeared, etc.) — adapter creates an events/ channel."
-                },
-                "powerValueWorkaround": {
-                    "type": "boolean",
-                    "description": "Power state arrives as 1/0 instead of true/false (govee2mqtt-compatible quirk for older firmware)."
                 }
             },
             "additionalProperties": false
