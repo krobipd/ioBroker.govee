@@ -312,7 +312,7 @@ describe("CapabilityMapper", () => {
             expect(result[2].type).to.equal("boolean");
         });
 
-        it("should map work_mode to JSON state", () => {
+        it("should fall back to mixed work_mode state when STRUCT has no fields", () => {
             const caps: CloudCapability[] = [
                 {
                     type: "devices.capabilities.work_mode",
@@ -323,6 +323,223 @@ describe("CapabilityMapper", () => {
             const result = mapCapabilities(caps);
             expect(result).to.have.lengthOf(1);
             expect(result[0].id).to.equal("work_mode");
+            expect(result[0].type).to.equal("mixed");
+            expect(result[0].role).to.equal("level.mode");
+        });
+
+        it("should map work_mode STRUCT with workMode field options to dropdown", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.work_mode",
+                    instance: "workMode",
+                    parameters: {
+                        dataType: "STRUCT",
+                        fields: [
+                            {
+                                fieldName: "workMode",
+                                dataType: "ENUM",
+                                options: [
+                                    { name: "Manual", value: 1 },
+                                    { name: "Auto", value: 2 },
+                                    { name: "Sleep", value: 3 },
+                                ],
+                            },
+                        ],
+                    },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].id).to.equal("work_mode");
+            expect(result[0].type).to.equal("mixed");
+            expect(result[0].states).to.deep.equal({ "1": "Manual", "2": "Auto", "3": "Sleep" });
+            expect(result[0].def).to.equal("1");
+        });
+
+        it("should map work_mode STRUCT with modeValue options as dropdown", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.work_mode",
+                    instance: "workMode",
+                    parameters: {
+                        dataType: "STRUCT",
+                        fields: [
+                            {
+                                fieldName: "workMode",
+                                dataType: "ENUM",
+                                options: [{ name: "Heat", value: 1 }],
+                            },
+                            {
+                                fieldName: "modeValue",
+                                dataType: "ENUM",
+                                options: [
+                                    { name: "Low", value: 1 },
+                                    { name: "High", value: 2 },
+                                ],
+                            },
+                        ],
+                    },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(2);
+            const modeValue = result.find((s) => s.id === "mode_value");
+            expect(modeValue).to.exist;
+            expect(modeValue!.states).to.deep.equal({ "1": "Low", "2": "High" });
+            expect(modeValue!.type).to.equal("mixed");
+        });
+
+        it("should map work_mode STRUCT with modeValue range as slider", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.work_mode",
+                    instance: "workMode",
+                    parameters: {
+                        dataType: "STRUCT",
+                        fields: [
+                            {
+                                fieldName: "workMode",
+                                dataType: "ENUM",
+                                options: [{ name: "Auto", value: 1 }],
+                            },
+                            {
+                                fieldName: "modeValue",
+                                dataType: "INTEGER",
+                                range: { min: 0, max: 100, precision: 1 },
+                            },
+                        ],
+                    },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            const modeValue = result.find((s) => s.id === "mode_value");
+            expect(modeValue).to.exist;
+            expect(modeValue!.type).to.equal("number");
+            expect(modeValue!.min).to.equal(0);
+            expect(modeValue!.max).to.equal(100);
+        });
+
+        it("should map temperature_setting STRUCT with targetTemperature field", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.temperature_setting",
+                    instance: "targetTemperature",
+                    parameters: {
+                        dataType: "STRUCT",
+                        unit: "unit.celsius",
+                        fields: [
+                            {
+                                fieldName: "targetTemperature",
+                                dataType: "INTEGER",
+                                range: { min: 16, max: 32, precision: 1 },
+                            },
+                        ],
+                    },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].id).to.equal("target_temperature");
+            expect(result[0].type).to.equal("number");
+            expect(result[0].role).to.equal("level.temperature");
+            expect(result[0].min).to.equal(16);
+            expect(result[0].max).to.equal(32);
+            expect(result[0].unit).to.equal("°C");
+        });
+
+        it("should map temperature_setting with simple range to slider", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.temperature_setting",
+                    instance: "targetTemperature",
+                    parameters: {
+                        dataType: "INTEGER",
+                        range: { min: 60, max: 90, precision: 1 },
+                        unit: "unit.fahrenheit",
+                    },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].id).to.equal("target_temperature");
+            expect(result[0].type).to.equal("number");
+            expect(result[0].min).to.equal(60);
+            expect(result[0].max).to.equal(90);
+        });
+
+        it("should fall back to JSON state when temperature_setting has no schema", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.temperature_setting",
+                    instance: "targetTemperature",
+                    parameters: { dataType: "STRUCT" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].id).to.equal("target_temperature");
+            expect(result[0].type).to.equal("string");
+            expect(result[0].role).to.equal("json");
+        });
+
+        it("should map event capability to boolean indicator in events channel", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.event",
+                    instance: "lackWater",
+                    parameters: { dataType: "ENUM" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].id).to.equal("lack_water");
+            expect(result[0].type).to.equal("boolean");
+            expect(result[0].role).to.equal("indicator.alarm");
+            expect(result[0].write).to.be.false;
+            expect(result[0].channel).to.equal("events");
+        });
+
+        it("should route property/temperature into sensor channel", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.property",
+                    instance: "sensorTemperature",
+                    parameters: { dataType: "INTEGER", unit: "unit.celsius" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].id).to.equal("sensor_temperature");
+            expect(result[0].role).to.equal("value.temperature");
+            expect(result[0].channel).to.equal("sensor");
+        });
+
+        it("should route property/battery into sensor channel with %", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.property",
+                    instance: "battery",
+                    parameters: { dataType: "INTEGER" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result[0].role).to.equal("value.battery");
+            expect(result[0].unit).to.equal("%");
+            expect(result[0].channel).to.equal("sensor");
+        });
+
+        it("should route property/humidity into sensor channel with %", () => {
+            const caps: CloudCapability[] = [
+                {
+                    type: "devices.capabilities.property",
+                    instance: "sensorHumidity",
+                    parameters: { dataType: "INTEGER" },
+                },
+            ];
+            const result = mapCapabilities(caps);
+            expect(result[0].role).to.equal("value.humidity");
+            expect(result[0].unit).to.equal("%");
+            expect(result[0].channel).to.equal("sensor");
         });
 
         it("should skip mode with non-presetScene instance", () => {

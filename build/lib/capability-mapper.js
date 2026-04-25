@@ -176,19 +176,11 @@ function mapSingleCapability(cap) {
         }
       ];
     case "work_mode":
+      return mapWorkMode(cap);
     case "temperature_setting":
-      return [
-        {
-          id: sanitizeId(cap.instance),
-          name: humanize(cap.instance),
-          type: "string",
-          role: "json",
-          write: true,
-          def: "",
-          capabilityType: cap.type,
-          capabilityInstance: cap.instance
-        }
-      ];
+      return mapTemperatureSetting(cap);
+    case "event":
+      return mapEvent(cap);
     case "music_setting":
       return mapMusicSetting(cap);
     default:
@@ -305,7 +297,162 @@ function mapProperty(cap) {
       write: false,
       unit: (_b = normalizeUnit((_a = cap.parameters) == null ? void 0 : _a.unit)) != null ? _b : unit,
       capabilityType: cap.type,
+      capabilityInstance: cap.instance,
+      channel: "sensor"
+    }
+  ];
+}
+function mapWorkMode(cap) {
+  var _a;
+  const fields = (_a = cap.parameters) == null ? void 0 : _a.fields;
+  if (!fields || fields.length === 0) {
+    return [
+      {
+        id: "work_mode",
+        name: "Work Mode",
+        type: "mixed",
+        role: "level.mode",
+        write: true,
+        def: "",
+        capabilityType: cap.type,
+        capabilityInstance: cap.instance
+      }
+    ];
+  }
+  const states = [];
+  const modeField = fields.find((f) => f && f.fieldName === "workMode");
+  if ((modeField == null ? void 0 : modeField.options) && modeField.options.length > 0) {
+    const modeStates = {};
+    for (const opt of modeField.options) {
+      if (opt && typeof opt.name === "string") {
+        modeStates[typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value)] = opt.name;
+      }
+    }
+    states.push({
+      id: "work_mode",
+      name: "Work Mode",
+      type: "mixed",
+      role: "level.mode",
+      write: true,
+      states: modeStates,
+      def: modeField.options[0] ? String(modeField.options[0].value) : "",
+      capabilityType: cap.type,
       capabilityInstance: cap.instance
+    });
+  }
+  const valueField = fields.find((f) => f && f.fieldName === "modeValue");
+  if (valueField) {
+    if (valueField.options && valueField.options.length > 0) {
+      const valStates = {};
+      for (const opt of valueField.options) {
+        if (opt && typeof opt.name === "string") {
+          valStates[typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value)] = opt.name;
+        }
+      }
+      states.push({
+        id: "mode_value",
+        name: "Mode Value",
+        type: "mixed",
+        role: "level",
+        write: true,
+        states: valStates,
+        def: valueField.options[0] ? String(valueField.options[0].value) : "",
+        capabilityType: cap.type,
+        capabilityInstance: cap.instance
+      });
+    } else if (valueField.range) {
+      states.push({
+        id: "mode_value",
+        name: "Mode Value",
+        type: "number",
+        role: "level",
+        write: true,
+        min: valueField.range.min,
+        max: valueField.range.max,
+        def: valueField.range.min,
+        capabilityType: cap.type,
+        capabilityInstance: cap.instance
+      });
+    }
+  }
+  return states;
+}
+function mapTemperatureSetting(cap) {
+  var _a, _b, _c, _d, _e, _f;
+  const fields = (_a = cap.parameters) == null ? void 0 : _a.fields;
+  if (Array.isArray(fields) && fields.length > 0) {
+    const tempField = fields.find((f) => {
+      if (!f || typeof f.fieldName !== "string") {
+        return false;
+      }
+      if (f.fieldName === "targetTemperature") {
+        return true;
+      }
+      return f.fieldName.toLowerCase().includes("temperature");
+    });
+    if (tempField == null ? void 0 : tempField.range) {
+      const unit = (_c = normalizeUnit((_b = cap.parameters) == null ? void 0 : _b.unit)) != null ? _c : "\xB0F";
+      return [
+        {
+          id: "target_temperature",
+          name: "Target Temperature",
+          type: "number",
+          role: "level.temperature",
+          write: true,
+          min: tempField.range.min,
+          max: tempField.range.max,
+          unit,
+          def: tempField.range.min,
+          capabilityType: cap.type,
+          capabilityInstance: cap.instance
+        }
+      ];
+    }
+  }
+  const range = (_d = cap.parameters) == null ? void 0 : _d.range;
+  if (range) {
+    const unit = (_f = normalizeUnit((_e = cap.parameters) == null ? void 0 : _e.unit)) != null ? _f : "\xB0F";
+    return [
+      {
+        id: "target_temperature",
+        name: "Target Temperature",
+        type: "number",
+        role: "level.temperature",
+        write: true,
+        min: range.min,
+        max: range.max,
+        unit,
+        def: range.min,
+        capabilityType: cap.type,
+        capabilityInstance: cap.instance
+      }
+    ];
+  }
+  return [
+    {
+      id: "target_temperature",
+      name: "Target Temperature",
+      type: "string",
+      role: "json",
+      write: true,
+      def: "",
+      capabilityType: cap.type,
+      capabilityInstance: cap.instance
+    }
+  ];
+}
+function mapEvent(cap) {
+  return [
+    {
+      id: sanitizeId(cap.instance),
+      name: humanize(cap.instance),
+      type: "boolean",
+      role: "indicator.alarm",
+      write: false,
+      def: false,
+      capabilityType: cap.type,
+      capabilityInstance: cap.instance,
+      channel: "events"
     }
   ];
 }
@@ -408,7 +555,7 @@ function humanize(str) {
   return str.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 function mapCloudStateValue(cap) {
-  var _a, _b;
+  var _a, _b, _c, _d;
   if (!cap || typeof cap.type !== "string" || typeof cap.instance !== "string") {
     return null;
   }
@@ -454,11 +601,43 @@ function mapCloudStateValue(cap) {
       }
       return null;
     case "dynamic_scene":
-    case "work_mode":
-    case "temperature_setting":
       return {
         stateId: sanitizeId(cap.instance),
         value: typeof raw === "object" || typeof raw === "function" ? JSON.stringify(raw) : String(raw)
+      };
+    case "work_mode": {
+      if (typeof raw === "object" && raw !== null) {
+        const struct = raw;
+        const n = coerceNum(struct.workMode);
+        if (n !== null) {
+          return { stateId: "work_mode", value: n };
+        }
+      }
+      const direct = coerceNum(raw);
+      if (direct !== null) {
+        return { stateId: "work_mode", value: direct };
+      }
+      return null;
+    }
+    case "temperature_setting": {
+      const direct = coerceNum(raw);
+      if (direct !== null) {
+        return { stateId: "target_temperature", value: direct };
+      }
+      if (typeof raw === "object" && raw !== null) {
+        const struct = raw;
+        const temp = (_d = (_c = struct.targetTemperature) != null ? _c : struct.temperature) != null ? _d : struct.temp;
+        const n = coerceNum(temp);
+        if (n !== null) {
+          return { stateId: "target_temperature", value: n };
+        }
+      }
+      return null;
+    }
+    case "event":
+      return {
+        stateId: sanitizeId(cap.instance),
+        value: coerceBool(raw)
       };
     case "music_setting":
       if (typeof raw === "object" && raw !== null) {

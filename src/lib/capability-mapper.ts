@@ -249,19 +249,13 @@ function mapSingleCapability(cap: CloudCapability): StateDefinition[] | null {
       ];
 
     case "work_mode":
+      return mapWorkMode(cap);
+
     case "temperature_setting":
-      return [
-        {
-          id: sanitizeId(cap.instance),
-          name: humanize(cap.instance),
-          type: "string",
-          role: "json",
-          write: true,
-          def: "",
-          capabilityType: cap.type,
-          capabilityInstance: cap.instance,
-        },
-      ];
+      return mapTemperatureSetting(cap);
+
+    case "event":
+      return mapEvent(cap);
 
     case "music_setting":
       return mapMusicSetting(cap);
@@ -384,7 +378,9 @@ function mapMode(cap: CloudCapability): StateDefinition[] {
 }
 
 /**
- * Map property capability (read-only sensors)
+ * Map property capability (read-only sensors). Routes to the `sensor`
+ * channel so a Heater's temperature reading sits cleanly next to other
+ * sensor-style states instead of in `control`.
  *
  * @param cap Cloud property capability
  */
@@ -417,6 +413,207 @@ function mapProperty(cap: CloudCapability): StateDefinition[] {
       unit: normalizeUnit(cap.parameters?.unit) ?? unit,
       capabilityType: cap.type,
       capabilityInstance: cap.instance,
+      channel: "sensor",
+    },
+  ];
+}
+
+/**
+ * Map work_mode capability (STRUCT — Govee Heater/Humidifier/Fan/...).
+ *
+ * Two states max:
+ *   - `work_mode` — main mode dropdown (mixed type so users can write
+ *     either the numeric mode value or the label name)
+ *   - `mode_value` — secondary parameter (e.g. fan-speed level for the
+ *     "manual" mode); only created if the API actually exposes one
+ *
+ * @param cap Cloud work_mode capability
+ */
+function mapWorkMode(cap: CloudCapability): StateDefinition[] {
+  const fields = cap.parameters?.fields;
+  if (!fields || fields.length === 0) {
+    return [
+      {
+        id: "work_mode",
+        name: "Work Mode",
+        type: "mixed",
+        role: "level.mode",
+        write: true,
+        def: "",
+        capabilityType: cap.type,
+        capabilityInstance: cap.instance,
+      },
+    ];
+  }
+
+  const states: StateDefinition[] = [];
+  const modeField = fields.find((f) => f && f.fieldName === "workMode");
+  if (modeField?.options && modeField.options.length > 0) {
+    const modeStates: Record<string, string> = {};
+    for (const opt of modeField.options) {
+      if (opt && typeof opt.name === "string") {
+        modeStates[
+          typeof opt.value === "object"
+            ? JSON.stringify(opt.value)
+            : String(opt.value as string | number | boolean)
+        ] = opt.name;
+      }
+    }
+    states.push({
+      id: "work_mode",
+      name: "Work Mode",
+      type: "mixed",
+      role: "level.mode",
+      write: true,
+      states: modeStates,
+      def: modeField.options[0]
+        ? String(modeField.options[0].value as string | number)
+        : "",
+      capabilityType: cap.type,
+      capabilityInstance: cap.instance,
+    });
+  }
+
+  const valueField = fields.find((f) => f && f.fieldName === "modeValue");
+  if (valueField) {
+    if (valueField.options && valueField.options.length > 0) {
+      const valStates: Record<string, string> = {};
+      for (const opt of valueField.options) {
+        if (opt && typeof opt.name === "string") {
+          valStates[
+            typeof opt.value === "object"
+              ? JSON.stringify(opt.value)
+              : String(opt.value as string | number | boolean)
+          ] = opt.name;
+        }
+      }
+      states.push({
+        id: "mode_value",
+        name: "Mode Value",
+        type: "mixed",
+        role: "level",
+        write: true,
+        states: valStates,
+        def: valueField.options[0]
+          ? String(valueField.options[0].value as string | number)
+          : "",
+        capabilityType: cap.type,
+        capabilityInstance: cap.instance,
+      });
+    } else if (valueField.range) {
+      states.push({
+        id: "mode_value",
+        name: "Mode Value",
+        type: "number",
+        role: "level",
+        write: true,
+        min: valueField.range.min,
+        max: valueField.range.max,
+        def: valueField.range.min,
+        capabilityType: cap.type,
+        capabilityInstance: cap.instance,
+      });
+    }
+  }
+
+  return states;
+}
+
+/**
+ * Map temperature_setting capability — Heater target-temp slider.
+ * Honours the unit reported by the API (°F or °C); falls back to °F
+ * because that's the more common Govee Heater default.
+ *
+ * @param cap Cloud temperature_setting capability
+ */
+function mapTemperatureSetting(cap: CloudCapability): StateDefinition[] {
+  const fields = cap.parameters?.fields;
+  if (Array.isArray(fields) && fields.length > 0) {
+    const tempField = fields.find((f) => {
+      if (!f || typeof f.fieldName !== "string") {
+        return false;
+      }
+      if (f.fieldName === "targetTemperature") {
+        return true;
+      }
+      return f.fieldName.toLowerCase().includes("temperature");
+    });
+    if (tempField?.range) {
+      const unit = normalizeUnit(cap.parameters?.unit) ?? "°F";
+      return [
+        {
+          id: "target_temperature",
+          name: "Target Temperature",
+          type: "number",
+          role: "level.temperature",
+          write: true,
+          min: tempField.range.min,
+          max: tempField.range.max,
+          unit,
+          def: tempField.range.min,
+          capabilityType: cap.type,
+          capabilityInstance: cap.instance,
+        },
+      ];
+    }
+  }
+
+  const range = cap.parameters?.range;
+  if (range) {
+    const unit = normalizeUnit(cap.parameters?.unit) ?? "°F";
+    return [
+      {
+        id: "target_temperature",
+        name: "Target Temperature",
+        type: "number",
+        role: "level.temperature",
+        write: true,
+        min: range.min,
+        max: range.max,
+        unit,
+        def: range.min,
+        capabilityType: cap.type,
+        capabilityInstance: cap.instance,
+      },
+    ];
+  }
+
+  // No usable schema — expose the raw payload so the user at least sees
+  // the attempt and can report it. Stays JSON to avoid pretending we
+  // understand the structure.
+  return [
+    {
+      id: "target_temperature",
+      name: "Target Temperature",
+      type: "string",
+      role: "json",
+      write: true,
+      def: "",
+      capabilityType: cap.type,
+      capabilityInstance: cap.instance,
+    },
+  ];
+}
+
+/**
+ * Map event capability (asynchronous OpenAPI-MQTT alarms — read-only).
+ * Each event becomes a boolean indicator in the events/ channel
+ * (lackWater, iceFull, bodyAppeared, dirtDetected, …).
+ *
+ * @param cap Cloud event capability
+ */
+function mapEvent(cap: CloudCapability): StateDefinition[] {
+  return [
+    {
+      id: sanitizeId(cap.instance),
+      name: humanize(cap.instance),
+      type: "boolean",
+      role: "indicator.alarm",
+      write: false,
+      def: false,
+      capabilityType: cap.type,
+      capabilityInstance: cap.instance,
+      channel: "events",
     },
   ];
 }
@@ -659,14 +856,57 @@ export function mapCloudStateValue(
       return null;
 
     case "dynamic_scene":
-    case "work_mode":
-    case "temperature_setting":
       return {
         stateId: sanitizeId(cap.instance),
         value:
           typeof raw === "object" || typeof raw === "function"
             ? JSON.stringify(raw)
             : String(raw as string | number | boolean | bigint),
+      };
+
+    case "work_mode": {
+      // STRUCT: { workMode: <number>, modeValue?: <number> }. Cloud
+      // /device/state only returns the primary mode here — mode_value
+      // (sub-parameter) follows via MQTT status push when the device
+      // reports it, so we don't lose it just because it isn't in the
+      // initial state response.
+      if (typeof raw === "object" && raw !== null) {
+        const struct = raw as Record<string, unknown>;
+        const n = coerceNum(struct.workMode);
+        if (n !== null) {
+          return { stateId: "work_mode", value: n };
+        }
+      }
+      const direct = coerceNum(raw);
+      if (direct !== null) {
+        return { stateId: "work_mode", value: direct };
+      }
+      return null;
+    }
+
+    case "temperature_setting": {
+      // STRUCT: { targetTemperature: <number>, temperatureUnit?: ... }
+      // — fall back to direct number for adapters that simplify.
+      const direct = coerceNum(raw);
+      if (direct !== null) {
+        return { stateId: "target_temperature", value: direct };
+      }
+      if (typeof raw === "object" && raw !== null) {
+        const struct = raw as Record<string, unknown>;
+        const temp =
+          struct.targetTemperature ?? struct.temperature ?? struct.temp;
+        const n = coerceNum(temp);
+        if (n !== null) {
+          return { stateId: "target_temperature", value: n };
+        }
+      }
+      return null;
+    }
+
+    case "event":
+      return {
+        stateId: sanitizeId(cap.instance),
+        value: coerceBool(raw),
       };
 
     case "music_setting":
