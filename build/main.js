@@ -999,32 +999,27 @@ class GoveeAdapter extends utils.Adapter {
   /**
    * Delete ioBroker objects for devices no longer present and drop the same
    * devices from adapter-level maps. Called after the initial-discovery
-   * window and every time the device list changes so per-device state
-   * (diagnostics throttle, device-manager registry, diagnostics ring buffer)
-   * doesn't outlive the device in the tree.
+   * window and every time the device list changes.
+   *
+   * Scope of "stale" today: cleanupDevices compares the ioBroker object tree
+   * against the live device-manager registry — it deletes objects that
+   * outlive their entry in `DeviceManager.devices`. In v2.0 that registry is
+   * monotonically growing within a single adapter lifetime (entries only
+   * leave via cache pruning across restarts), so this primarily catches
+   * tree leftovers from a previous adapter version after upgrade. The
+   * adapter-level `diagnosticsLastRun` map is also reaped so it can't outlive
+   * its devices either.
+   *
+   * A future stale-pruning step that explicitly retires devices from the
+   * device-manager registry should also call `deviceManager.removeDevice`
+   * and `getDiagnostics().forget(deviceId)` for each retired device.
    */
   async reapStaleDevices() {
     if (!this.stateManager || !this.deviceManager) {
       return;
     }
     const currentDevices = this.deviceManager.getDevices();
-    const prefixToKey = /* @__PURE__ */ new Map();
-    for (const d of currentDevices) {
-      prefixToKey.set(this.stateManager.devicePrefix(d), {
-        sku: d.sku,
-        deviceId: d.deviceId
-      });
-    }
-    const removedPrefixes = await this.stateManager.cleanupDevices(currentDevices);
-    const diagnostics = this.deviceManager.getDiagnostics();
-    for (const prefix of removedPrefixes) {
-      const key = prefixToKey.get(prefix);
-      if (!key) {
-        continue;
-      }
-      this.deviceManager.removeDevice(key.sku, key.deviceId);
-      diagnostics.forget(key.deviceId);
-    }
+    await this.stateManager.cleanupDevices(currentDevices);
     const liveKeys = new Set(
       currentDevices.map((d) => `${d.sku}:${d.deviceId}`)
     );

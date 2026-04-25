@@ -1,5 +1,0 @@
-{
-  "$comment": "Community quirks — place this file in your adapter data directory (e.g. /opt/iobroker/iobroker-data/govee-smart.0/community-quirks.json). Entries override built-in quirks. Use diagnostics export to gather device data for new entries.",
-  "version": 1,
-  "quirks": {}
-}

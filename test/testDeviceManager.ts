@@ -2001,8 +2001,47 @@ describe("DeviceManager — loadFromCache merge", () => {
 
         it("returns 0 on fetch error and does not throw", async () => {
             const dm2 = new DeviceManager(mockLog, mockTimers);
+            // device must need App-API for fetch to be attempted
+            dm2.handleLanDiscovery({ ip: "192.168.1.99", device: "AABBCCDDEEFF0099", sku: "H5179" } as LanDevice);
+            dm2.getDevices()[0].type = "devices.types.thermometer";
             dm2.setApiClient(makeApiMock({ throws: true }) as never);
             expect(await dm2.pollAppApi()).to.equal(0);
+        });
+
+        it("logs success-after-failure as warn again instead of debug-deduping it", async () => {
+            const warnings: string[] = [];
+            const trackingLog = {
+                ...mockLog,
+                warn: (msg: string) => warnings.push(msg),
+            };
+            const dm2 = new DeviceManager(trackingLog as never, mockTimers);
+            dm2.handleLanDiscovery({ ip: "192.168.1.97", device: "AABBCCDDEEFF0097", sku: "H5179" } as LanDevice);
+            dm2.getDevices()[0].type = "devices.types.thermometer";
+
+            // Failing client (raises NETWORK each call)
+            let fail = true;
+            const failingClient = {
+                hasBearerToken: () => true,
+                fetchDeviceList: async () => {
+                    if (fail) {
+                        throw new Error("ECONNRESET");
+                    }
+                    return [];
+                },
+            };
+            dm2.setApiClient(failingClient as never);
+
+            await dm2.pollAppApi();
+            expect(warnings).to.have.lengthOf(1, "first failure warns");
+            await dm2.pollAppApi();
+            expect(warnings).to.have.lengthOf(1, "repeated same-category failure stays at debug");
+
+            // Success in between resets the dedup slot.
+            fail = false;
+            await dm2.pollAppApi();
+            fail = true;
+            await dm2.pollAppApi();
+            expect(warnings).to.have.lengthOf(2, "failure after success warns again");
         });
     });
 

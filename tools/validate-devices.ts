@@ -32,10 +32,6 @@ const ALLOWED_STATUS = new Set(["verified", "reported", "seed"]);
 const KNOWN_QUIRK_FIELDS = new Set([
   "colorTempRange",
   "brokenPlatformApi",
-  "preferAppApi",
-  "skipLanDiscovery",
-  "expectEvents",
-  "powerValueWorkaround",
 ]);
 
 const SKU_RE = /^H[0-9A-Z]{4}$/;
@@ -96,12 +92,6 @@ function validate(devicesJsonPath: string): Issue[] {
         });
       }
     }
-    if (e.tested !== undefined && typeof e.tested !== "string") {
-      issues.push({ sku, msg: "'tested' must be a string" });
-    }
-    if (e.notes !== undefined && typeof e.notes !== "string") {
-      issues.push({ sku, msg: "'notes' must be a string" });
-    }
     if (e.quirks !== undefined) {
       if (typeof e.quirks !== "object" || e.quirks === null || Array.isArray(e.quirks)) {
         issues.push({ sku, msg: "'quirks' must be an object" });
@@ -135,16 +125,11 @@ function validate(devicesJsonPath: string): Issue[] {
             }
           }
         }
-        for (const boolField of [
-          "brokenPlatformApi",
-          "preferAppApi",
-          "skipLanDiscovery",
-          "expectEvents",
-          "powerValueWorkaround",
-        ]) {
-          if (q[boolField] !== undefined && typeof q[boolField] !== "boolean") {
-            issues.push({ sku, msg: `'${boolField}' must be boolean` });
-          }
+        if (
+          q.brokenPlatformApi !== undefined &&
+          typeof q.brokenPlatformApi !== "boolean"
+        ) {
+          issues.push({ sku, msg: "'brokenPlatformApi' must be boolean" });
         }
       }
     }
@@ -154,8 +139,6 @@ function validate(devicesJsonPath: string): Issue[] {
       "type",
       "status",
       "since",
-      "tested",
-      "notes",
       "quirks",
     ]);
     for (const key of Object.keys(e)) {

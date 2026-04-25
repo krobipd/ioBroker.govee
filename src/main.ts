@@ -1271,50 +1271,28 @@ class GoveeAdapter extends utils.Adapter {
   /**
    * Delete ioBroker objects for devices no longer present and drop the same
    * devices from adapter-level maps. Called after the initial-discovery
-   * window and every time the device list changes so per-device state
-   * (diagnostics throttle, device-manager registry, diagnostics ring buffer)
-   * doesn't outlive the device in the tree.
+   * window and every time the device list changes.
+   *
+   * Scope of "stale" today: cleanupDevices compares the ioBroker object tree
+   * against the live device-manager registry — it deletes objects that
+   * outlive their entry in `DeviceManager.devices`. In v2.0 that registry is
+   * monotonically growing within a single adapter lifetime (entries only
+   * leave via cache pruning across restarts), so this primarily catches
+   * tree leftovers from a previous adapter version after upgrade. The
+   * adapter-level `diagnosticsLastRun` map is also reaped so it can't outlive
+   * its devices either.
+   *
+   * A future stale-pruning step that explicitly retires devices from the
+   * device-manager registry should also call `deviceManager.removeDevice`
+   * and `getDiagnostics().forget(deviceId)` for each retired device.
    */
   private async reapStaleDevices(): Promise<void> {
     if (!this.stateManager || !this.deviceManager) {
       return;
     }
     const currentDevices = this.deviceManager.getDevices();
+    await this.stateManager.cleanupDevices(currentDevices);
 
-    // Snapshot prefix → {sku, deviceId} BEFORE cleanup so we can map the
-    // returned removed-prefix list back to the keys used by device-manager
-    // and diagnostics. State-manager only knows prefixes, the other two
-    // adapter-level maps are keyed by sku:deviceId.
-    const prefixToKey = new Map<string, { sku: string; deviceId: string }>();
-    for (const d of currentDevices) {
-      prefixToKey.set(this.stateManager.devicePrefix(d), {
-        sku: d.sku,
-        deviceId: d.deviceId,
-      });
-    }
-
-    const removedPrefixes =
-      await this.stateManager.cleanupDevices(currentDevices);
-
-    // Reap matching entries from device-manager.devices and the diagnostics
-    // ring buffer. Today this is largely defensive: device-manager.devices
-    // grows monotonically across the adapter lifetime (entries are only
-    // removed by an explicit removeDevice call, which the adapter does not
-    // currently invoke), so removedPrefixes mostly contains stale ioBroker
-    // objects that no longer have a live in-memory device. The wiring stays
-    // correct once a stale-pruning step is added — see issue tracker.
-    const diagnostics = this.deviceManager.getDiagnostics();
-    for (const prefix of removedPrefixes) {
-      const key = prefixToKey.get(prefix);
-      if (!key) {
-        continue;
-      }
-      this.deviceManager.removeDevice(key.sku, key.deviceId);
-      diagnostics.forget(key.deviceId);
-    }
-
-    // Adapter-level maps are keyed by sku:deviceId. Drop any entry that
-    // doesn't match a currently-known device so the maps stay bounded.
     const liveKeys = new Set(
       currentDevices.map((d) => `${d.sku}:${d.deviceId}`),
     );

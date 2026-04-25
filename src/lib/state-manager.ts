@@ -701,6 +701,26 @@ export class StateManager {
         const localId = row.id.replace(`${this.adapter.namespace}.`, "");
         if (!currentPrefixes.has(localId)) {
           this.adapter.log.debug(`Removing stale device: ${localId}`);
+          // Recursive delObject removes the object tree but can leave
+          // orphan state values in the state-table — clean those too so
+          // historical values don't survive a device removal.
+          const stateRows = await this.adapter
+            .getObjectViewAsync("system", "state", {
+              startkey: `${row.id}.`,
+              endkey: `${row.id}.香`,
+            })
+            .catch(() => undefined);
+          if (stateRows?.rows) {
+            for (const stateRow of stateRows.rows) {
+              const stateLocalId = stateRow.id.replace(
+                `${this.adapter.namespace}.`,
+                "",
+              );
+              await this.adapter
+                .delStateAsync(stateLocalId)
+                .catch(() => undefined);
+            }
+          }
           await this.adapter.delObjectAsync(localId, { recursive: true });
           this.forgetPrefix(localId);
           removed.push(localId);

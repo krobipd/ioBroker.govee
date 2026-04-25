@@ -576,6 +576,19 @@ class StateManager {
         const localId = row.id.replace(`${this.adapter.namespace}.`, "");
         if (!currentPrefixes.has(localId)) {
           this.adapter.log.debug(`Removing stale device: ${localId}`);
+          const stateRows = await this.adapter.getObjectViewAsync("system", "state", {
+            startkey: `${row.id}.`,
+            endkey: `${row.id}.\u9999`
+          }).catch(() => void 0);
+          if (stateRows == null ? void 0 : stateRows.rows) {
+            for (const stateRow of stateRows.rows) {
+              const stateLocalId = stateRow.id.replace(
+                `${this.adapter.namespace}.`,
+                ""
+              );
+              await this.adapter.delStateAsync(stateLocalId).catch(() => void 0);
+            }
+          }
           await this.adapter.delObjectAsync(localId, { recursive: true });
           this.forgetPrefix(localId);
           removed.push(localId);

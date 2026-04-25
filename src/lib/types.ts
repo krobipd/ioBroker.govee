@@ -505,18 +505,19 @@ export interface SegmentListParseResult {
 
 /**
  * Parse a user-provided segment-list string.
- * Akzeptiert Komma-Einzeln ("0,1,2"), Range ("0-9"), Mixed ("0-8,10-14"),
- * whitespace-tolerant. Dedupe automatisch. Sortiert aufsteigend.
+ * Accepts comma-separated singles ("0,1,2"), ranges ("0-9"), mixed
+ * ("0-8,10-14"); whitespace-tolerant. Deduplicates automatically and
+ * returns the result sorted ascending.
  *
- * @param input User-Input string
- * @param maxIndex Obergrenze pro Gerät (z. B. device.segmentCount - 1). Indices > maxIndex werden abgelehnt.
- * @returns SegmentListParseResult mit indices + optional error
+ * @param input User-input string
+ * @param maxIndex Per-device upper bound (e.g. device.segmentCount - 1). Indices > maxIndex are rejected.
+ * @returns SegmentListParseResult with indices + optional error
  */
 export function parseSegmentList(
   input: string,
   maxIndex: number,
 ): SegmentListParseResult {
-  const HARD_MAX = 99; // Backstop, deckt alle realistischen Govee-Geräte
+  const HARD_MAX = 99; // backstop, covers every realistic Govee device
   if (typeof input !== "string") {
     return { indices: [], error: "input must be a string" };
   }

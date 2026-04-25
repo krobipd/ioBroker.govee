@@ -144,7 +144,7 @@ class DeviceRegistry {
     return this.activeQuirks.get(sku.toUpperCase());
   }
   /**
-   * The full registry entry for a SKU (including status, name, notes).
+   * The full registry entry for a SKU (status, name, since, quirks).
    * Returns undefined for unknown SKUs.
    *
    * @param sku Govee SKU (case-insensitive)

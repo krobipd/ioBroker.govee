@@ -8,8 +8,9 @@ import * as path from "node:path";
  * v2.x devices.json on a v2.0 adapter still works.
  *
  * Each field listed here MUST be wired up in code (capability-mapper,
- * device-manager, …). Doc-only hints for a SKU belong in the entry's
- * `notes` field instead.
+ * device-manager, …). Documentation-only fields are not allowed —
+ * SKU-specific notes go into the per-release issue tracker or the
+ * Wiki Devices page, not into the schema.
  */
 export interface DeviceQuirks {
   /** Override color-temperature range (Govee API often claims a flat 2000-9000K, real range is narrower). */
@@ -210,7 +211,7 @@ export class DeviceRegistry {
   }
 
   /**
-   * The full registry entry for a SKU (including status, name, notes).
+   * The full registry entry for a SKU (status, name, since, quirks).
    * Returns undefined for unknown SKUs.
    *
    * @param sku Govee SKU (case-insensitive)

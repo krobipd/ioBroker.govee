@@ -7,7 +7,7 @@
 
 **ioBroker Govee Smart Adapter** — Steuert Govee Smart Lights (LED-Strips, Lampen, Panels). LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig. Nur Lichter, keine Haushaltsgeräte.
 
-- **Version:** 1.11.0 (April 2026)
+- **Version:** 2.0.0 (in v2-prep, Tag steht aus — Stand: April 2026)
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** https://www.npmjs.com/package/iobroker.govee-smart
 - **Runtime-Deps:** `@iobroker/adapter-core`, `@iobroker/types`, `mqtt`, `node-forge`
@@ -71,7 +71,8 @@ src/lib/govee-cloud-client.ts → Cloud REST API v2 (Devices, Capabilities, Szen
 src/lib/sku-cache.ts          → Persistent SKU cache (device data, scene/music/DIY libraries, snapshots) (145 Zeilen)
 src/lib/rate-limiter.ts       → Rate-Limits für Cloud REST Calls
 src/lib/local-snapshots.ts    → Local Snapshot Store (LAN-based save/restore, JSON files)
-src/lib/device-quirks.ts      → SKU-specific overrides + community quirks (external JSON)
+src/lib/device-registry.ts    → SKU-specific overrides aus devices.json (status-aware: verified/reported/seed)
+src/lib/diagnostics.ts        → Ringbuffer pro Device (logs/MQTT-Pakete/API-Responses) für strukturiertes Diagnostics-JSON
 src/lib/http-client.ts        → Shared HTTPS request (httpsRequest + HttpError)
 ```
 
@@ -202,13 +203,13 @@ Single Page, drei Sektionen:
 27. **Ready-Message Ordering** — `checkAllReady()` prüft MQTT+Cloud bevor Ready geloggt wird; Safety-Timeout **60s** (seit v1.6.0, war 30s) mit ehrlicher "noch im Aufbau"-Meldung für nicht-bereite Channels
 28. **SKU Cache** — `sku-cache.ts` persistiert Device-Daten + Libraries lokal; nach erstem Start null Cloud-Calls nötig. `loadFromCache()` mergt in bereits vorhandene LAN-Geräte (Name, Capabilities, Szenen). **Seit v1.6.0:** `scenesChecked`-Flag verhindert Endlos-Refetch bei legitim leeren Scenes; `lastSeenOnNetwork`-Timestamp + `pruneStale(14)` entfernt stale Einträge; Hard-Filter bei Cloud-Load überspringt Einträge ohne capabilities
 29. **Local Snapshots** — `local-snapshots.ts` speichert Gerätezustand per LAN als JSON inkl. Per-Segment Color+Brightness; Restore replayed einzelne LAN-Commands (power, brightness, color, colorTemp, segmentColor:N, segmentBrightness:N)
-30. **Device Quirks** — `device-quirks.ts` korrigiert falsche API-Daten (colorTemp-Ranges, brokenPlatformApi)
+30. **Device Quirks** — `device-registry.ts` lädt `devices.json` und korrigiert falsche API-Daten (`colorTempRange`, `brokenPlatformApi`). Status-aware: `seed`-Quirks greifen nur mit dem Adapter-Toggle „experimentalQuirks"
 31. **Scene Speed** — `sceneLibrary` enthält `speedInfo` mit `moveIn[]`-Arrays; Speed-Byte steht an Position `pageLength - 5` im scenceParam; `applySceneSpeed()` ersetzt Speed-Bytes vor dem Senden; `scenes.scene_speed` State (0-N) wird auf nächste Scene-Aktivierung angewendet
 32. **Multi-Channel State Tree** — States aufgeteilt in 4 Channels: `control` (Basis), `scenes` (Szenen), `music` (Musik), `snapshots` (Aktionen); Routing über `def.channel` in StateDefinition, Pfad-Auflösung via `resolveStatePath()`
 33. **Groups Fan-Out** — BaseGroup fan-out: Capabilities = Intersection der Mitgliedsgeräte; Befehle → LAN/ptReal pro Mitglied; `info.members` + dynamisches `info.membersUnreachable`; keine Snapshots/Diagnostics
 34. **Dynamic Segments** — Segment-Anzahl aus Capability-Daten, überschüssige Segment-Channels werden gelöscht
 35. **Diagnostics Export** — `info.diagnostics_export` Button pro Gerät erzeugt strukturiertes JSON (Capabilities, Szenen, Libraries, Quirks, State) für GitHub Issues
-36. **Community Quirks** — `community-quirks.json` im Data-Dir (`iobroker-data/govee-smart.0/`) erlaubt User-beigetragene SKU-Korrekturen, persistent über Updates
+36. **Community Quirks** — Beiträge zu `devices.json` laufen ab v2.0 über GitHub Issues + Pull Requests (siehe CONTRIBUTING.md). Eine externe `community-quirks.json` gibt es nicht mehr
 37. **Separated Concerns (seit 1.1.0)** — CommandRouter (Routing), GoveeApiClient (undoc API), http-client (shared HTTP), capability-mapper (State-Definitionen) als eigenständige Module
 38. **MQTT Segment State-Sync** — `parseMqttSegmentData()` dekodiert AA A5 BLE-Pakete aus `op.command` → Per-Segment Brightness+RGB in ioBroker States; nur bei Geräten mit `segmentCount > 0`, nur bei Gradient/Color-Modus (Scene/Music liefert keine AA A5)
 39. **Snapshot ptReal** — `fetchSnapshots()` holt BLE-Pakete von `/bff-app/v1/devices/snapshots`, gespeichert als `snapshotBleCmds` auf Device + SKU-Cache; Aktivierung lokal via `sendPtReal()`, Cloud-Fallback wenn keine BLE-Daten
@@ -258,8 +259,9 @@ test/testDeviceManager.ts    → Device Manager + CommandRouter + Drift (123)
   - parseMqttSegmentData: single packet, multi-packet indices, limit, non-AA-A5 filter, empty/zero/invalid, full 5-packet
   - resolveSegmentCount: cache-wins, Cloud-min fallback, widersprüchliche Caps
   - getEffectiveSegmentIndices: manualMode on/off, empty, edge cases
-test/testDeviceQuirks.ts     → Device Quirks + Community Quirks (15)
-  - getDeviceQuirks + applyColorTempQuirk + loadCommunityQuirks (load, override, missing, corrupt)
+test/testDeviceRegistry.ts   → DeviceRegistry / devices.json loader (~25)
+  - getQuirks/getEntry/getStatus/getName, status-Filter (verified/reported active, seed gated by experimentalQuirks toggle), case-insensitive lookup, applyColorTempQuirk against runtime
+test/testDiagnostics.ts      → Diagnostics ring buffer (logs/MQTT-Pakete/Endpoint-Responses)
 test/testLocalSnapshots.ts   → Local Snapshots + Drift (17)
   - Create dir, empty device, save/retrieve, overwrite, multiple, delete, non-existent, per-device, corrupt, colorTemp
   - Segment data: save/retrieve with segments, backwards compat, overwrite
