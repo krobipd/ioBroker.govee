@@ -21,10 +21,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
-var path = __toESM(require("node:path"));
 var utils = __toESM(require("@iobroker/adapter-core"));
 var import_capability_mapper = require("./lib/capability-mapper.js");
-var import_device_quirks = require("./lib/device-quirks.js");
+var import_device_registry = require("./lib/device-registry.js");
 var import_device_manager = require("./lib/device-manager.js");
 var import_govee_api_client = require("./lib/govee-api-client.js");
 var import_govee_cloud_client = require("./lib/govee-cloud-client.js");
@@ -218,8 +217,10 @@ class GoveeAdapter extends utils.Adapter {
     await this.stateManager.createGroupsOnlineState(false);
     this.deviceManager = new import_device_manager.DeviceManager(this.log, this);
     const dataDir = utils.getAbsoluteInstanceDataDir(this);
-    const quirksPath = path.join(dataDir, "community-quirks.json");
-    (0, import_device_quirks.loadCommunityQuirks)(quirksPath, this.log);
+    (0, import_device_registry.initDeviceRegistry)({
+      experimental: false,
+      log: this.log
+    });
     this.skuCache = new import_sku_cache.SkuCache(dataDir, this.log);
     this.localSnapshots = new import_local_snapshots.LocalSnapshotStore(dataDir, this.log);
     this.deviceManager.setSkuCache(this.skuCache);

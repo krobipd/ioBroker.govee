@@ -5,7 +5,7 @@ import {
   type CloudStateCapability,
   type GoveeDevice,
 } from "./types.js";
-import { applyColorTempQuirk } from "./device-quirks.js";
+import { applyColorTempQuirk } from "./device-registry.js";
 
 /** ioBroker state definition derived from a Govee capability */
 export interface StateDefinition {

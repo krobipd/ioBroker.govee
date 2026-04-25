@@ -1,11 +1,10 @@
-import * as path from "node:path";
 import * as utils from "@iobroker/adapter-core";
 import {
   buildDeviceStateDefs,
   getDefaultLanStates,
   mapCloudStateValue,
 } from "./lib/capability-mapper.js";
-import { loadCommunityQuirks } from "./lib/device-quirks.js";
+import { initDeviceRegistry } from "./lib/device-registry.js";
 import {
   DeviceManager,
   resolveSegmentCount,
@@ -253,9 +252,13 @@ class GoveeAdapter extends utils.Adapter {
     this.deviceManager = new DeviceManager(this.log, this);
     const dataDir = utils.getAbsoluteInstanceDataDir(this);
 
-    // Load community quirks from persistent data directory
-    const quirksPath = path.join(dataDir, "community-quirks.json");
-    loadCommunityQuirks(quirksPath, this.log);
+    // Load device registry from devices.json in the adapter package root.
+    // Status filter: verified+reported active by default; seed-status entries
+    // require the experimentalQuirks config toggle (Session 7).
+    initDeviceRegistry({
+      experimental: false,
+      log: this.log,
+    });
     this.skuCache = new SkuCache(dataDir, this.log);
     this.localSnapshots = new LocalSnapshotStore(dataDir, this.log);
     this.deviceManager.setSkuCache(this.skuCache);

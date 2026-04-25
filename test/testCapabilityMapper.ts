@@ -1,8 +1,28 @@
 import { expect } from "chai";
 import { applyQuirksToStates, buildDeviceStateDefs, getDefaultLanStates, mapCapabilities, mapCloudStateValue } from "../src/lib/capability-mapper";
+import { _resetDeviceRegistry, initDeviceRegistry } from "../src/lib/device-registry";
 import type { CloudCapability, CloudStateCapability, GoveeDevice } from "../src/lib/types";
 
+/**
+ * Quirk-dependent tests need a registry where the seed-status entries
+ * (H60A1, H6141, …) are also active. Real-world default has them off
+ * unless the user toggles experimental support — tests force the flag on.
+ * Inserted via beforeEach so subsequent test files cannot leak a reset.
+ */
+const TEST_REGISTRY = {
+    devices: {
+        H60A1: { name: "LED Bulb", type: "light", status: "seed", quirks: { colorTempRange: { min: 2200, max: 6500 } } },
+        H6022: { name: "LED Bulb (RGBWW)", type: "light", status: "seed", quirks: { colorTempRange: { min: 2700, max: 6500 } } },
+        H6141: { name: "LED Strip", type: "light", status: "seed", quirks: { brokenPlatformApi: true } },
+    },
+};
+
 describe("CapabilityMapper", () => {
+    beforeEach(() => {
+        initDeviceRegistry({ data: TEST_REGISTRY as never, experimental: true });
+    });
+    afterEach(() => _resetDeviceRegistry());
+
     describe("mapCapabilities", () => {
         it("should map on_off to boolean power state", () => {
             const caps: CloudCapability[] = [

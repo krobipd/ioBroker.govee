@@ -26,7 +26,7 @@ __export(device_manager_exports, {
 });
 module.exports = __toCommonJS(device_manager_exports);
 var import_command_router = require("./command-router.js");
-var import_device_quirks = require("./device-quirks.js");
+var import_device_registry = require("./device-registry.js");
 var import_types = require("./types.js");
 var import_http_client = require("./http-client.js");
 const APPLIANCE_TYPES = /* @__PURE__ */ new Set([
@@ -417,7 +417,7 @@ class DeviceManager {
         changed = true;
         this.log.debug(`Cloud: New device ${cd.deviceName} (${cd.sku})`);
       }
-      const quirks = (0, import_device_quirks.getDeviceQuirks)(cd.sku);
+      const quirks = (0, import_device_registry.getDeviceQuirks)(cd.sku);
       if (quirks == null ? void 0 : quirks.brokenPlatformApi) {
         this.log.debug(
           `${cd.sku} has known broken platform API metadata \u2014 capabilities may be incomplete`
@@ -1045,7 +1045,7 @@ class DeviceManager {
    */
   generateDiagnostics(device, adapterVersion) {
     var _a, _b;
-    const quirks = (0, import_device_quirks.getDeviceQuirks)(device.sku);
+    const quirks = (0, import_device_registry.getDeviceQuirks)(device.sku);
     return {
       adapter: "iobroker.govee-smart",
       version: adapterVersion,

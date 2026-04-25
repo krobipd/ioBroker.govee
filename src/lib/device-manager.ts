@@ -1,5 +1,5 @@
 import { CommandRouter } from "./command-router.js";
-import { getDeviceQuirks } from "./device-quirks.js";
+import { getDeviceQuirks } from "./device-registry.js";
 import type { GoveeApiClient } from "./govee-api-client.js";
 import type { GoveeCloudClient } from "./govee-cloud-client.js";
 import type { GoveeLanClient } from "./govee-lan-client.js";

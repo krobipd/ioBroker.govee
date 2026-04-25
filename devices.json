@@ -1,0 +1,180 @@
+{
+    "_comment": "Govee device support and quirk overrides. See Wiki for the rendered device list. Schema: devices.schema.json. Status: verified (multiple confirmed reports), reported (1 user with diagnostics), seed (imported from external source, untested).",
+    "devices": {
+        "H5179": {
+            "name": "Wifi Thermometer",
+            "type": "thermometer",
+            "status": "verified",
+            "since": "2.0.0",
+            "tested": "2026-04-25 by krobi",
+            "notes": "OpenAPI v2 /device/state liefert leer; Werte kommen über App-API",
+            "quirks": {
+                "preferAppApi": true
+            }
+        },
+        "H6003": {
+            "name": "LED Bulb",
+            "type": "light",
+            "status": "seed",
+            "notes": "Übernommen aus Pre-v2 BUILTIN_QUIRKS",
+            "quirks": {
+                "brokenPlatformApi": true
+            }
+        },
+        "H6022": {
+            "name": "LED Bulb (RGBWW)",
+            "type": "light",
+            "status": "seed",
+            "notes": "API claims 2000-9000K, real range narrower",
+            "quirks": {
+                "colorTempRange": { "min": 2700, "max": 6500 }
+            }
+        },
+        "H6053": {
+            "name": "LED Glide",
+            "type": "light",
+            "status": "seed",
+            "notes": "Übernommen aus Pre-v2 BUILTIN_QUIRKS",
+            "quirks": {
+                "brokenPlatformApi": true
+            }
+        },
+        "H6102": {
+            "name": "LED Strip",
+            "type": "light",
+            "status": "seed",
+            "notes": "Übernommen aus Pre-v2 BUILTIN_QUIRKS",
+            "quirks": {
+                "brokenPlatformApi": true
+            }
+        },
+        "H612F": {
+            "name": "RGBIC LED Strip",
+            "type": "light",
+            "status": "verified",
+            "since": "1.0.0",
+            "tested": "2026-04-25 by krobi"
+        },
+        "H6119": {
+            "name": "LED Strip",
+            "type": "light",
+            "status": "seed",
+            "notes": "Übernommen aus Pre-v2 BUILTIN_QUIRKS",
+            "quirks": {
+                "brokenPlatformApi": true
+            }
+        },
+        "H6141": {
+            "name": "LED Strip",
+            "type": "light",
+            "status": "seed",
+            "notes": "Übernommen aus Pre-v2 BUILTIN_QUIRKS",
+            "quirks": {
+                "brokenPlatformApi": true
+            }
+        },
+        "H6159": {
+            "name": "LED Strip",
+            "type": "light",
+            "status": "seed",
+            "notes": "Übernommen aus Pre-v2 BUILTIN_QUIRKS",
+            "quirks": {
+                "brokenPlatformApi": true
+            }
+        },
+        "H617C": {
+            "name": "LED Strip",
+            "type": "light",
+            "status": "seed",
+            "notes": "Übernommen aus Pre-v2 BUILTIN_QUIRKS",
+            "quirks": {
+                "brokenPlatformApi": true
+            }
+        },
+        "H617E": {
+            "name": "LED Strip",
+            "type": "light",
+            "status": "seed",
+            "notes": "Übernommen aus Pre-v2 BUILTIN_QUIRKS",
+            "quirks": {
+                "brokenPlatformApi": true
+            }
+        },
+        "H617F": {
+            "name": "LED Strip",
+            "type": "light",
+            "status": "seed",
+            "notes": "Übernommen aus Pre-v2 BUILTIN_QUIRKS",
+            "quirks": {
+                "brokenPlatformApi": true
+            }
+        },
+        "H618A": {
+            "name": "RGBIC Strip Lights",
+            "type": "light",
+            "status": "verified",
+            "since": "1.0.0",
+            "tested": "2026-04-25 by krobi"
+        },
+        "H61BA": {
+            "name": "Glide Wall Light",
+            "type": "light",
+            "status": "verified",
+            "since": "1.0.0",
+            "tested": "2026-04-25 by krobi"
+        },
+        "H61BC": {
+            "name": "Glide Hexa Light Panels",
+            "type": "light",
+            "status": "verified",
+            "since": "1.0.0",
+            "tested": "2026-04-25 by krobi"
+        },
+        "H61BE": {
+            "name": "Glide Wall Light Wide",
+            "type": "light",
+            "status": "verified",
+            "since": "1.0.0",
+            "tested": "2026-04-25 by krobi",
+            "notes": "Cloud meldet weniger Segmente als real vorhanden — MQTT AA A5 lernt korrekten Wert über Cache (resolveSegmentCount, ab v1.7.0)"
+        },
+        "H60A1": {
+            "name": "LED Bulb",
+            "type": "light",
+            "status": "seed",
+            "notes": "API claims 2000-9000K, real range narrower",
+            "quirks": {
+                "colorTempRange": { "min": 2200, "max": 6500 }
+            }
+        },
+        "H70B3": {
+            "name": "Curtain Lights",
+            "type": "light",
+            "status": "verified",
+            "since": "1.0.0",
+            "tested": "2026-04-25 by krobi",
+            "notes": "Keine Segmente — Scenes mit scenceParam laufen über Cloud-Fallback (ab v1.10.0)"
+        },
+        "H70C5": {
+            "name": "Christmas String Lights",
+            "type": "light",
+            "status": "verified",
+            "since": "1.0.0",
+            "tested": "2026-04-25 by krobi"
+        },
+        "H70D1": {
+            "name": "Icicle Lights",
+            "type": "light",
+            "status": "verified",
+            "since": "1.0.0",
+            "tested": "2026-04-25 by krobi",
+            "notes": "Cloud-API liefert widersprüchliche Segment-Counts pro Capability (segmentedBrightness=10, segmentedColorRgb=15) — resolveSegmentCount nimmt min (10, korrekt)"
+        },
+        "H7160": {
+            "name": "Smart Space Heater",
+            "type": "heater",
+            "status": "seed",
+            "notes": "Forum-Hinweis ohne Diagnostics — vermuteter brokenPlatformApi"
+        }
+    }
+}

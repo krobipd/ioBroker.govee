@@ -1,0 +1,112 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://github.com/krobipd/ioBroker.govee-smart/blob/main/devices.schema.json",
+    "title": "Govee device support catalog",
+    "type": "object",
+    "required": ["devices"],
+    "properties": {
+        "_comment": {
+            "type": "string",
+            "description": "Optional top-level comment, ignored by the loader."
+        },
+        "devices": {
+            "type": "object",
+            "patternProperties": {
+                "^H[0-9A-Z]{4}$": {
+                    "$ref": "#/definitions/deviceEntry"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "additionalProperties": false,
+    "definitions": {
+        "deviceEntry": {
+            "type": "object",
+            "required": ["name", "type", "status"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Govee app name for the device — what users see in the Govee Home app."
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "light",
+                        "thermometer",
+                        "sensor",
+                        "heater",
+                        "humidifier",
+                        "dehumidifier",
+                        "fan",
+                        "air_purifier",
+                        "socket",
+                        "kettle",
+                        "ice_maker",
+                        "aroma_diffuser"
+                    ],
+                    "description": "Device category — corresponds to Govee API type without the 'devices.types.' prefix."
+                },
+                "status": {
+                    "type": "string",
+                    "enum": ["verified", "reported", "seed"],
+                    "description": "verified = multiple confirmed reports, reported = 1 user with diagnostics, seed = imported from external source / untested."
+                },
+                "since": {
+                    "type": "string",
+                    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+                    "description": "Adapter version when this device was first supported (semver)."
+                },
+                "tested": {
+                    "type": "string",
+                    "description": "Free-form 'YYYY-MM-DD by handle' marker for last confirmed working test."
+                },
+                "notes": {
+                    "type": "string",
+                    "description": "Free-form notes about the device — quirks rationale, edge cases, etc."
+                },
+                "quirks": {
+                    "$ref": "#/definitions/quirks"
+                }
+            },
+            "additionalProperties": false
+        },
+        "quirks": {
+            "type": "object",
+            "properties": {
+                "colorTempRange": {
+                    "type": "object",
+                    "required": ["min", "max"],
+                    "properties": {
+                        "min": { "type": "integer", "minimum": 1000, "maximum": 12000 },
+                        "max": { "type": "integer", "minimum": 1000, "maximum": 12000 }
+                    },
+                    "additionalProperties": false,
+                    "description": "Override color-temperature range — Govee API often claims pauschal 2000-9000K, real range is narrower."
+                },
+                "brokenPlatformApi": {
+                    "type": "boolean",
+                    "description": "Cloud platform-API metadata is unreliable — adapter falls back to default LAN states."
+                },
+                "preferAppApi": {
+                    "type": "boolean",
+                    "description": "State comes from the Govee app2.govee.com endpoint instead of OpenAPI v2 /device/state (which returns empty for sensors like H5179)."
+                },
+                "skipLanDiscovery": {
+                    "type": "boolean",
+                    "description": "Device is not reachable over LAN — skip the UDP-multicast discovery for this SKU."
+                },
+                "expectEvents": {
+                    "type": "boolean",
+                    "description": "Device sends OpenAPI-MQTT events (lackWater, iceFull, bodyAppeared, etc.) — adapter creates an events/ channel."
+                },
+                "powerValueWorkaround": {
+                    "type": "boolean",
+                    "description": "Power state arrives as 1/0 instead of true/false (govee2mqtt-compatible quirk for older firmware)."
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}

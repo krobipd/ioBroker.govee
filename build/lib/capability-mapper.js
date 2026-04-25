@@ -26,7 +26,7 @@ __export(capability_mapper_exports, {
 });
 module.exports = __toCommonJS(capability_mapper_exports);
 var import_types = require("./types.js");
-var import_device_quirks = require("./device-quirks.js");
+var import_device_registry = require("./device-registry.js");
 function coerceBool(v) {
   return v === true || v === 1 || v === "1" || v === "true";
 }
@@ -380,7 +380,7 @@ function mapMusicSetting(cap) {
 function applyQuirksToStates(sku, states) {
   for (const state of states) {
     if (state.id === "colorTemperature" && state.min != null && state.max != null) {
-      const corrected = (0, import_device_quirks.applyColorTempQuirk)(sku, state.min, state.max);
+      const corrected = (0, import_device_registry.applyColorTempQuirk)(sku, state.min, state.max);
       state.min = corrected.min;
       state.max = corrected.max;
       state.def = corrected.min;

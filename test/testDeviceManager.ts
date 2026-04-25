@@ -5,7 +5,19 @@ import {
     resolveSegmentCount,
     SEGMENT_HARD_MAX,
 } from "../src/lib/device-manager";
+import { _resetDeviceRegistry, initDeviceRegistry } from "../src/lib/device-registry";
 import type { CloudCapability, GoveeDevice, LanDevice, MqttStatusUpdate } from "../src/lib/types";
+
+/**
+ * Quirk-dependent tests (e.g. generateDiagnostics for H6141) need the
+ * seed-status entries to be active. Real-world default has them off.
+ * beforeEach so other test files cannot leak a reset between cases.
+ */
+const QUIRK_TEST_REGISTRY = {
+    devices: {
+        H6141: { name: "LED Strip", type: "light", status: "seed", quirks: { brokenPlatformApi: true } },
+    },
+};
 
 /** Minimal mock logger */
 const mockLog: ioBroker.Logger = {
@@ -93,6 +105,11 @@ function createCallTracker(): { calls: CallRecord[]; track: (method: string) => 
 }
 
 describe("DeviceManager", () => {
+    beforeEach(() => {
+        initDeviceRegistry({ data: QUIRK_TEST_REGISTRY as never, experimental: true });
+    });
+    afterEach(() => _resetDeviceRegistry());
+
     let dm: DeviceManager;
 
     beforeEach(() => {
