@@ -18,7 +18,9 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var govee_api_client_exports = {};
 __export(govee_api_client_exports, {
-  GoveeApiClient: () => GoveeApiClient
+  GoveeApiClient: () => GoveeApiClient,
+  parseLastData: () => parseLastData,
+  parseSettings: () => parseSettings
 });
 module.exports = __toCommonJS(govee_api_client_exports);
 var import_http_client = require("./http-client.js");
@@ -36,6 +38,64 @@ class GoveeApiClient {
   /** Check if bearer token is available (set after MQTT login) */
   hasBearerToken() {
     return !!this.bearerToken;
+  }
+  /** Auth headers for the bearer-token-protected sensor endpoints. */
+  authHeaders() {
+    var _a;
+    return {
+      Authorization: `Bearer ${(_a = this.bearerToken) != null ? _a : ""}`,
+      appVersion: import_govee_constants.GOVEE_APP_VERSION,
+      clientId: import_govee_constants.GOVEE_CLIENT_ID,
+      clientType: import_govee_constants.GOVEE_CLIENT_TYPE,
+      "User-Agent": import_govee_constants.GOVEE_USER_AGENT
+    };
+  }
+  /**
+   * Fetch the per-account device list from the undocumented sensor
+   * endpoint. One call returns every device the Govee Home app sees for
+   * this account, with `lastDeviceData` + `deviceSettings` embedded as
+   * stringified JSON. Cheap and safe to poll on a conservative schedule.
+   *
+   * Endpoint: `POST /device/rest/devices/v1/list` (empty body).
+   * Auth: bearer token only.
+   *
+   * Used primarily for SKUs where OpenAPI v2 `/device/state` returns
+   * empty (H5179 et al.). Returns `[]` when no token is set.
+   *
+   * @returns Parsed entries; never throws on a single malformed entry.
+   */
+  async fetchDeviceList() {
+    if (!this.bearerToken) {
+      return [];
+    }
+    const resp = await (0, import_http_client.httpsRequest)({
+      method: "POST",
+      url: `${import_govee_constants.GOVEE_APP_BASE_URL}/device/rest/devices/v1/list`,
+      headers: this.authHeaders(),
+      body: {}
+    });
+    const out = [];
+    const list = Array.isArray(resp == null ? void 0 : resp.devices) ? resp.devices : [];
+    for (const d of list) {
+      if (!d || typeof d.sku !== "string" || typeof d.device !== "string") {
+        continue;
+      }
+      const entry = {
+        sku: d.sku,
+        device: d.device,
+        deviceName: typeof d.deviceName === "string" ? d.deviceName : d.sku,
+        deviceId: typeof d.deviceId === "number" ? d.deviceId : void 0,
+        versionHard: typeof d.versionHard === "string" ? d.versionHard : void 0,
+        versionSoft: typeof d.versionSoft === "string" ? d.versionSoft : void 0
+      };
+      const ext = d.deviceExt;
+      if (ext && typeof ext === "object") {
+        entry.lastData = parseLastData(ext.lastDeviceData);
+        entry.settings = parseSettings(ext.deviceSettings);
+      }
+      out.push(entry);
+    }
+    return out;
   }
   /**
    * Fetch scene library for a specific SKU from undocumented API.
@@ -92,16 +152,6 @@ class GoveeApiClient {
       }
     }
     return scenes;
-  }
-  /** Headers for authenticated undocumented API endpoints */
-  authHeaders() {
-    return {
-      Authorization: `Bearer ${this.bearerToken}`,
-      appVersion: import_govee_constants.GOVEE_APP_VERSION,
-      clientId: import_govee_constants.GOVEE_CLIENT_ID,
-      clientType: import_govee_constants.GOVEE_CLIENT_TYPE,
-      "User-Agent": import_govee_constants.GOVEE_USER_AGENT
-    };
   }
   /**
    * Fetch music effect library for a specific SKU (requires auth).
@@ -269,8 +319,50 @@ class GoveeApiClient {
     return groups;
   }
 }
+function parseLastData(raw) {
+  if (typeof raw !== "string" || !raw) {
+    return void 0;
+  }
+  try {
+    const obj = JSON.parse(raw);
+    const out = {};
+    if (typeof obj.online === "boolean") {
+      out.online = obj.online;
+    } else if (obj.online === 1 || obj.online === 0) {
+      out.online = obj.online === 1;
+    }
+    if (typeof obj.tem === "number" && Number.isFinite(obj.tem)) {
+      out.tem = obj.tem;
+    }
+    if (typeof obj.hum === "number" && Number.isFinite(obj.hum)) {
+      out.hum = obj.hum;
+    }
+    if (typeof obj.battery === "number" && Number.isFinite(obj.battery)) {
+      out.battery = obj.battery;
+    }
+    if (typeof obj.lastTime === "number" && Number.isFinite(obj.lastTime)) {
+      out.lastTime = obj.lastTime;
+    }
+    return out;
+  } catch {
+    return void 0;
+  }
+}
+function parseSettings(raw) {
+  if (typeof raw !== "string" || !raw) {
+    return void 0;
+  }
+  try {
+    const obj = JSON.parse(raw);
+    return obj && typeof obj === "object" ? obj : void 0;
+  } catch {
+    return void 0;
+  }
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  GoveeApiClient
+  GoveeApiClient,
+  parseLastData,
+  parseSettings
 });
 //# sourceMappingURL=govee-api-client.js.map

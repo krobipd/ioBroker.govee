@@ -682,6 +682,20 @@ export function resolveStatesValue(
   return null;
 }
 
+/**
+ * Event message from the OpenAPI-MQTT broker (mqtt.openapi.govee.com:8883).
+ * Govee pushes one of these per device-capability state change — primarily
+ * appliance events like lackWater, iceFull, bodyAppeared.
+ */
+export interface OpenApiMqttEvent {
+  /** Product model */
+  sku: string;
+  /** Device identifier */
+  device: string;
+  /** Event capabilities (typically a single event entry) */
+  capabilities: CloudStateCapability[];
+}
+
 /** Timer/callback interfaces for helper classes */
 export interface TimerAdapter {
   /** Create a repeating interval timer */

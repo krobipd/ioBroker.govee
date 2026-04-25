@@ -41,26 +41,12 @@ import {
   type GoveeDevice,
 } from "./lib/types.js";
 
-/** Rate limit defaults */
+/**
+ * Rate limit defaults — full Cloud API budget (8/min, 9000/day). v2 no
+ * longer halves this with govee-appliances because that adapter is
+ * deprecated and won't run alongside govee-smart.
+ */
 const FULL_LIMITS = { perMinute: 8, perDay: 9000 };
-const SHARED_LIMITS = { perMinute: 4, perDay: 4500 };
-/**
- * Alive-state pattern for govee-appliances instances. The adapter subscribes
- * to every matching instance so a `.0` / `.1` / multi-instance setup all
- * participate in the shared rate-limit halving instead of silently running
- * both adapters at full budget.
- */
-const SIBLING_ALIVE_PATTERN = "system.adapter.govee-appliances.*.alive";
-/**
- * Simple test matching the pattern above against a concrete state id.
- *
- * @param id Fully-qualified foreign state id (e.g. `system.adapter.govee-appliances.0.alive`)
- */
-function isSiblingAliveId(id: string): boolean {
-  return (
-    id.startsWith("system.adapter.govee-appliances.") && id.endsWith(".alive")
-  );
-}
 
 /**
  * State-suffix → command-name lookup for writable states. Segment indices
@@ -98,7 +84,6 @@ class GoveeAdapter extends utils.Adapter {
   private cloudInitDone = false;
   private lanScanDone = false;
   private statesReady = false;
-  private siblingActive = false;
   private stateCreationQueue: Promise<void>[] = [];
   private lanScanTimer: ioBroker.Timeout | undefined;
   private cleanupTimer: ioBroker.Timeout | undefined;
@@ -111,8 +96,6 @@ class GoveeAdapter extends utils.Adapter {
   private diagnosticsLastRun = new Map<string, number>();
   /** Cached admin language from system.config — used for wizard UI text */
   private adminLanguage = "en";
-  /** Active govee-appliances instance ids (e.g. "govee-appliances.0") */
-  private siblingInstancesAlive = new Set<string>();
 
   /** @param options Adapter options */
   public constructor(options: Partial<utils.AdapterOptions> = {}) {
@@ -426,9 +409,6 @@ class GoveeAdapter extends utils.Adapter {
       this.rateLimiter.start();
       this.deviceManager.setRateLimiter(this.rateLimiter);
 
-      // Detect sibling adapter (govee-appliances) for shared rate limits
-      await this.detectSiblingAdapter();
-
       if (!cachedOk) {
         // No cache — first start, fetch from Cloud with 60s hard-timeout.
         // If Cloud hangs/fails, we don't want to block adapter startup indefinitely.
@@ -649,23 +629,6 @@ class GoveeAdapter extends utils.Adapter {
     id: string,
     state: ioBroker.State | null | undefined,
   ): Promise<void> {
-    // Sibling adapter alive state change (foreign state, always ack).
-    // Any govee-appliances instance (.0, .1, ...) contributes to the
-    // siblingActive signal — the adapter halves its budget when at least
-    // one is running, restores full limits only when all are down.
-    if (isSiblingAliveId(id)) {
-      const instance = id
-        .replace("system.adapter.", "")
-        .replace(/\.alive$/, "");
-      if (state?.val === true) {
-        this.siblingInstancesAlive.add(instance);
-      } else {
-        this.siblingInstancesAlive.delete(instance);
-      }
-      this.applySiblingLimits(this.siblingInstancesAlive.size > 0);
-      return;
-    }
-
     if (!state || state.ack || !this.deviceManager || !this.stateManager) {
       return;
     }
@@ -1324,62 +1287,6 @@ class GoveeAdapter extends utils.Adapter {
       if (!liveKeys.has(key)) {
         this.diagnosticsLastRun.delete(key);
       }
-    }
-  }
-
-  /**
-   * Detect which govee-appliances instances (if any) are running. Subscribes
-   * to the whole `system.adapter.govee-appliances.*.alive` namespace so
-   * start/stop of any instance feeds back into applySiblingLimits.
-   */
-  private async detectSiblingAdapter(): Promise<void> {
-    try {
-      // Scan for all configured instances first — subscribeForeignStates
-      // with a wildcard only fires on *future* changes, so the initial
-      // alive state is read here.
-      const instances = await this.getForeignObjectsAsync(
-        "system.adapter.govee-appliances.*",
-        "instance",
-      );
-      for (const id of Object.keys(instances ?? {})) {
-        const aliveId = `${id}.alive`;
-        const state = await this.getForeignStateAsync(aliveId);
-        if (state?.val === true) {
-          this.siblingInstancesAlive.add(id.replace("system.adapter.", ""));
-        }
-      }
-      this.applySiblingLimits(this.siblingInstancesAlive.size > 0);
-      await this.subscribeForeignStatesAsync(SIBLING_ALIVE_PATTERN);
-    } catch {
-      // Sibling not installed / lookup failed — use full limits
-      this.applySiblingLimits(false);
-    }
-  }
-
-  /**
-   * Apply rate limits based on sibling adapter presence.
-   *
-   * @param siblingAlive Whether the sibling adapter is running
-   */
-  private applySiblingLimits(siblingAlive: boolean): void {
-    if (!this.rateLimiter || this.siblingActive === siblingAlive) {
-      return;
-    }
-    this.siblingActive = siblingAlive;
-
-    if (siblingAlive) {
-      this.rateLimiter.updateLimits(
-        SHARED_LIMITS.perMinute,
-        SHARED_LIMITS.perDay,
-      );
-      this.log.info(
-        `govee-appliances detected — sharing API budget (${SHARED_LIMITS.perMinute}/min, ${SHARED_LIMITS.perDay}/day)`,
-      );
-    } else {
-      this.rateLimiter.updateLimits(FULL_LIMITS.perMinute, FULL_LIMITS.perDay);
-      this.log.info(
-        `govee-appliances not active — using full API budget (${FULL_LIMITS.perMinute}/min, ${FULL_LIMITS.perDay}/day)`,
-      );
     }
   }
 

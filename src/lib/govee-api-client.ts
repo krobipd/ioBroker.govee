@@ -1,5 +1,6 @@
 import { httpsRequest } from "./http-client.js";
 import {
+  GOVEE_APP_BASE_URL,
   GOVEE_APP_VERSION,
   GOVEE_CLIENT_ID,
   GOVEE_CLIENT_TYPE,
@@ -7,8 +8,94 @@ import {
 } from "./govee-constants.js";
 
 /**
- * Govee undocumented API client for scene/music/DIY libraries.
- * Uses the app2.govee.com endpoints that are separate from the official Cloud API.
+ * Parsed `lastDeviceData` field from the undocumented device-list response.
+ * Govee serializes this as a JSON string inside the outer JSON. Temperature
+ * and humidity are integer hundredths (`tem: 2370` → 23.70 °C).
+ */
+export interface AppDeviceLastData {
+  /** Online flag as reported by the cloud */
+  online?: boolean;
+  /** Last temperature in hundredths of a degree (`tem/100` = °C) */
+  tem?: number;
+  /** Last humidity in hundredths of a percent (`hum/100` = % RH) */
+  hum?: number;
+  /** Battery percentage — only some devices report it here */
+  battery?: number;
+  /** UNIX ms of the last data point */
+  lastTime?: number;
+}
+
+/**
+ * Parsed `deviceSettings` field. Fields are a union across SKUs — most are
+ * optional, vendor may add more.
+ */
+export interface AppDeviceSettings {
+  /** Upload interval in minutes */
+  uploadRate?: number;
+  /** Battery percentage (some firmware reports it here, others in lastData) */
+  battery?: number;
+  /** Currently associated WiFi SSID */
+  wifiName?: string;
+  /** Device WiFi MAC address */
+  wifiMac?: string;
+  /** WiFi firmware version */
+  wifiSoftVersion?: string;
+  /** WiFi hardware revision */
+  wifiHardVersion?: string;
+  /** BLE advertising name */
+  bleName?: string;
+  /** Temperature calibration offset (hundredths of degree) */
+  temCali?: number;
+  /** Humidity calibration offset (hundredths of percent) */
+  humCali?: number;
+  /** Lower temperature alarm threshold (hundredths of degree) */
+  temMin?: number;
+  /** Upper temperature alarm threshold (hundredths of degree) */
+  temMax?: number;
+  /** Lower humidity alarm threshold (hundredths of percent) */
+  humMin?: number;
+  /** Upper humidity alarm threshold (hundredths of percent) */
+  humMax?: number;
+  /** App displays Fahrenheit instead of Celsius (display-only) */
+  fahOpen?: boolean;
+  /** Vendor-defined extras */
+  [key: string]: unknown;
+}
+
+/** One entry in the undocumented device-list response. */
+export interface AppDeviceEntry {
+  /** Govee SKU (e.g. "H5179") */
+  sku: string;
+  /** Device identifier (colon-separated MAC form) */
+  device: string;
+  /** Display name set in the Govee Home app */
+  deviceName: string;
+  /** Parsed `lastDeviceData` payload */
+  lastData?: AppDeviceLastData;
+  /** Parsed `deviceSettings` payload */
+  settings?: AppDeviceSettings;
+  /** Internal numeric device id (unused) */
+  deviceId?: number;
+  /** Hardware firmware version */
+  versionHard?: string;
+  /** Software firmware version */
+  versionSoft?: string;
+}
+
+/**
+ * Govee undocumented API client.
+ *
+ * Combines two roles that the v1.x adapter split across two clients:
+ *   - Light-side: scene library, music library, DIY library, snapshot
+ *     packets, SKU features, group members. Most endpoints are public
+ *     (no auth) and only need the AppVersion + User-Agent headers.
+ *   - Sensor-side: `POST /device/rest/devices/v1/list` for sensors like
+ *     H5179 where OpenAPI v2 `/device/state` returns empty. Needs a
+ *     bearer token from the MQTT login.
+ *
+ * Both roles share the same `app2.govee.com` host, the same auth
+ * identity (when needed), and the same `setBearerToken()` lifecycle —
+ * so they live in one class.
  */
 export class GoveeApiClient {
   private bearerToken: string | null = null;
@@ -25,6 +112,83 @@ export class GoveeApiClient {
   /** Check if bearer token is available (set after MQTT login) */
   hasBearerToken(): boolean {
     return !!this.bearerToken;
+  }
+
+  /** Auth headers for the bearer-token-protected sensor endpoints. */
+  private authHeaders(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.bearerToken ?? ""}`,
+      appVersion: GOVEE_APP_VERSION,
+      clientId: GOVEE_CLIENT_ID,
+      clientType: GOVEE_CLIENT_TYPE,
+      "User-Agent": GOVEE_USER_AGENT,
+    };
+  }
+
+  /**
+   * Fetch the per-account device list from the undocumented sensor
+   * endpoint. One call returns every device the Govee Home app sees for
+   * this account, with `lastDeviceData` + `deviceSettings` embedded as
+   * stringified JSON. Cheap and safe to poll on a conservative schedule.
+   *
+   * Endpoint: `POST /device/rest/devices/v1/list` (empty body).
+   * Auth: bearer token only.
+   *
+   * Used primarily for SKUs where OpenAPI v2 `/device/state` returns
+   * empty (H5179 et al.). Returns `[]` when no token is set.
+   *
+   * @returns Parsed entries; never throws on a single malformed entry.
+   */
+  async fetchDeviceList(): Promise<AppDeviceEntry[]> {
+    if (!this.bearerToken) {
+      return [];
+    }
+    const resp = await httpsRequest<{
+      status?: number;
+      message?: string;
+      devices?: Array<{
+        sku?: string;
+        device?: string;
+        deviceName?: string;
+        deviceId?: number;
+        versionHard?: string;
+        versionSoft?: string;
+        deviceExt?: {
+          lastDeviceData?: string;
+          deviceSettings?: string;
+        };
+      }>;
+    }>({
+      method: "POST",
+      url: `${GOVEE_APP_BASE_URL}/device/rest/devices/v1/list`,
+      headers: this.authHeaders(),
+      body: {},
+    });
+
+    const out: AppDeviceEntry[] = [];
+    const list = Array.isArray(resp?.devices) ? resp.devices : [];
+    for (const d of list) {
+      if (!d || typeof d.sku !== "string" || typeof d.device !== "string") {
+        continue;
+      }
+      const entry: AppDeviceEntry = {
+        sku: d.sku,
+        device: d.device,
+        deviceName: typeof d.deviceName === "string" ? d.deviceName : d.sku,
+        deviceId: typeof d.deviceId === "number" ? d.deviceId : undefined,
+        versionHard:
+          typeof d.versionHard === "string" ? d.versionHard : undefined,
+        versionSoft:
+          typeof d.versionSoft === "string" ? d.versionSoft : undefined,
+      };
+      const ext = d.deviceExt;
+      if (ext && typeof ext === "object") {
+        entry.lastData = parseLastData(ext.lastDeviceData);
+        entry.settings = parseSettings(ext.deviceSettings);
+      }
+      out.push(entry);
+    }
+    return out;
   }
 
   /**
@@ -126,17 +290,6 @@ export class GoveeApiClient {
     }
 
     return scenes;
-  }
-
-  /** Headers for authenticated undocumented API endpoints */
-  private authHeaders(): Record<string, string> {
-    return {
-      Authorization: `Bearer ${this.bearerToken}`,
-      appVersion: GOVEE_APP_VERSION,
-      clientId: GOVEE_CLIENT_ID,
-      clientType: GOVEE_CLIENT_TYPE,
-      "User-Agent": GOVEE_USER_AGENT,
-    };
   }
 
   /**
@@ -396,5 +549,65 @@ export class GoveeApiClient {
       }
     }
     return groups;
+  }
+}
+
+/**
+ * Decode the per-device `lastDeviceData` field. Govee serializes it as a
+ * JSON string nested inside the outer JSON. Malformed or missing input
+ * yields `undefined` rather than throwing — caller treats it as no data.
+ *
+ * @param raw Stringified JSON payload from `deviceExt.lastDeviceData`
+ */
+export function parseLastData(
+  raw: string | undefined,
+): AppDeviceLastData | undefined {
+  if (typeof raw !== "string" || !raw) {
+    return undefined;
+  }
+  try {
+    const obj = JSON.parse(raw) as Record<string, unknown>;
+    const out: AppDeviceLastData = {};
+    if (typeof obj.online === "boolean") {
+      out.online = obj.online;
+    } else if (obj.online === 1 || obj.online === 0) {
+      out.online = obj.online === 1;
+    }
+    if (typeof obj.tem === "number" && Number.isFinite(obj.tem)) {
+      out.tem = obj.tem;
+    }
+    if (typeof obj.hum === "number" && Number.isFinite(obj.hum)) {
+      out.hum = obj.hum;
+    }
+    if (typeof obj.battery === "number" && Number.isFinite(obj.battery)) {
+      out.battery = obj.battery;
+    }
+    if (typeof obj.lastTime === "number" && Number.isFinite(obj.lastTime)) {
+      out.lastTime = obj.lastTime;
+    }
+    return out;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Decode the per-device `deviceSettings` field. Returns a plain object —
+ * downstream consumers must treat every property as optional. Malformed
+ * or missing input yields `undefined`.
+ *
+ * @param raw Stringified JSON payload from `deviceExt.deviceSettings`
+ */
+export function parseSettings(
+  raw: string | undefined,
+): AppDeviceSettings | undefined {
+  if (typeof raw !== "string" || !raw) {
+    return undefined;
+  }
+  try {
+    const obj = JSON.parse(raw) as AppDeviceSettings;
+    return obj && typeof obj === "object" ? obj : undefined;
+  } catch {
+    return undefined;
   }
 }

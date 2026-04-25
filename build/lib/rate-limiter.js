@@ -48,7 +48,10 @@ class RateLimiter {
     this.perDayLimit = perDayLimit;
   }
   /**
-   * Update rate limits dynamically (e.g. when sibling adapter starts/stops).
+   * Update rate limits dynamically. Kept as a public hook for future
+   * scenarios (e.g. user-config change, per-device-type limits) — v2
+   * itself runs on the static FULL_LIMITS now that govee-appliances is
+   * deprecated.
    *
    * @param perMinuteLimit Max calls per minute
    * @param perDayLimit Max calls per day

@@ -37,11 +37,6 @@ var import_sku_cache = require("./lib/sku-cache.js");
 var import_state_manager = require("./lib/state-manager.js");
 var import_types = require("./lib/types.js");
 const FULL_LIMITS = { perMinute: 8, perDay: 9e3 };
-const SHARED_LIMITS = { perMinute: 4, perDay: 4500 };
-const SIBLING_ALIVE_PATTERN = "system.adapter.govee-appliances.*.alive";
-function isSiblingAliveId(id) {
-  return id.startsWith("system.adapter.govee-appliances.") && id.endsWith(".alive");
-}
 const STATE_TO_COMMAND = {
   "control.power": "power",
   "control.brightness": "brightness",
@@ -72,7 +67,6 @@ class GoveeAdapter extends utils.Adapter {
   cloudInitDone = false;
   lanScanDone = false;
   statesReady = false;
-  siblingActive = false;
   stateCreationQueue = [];
   lanScanTimer;
   cleanupTimer;
@@ -85,8 +79,6 @@ class GoveeAdapter extends utils.Adapter {
   diagnosticsLastRun = /* @__PURE__ */ new Map();
   /** Cached admin language from system.config — used for wizard UI text */
   adminLanguage = "en";
-  /** Active govee-appliances instance ids (e.g. "govee-appliances.0") */
-  siblingInstancesAlive = /* @__PURE__ */ new Set();
   /** @param options Adapter options */
   constructor(options = {}) {
     super({ ...options, name: "govee-smart" });
@@ -357,7 +349,6 @@ class GoveeAdapter extends utils.Adapter {
       );
       this.rateLimiter.start();
       this.deviceManager.setRateLimiter(this.rateLimiter);
-      await this.detectSiblingAdapter();
       if (!cachedOk) {
         const result = await this.cloudInitWithTimeout();
         this.cloudWasConnected = result.ok;
@@ -554,16 +545,6 @@ class GoveeAdapter extends utils.Adapter {
    */
   async onStateChange(id, state) {
     var _a, _b, _c, _d;
-    if (isSiblingAliveId(id)) {
-      const instance = id.replace("system.adapter.", "").replace(/\.alive$/, "");
-      if ((state == null ? void 0 : state.val) === true) {
-        this.siblingInstancesAlive.add(instance);
-      } else {
-        this.siblingInstancesAlive.delete(instance);
-      }
-      this.applySiblingLimits(this.siblingInstancesAlive.size > 0);
-      return;
-    }
     if (!state || state.ack || !this.deviceManager || !this.stateManager) {
       return;
     }
@@ -1045,55 +1026,6 @@ class GoveeAdapter extends utils.Adapter {
       if (!liveKeys.has(key)) {
         this.diagnosticsLastRun.delete(key);
       }
-    }
-  }
-  /**
-   * Detect which govee-appliances instances (if any) are running. Subscribes
-   * to the whole `system.adapter.govee-appliances.*.alive` namespace so
-   * start/stop of any instance feeds back into applySiblingLimits.
-   */
-  async detectSiblingAdapter() {
-    try {
-      const instances = await this.getForeignObjectsAsync(
-        "system.adapter.govee-appliances.*",
-        "instance"
-      );
-      for (const id of Object.keys(instances != null ? instances : {})) {
-        const aliveId = `${id}.alive`;
-        const state = await this.getForeignStateAsync(aliveId);
-        if ((state == null ? void 0 : state.val) === true) {
-          this.siblingInstancesAlive.add(id.replace("system.adapter.", ""));
-        }
-      }
-      this.applySiblingLimits(this.siblingInstancesAlive.size > 0);
-      await this.subscribeForeignStatesAsync(SIBLING_ALIVE_PATTERN);
-    } catch {
-      this.applySiblingLimits(false);
-    }
-  }
-  /**
-   * Apply rate limits based on sibling adapter presence.
-   *
-   * @param siblingAlive Whether the sibling adapter is running
-   */
-  applySiblingLimits(siblingAlive) {
-    if (!this.rateLimiter || this.siblingActive === siblingAlive) {
-      return;
-    }
-    this.siblingActive = siblingAlive;
-    if (siblingAlive) {
-      this.rateLimiter.updateLimits(
-        SHARED_LIMITS.perMinute,
-        SHARED_LIMITS.perDay
-      );
-      this.log.info(
-        `govee-appliances detected \u2014 sharing API budget (${SHARED_LIMITS.perMinute}/min, ${SHARED_LIMITS.perDay}/day)`
-      );
-    } else {
-      this.rateLimiter.updateLimits(FULL_LIMITS.perMinute, FULL_LIMITS.perDay);
-      this.log.info(
-        `govee-appliances not active \u2014 using full API budget (${FULL_LIMITS.perMinute}/min, ${FULL_LIMITS.perDay}/day)`
-      );
     }
   }
   /**
