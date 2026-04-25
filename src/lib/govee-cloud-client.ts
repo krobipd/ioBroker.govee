@@ -17,6 +17,14 @@ const BASE_URL = "https://openapi.api.govee.com";
 export class GoveeCloudClient {
   private readonly apiKey: string;
   private readonly log: ioBroker.Logger;
+  /**
+   * Diagnostics hook — receives (deviceId, endpoint, body) for each
+   * response. Optional; the adapter wires it to a DiagnosticsCollector
+   * for `info.diagnostics_export`.
+   */
+  private onResponse:
+    | ((deviceId: string, endpoint: string, body: unknown) => void)
+    | null = null;
 
   /**
    * @param apiKey Govee API key
@@ -25,6 +33,18 @@ export class GoveeCloudClient {
   constructor(apiKey: string, log: ioBroker.Logger) {
     this.apiKey = apiKey;
     this.log = log;
+  }
+
+  /**
+   * Register a hook called after every successful Cloud API response.
+   * Used to populate the DiagnosticsCollector ring buffer.
+   *
+   * @param cb Callback receiving (deviceId, endpoint, body)
+   */
+  setResponseHook(
+    cb: ((deviceId: string, endpoint: string, body: unknown) => void) | null,
+  ): void {
+    this.onResponse = cb;
   }
 
   /** Fetch all devices with their capabilities */
@@ -55,6 +75,7 @@ export class GoveeCloudClient {
         payload: { sku, device },
       },
     );
+    this.onResponse?.(device, "/router/api/v1/device/state", resp);
     const caps = resp?.data?.capabilities;
     return Array.isArray(caps) ? caps : [];
   }

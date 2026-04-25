@@ -27,6 +27,7 @@ __export(device_manager_exports, {
 module.exports = __toCommonJS(device_manager_exports);
 var import_command_router = require("./command-router.js");
 var import_device_registry = require("./device-registry.js");
+var import_diagnostics = require("./diagnostics.js");
 var import_types = require("./types.js");
 var import_http_client = require("./http-client.js");
 const APPLIANCE_TYPES = /* @__PURE__ */ new Set([
@@ -131,6 +132,7 @@ class DeviceManager {
   log;
   devices = /* @__PURE__ */ new Map();
   commandRouter;
+  diagnostics;
   cloudClient = null;
   apiClient = null;
   skuCache = null;
@@ -145,6 +147,14 @@ class DeviceManager {
   constructor(log, timers) {
     this.log = log;
     this.commandRouter = new import_command_router.CommandRouter(log, timers);
+    this.diagnostics = new import_diagnostics.DiagnosticsCollector();
+  }
+  /**
+   * Expose the diagnostics collector so adapter-side hooks (MQTT,
+   * Cloud, log wrapper) can write into the per-device ring buffers.
+   */
+  getDiagnostics() {
+    return this.diagnostics;
   }
   /**
    * Register the LAN client
@@ -1038,74 +1048,16 @@ class DeviceManager {
     };
   }
   /**
-   * Generate diagnostics data for a device — structured JSON for GitHub issue submission.
+   * Generate diagnostics data for a device — structured JSON for GitHub
+   * issue submission. Delegates to the DiagnosticsCollector so the JSON
+   * also includes ring-buffer context (recent logs, MQTT packets, last
+   * API responses).
    *
    * @param device Target device
    * @param adapterVersion Adapter version string
    */
   generateDiagnostics(device, adapterVersion) {
-    var _a, _b;
-    const quirks = (0, import_device_registry.getDeviceQuirks)(device.sku);
-    return {
-      adapter: "iobroker.govee-smart",
-      version: adapterVersion,
-      exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
-      device: {
-        sku: device.sku,
-        deviceId: device.deviceId,
-        name: device.name,
-        type: device.type,
-        segmentCount: (_a = device.segmentCount) != null ? _a : null,
-        channels: { ...device.channels },
-        lanIp: (_b = device.lanIp) != null ? _b : null
-      },
-      capabilities: device.capabilities,
-      scenes: {
-        count: device.scenes.length,
-        names: device.scenes.map((s) => s.name)
-      },
-      diyScenes: {
-        count: device.diyScenes.length,
-        names: device.diyScenes.map((s) => s.name)
-      },
-      snapshots: {
-        count: device.snapshots.length,
-        names: device.snapshots.map((s) => s.name)
-      },
-      sceneLibrary: {
-        count: device.sceneLibrary.length,
-        entries: device.sceneLibrary.map((s) => {
-          var _a2, _b2;
-          return {
-            name: s.name,
-            sceneCode: s.sceneCode,
-            hasParam: !!s.scenceParam,
-            speedSupported: (_b2 = (_a2 = s.speedInfo) == null ? void 0 : _a2.supSpeed) != null ? _b2 : false
-          };
-        })
-      },
-      musicLibrary: {
-        count: device.musicLibrary.length,
-        entries: device.musicLibrary.map((m) => {
-          var _a2;
-          return {
-            name: m.name,
-            musicCode: m.musicCode,
-            mode: (_a2 = m.mode) != null ? _a2 : null
-          };
-        })
-      },
-      diyLibrary: {
-        count: device.diyLibrary.length,
-        entries: device.diyLibrary.map((d) => ({
-          name: d.name,
-          diyCode: d.diyCode
-        }))
-      },
-      quirks: quirks != null ? quirks : null,
-      skuFeatures: device.skuFeatures,
-      state: { ...device.state }
-    };
+    return this.diagnostics.generate(device, adapterVersion);
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

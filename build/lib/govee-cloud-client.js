@@ -27,12 +27,27 @@ class GoveeCloudClient {
   apiKey;
   log;
   /**
+   * Diagnostics hook — receives (deviceId, endpoint, body) for each
+   * response. Optional; the adapter wires it to a DiagnosticsCollector
+   * for `info.diagnostics_export`.
+   */
+  onResponse = null;
+  /**
    * @param apiKey Govee API key
    * @param log ioBroker logger
    */
   constructor(apiKey, log) {
     this.apiKey = apiKey;
     this.log = log;
+  }
+  /**
+   * Register a hook called after every successful Cloud API response.
+   * Used to populate the DiagnosticsCollector ring buffer.
+   *
+   * @param cb Callback receiving (deviceId, endpoint, body)
+   */
+  setResponseHook(cb) {
+    this.onResponse = cb;
   }
   /** Fetch all devices with their capabilities */
   async getDevices() {
@@ -49,7 +64,7 @@ class GoveeCloudClient {
    * @param device Device identifier
    */
   async getDeviceState(sku, device) {
-    var _a;
+    var _a, _b;
     const resp = await this.request(
       "POST",
       "/router/api/v1/device/state",
@@ -58,7 +73,8 @@ class GoveeCloudClient {
         payload: { sku, device }
       }
     );
-    const caps = (_a = resp == null ? void 0 : resp.data) == null ? void 0 : _a.capabilities;
+    (_a = this.onResponse) == null ? void 0 : _a.call(this, device, "/router/api/v1/device/state", resp);
+    const caps = (_b = resp == null ? void 0 : resp.data) == null ? void 0 : _b.capabilities;
     return Array.isArray(caps) ? caps : [];
   }
   /**

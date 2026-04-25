@@ -81,6 +81,14 @@ export class GoveeMqttClient {
   private onStatus: MqttStatusCallback | null = null;
   private onConnection: MqttConnectionCallback | null = null;
   private onToken: MqttTokenCallback | null = null;
+  /**
+   * Diagnostics hook — called for each parsed message with the device id,
+   * source topic and any op.command hex strings. The hook is responsible
+   * for forwarding to a DiagnosticsCollector if one is set up.
+   */
+  private onPacket:
+    | ((deviceId: string, topic: string, hex: string) => void)
+    | null = null;
 
   /**
    * @param email Govee account email
@@ -204,8 +212,8 @@ export class GoveeMqttClient {
         });
       });
 
-      this.client.on("message", (_topic, payload) => {
-        this.handleMessage(payload);
+      this.client.on("message", (topic, payload) => {
+        this.handleMessage(payload, topic);
       });
 
       this.client.on("error", (err) => {
@@ -278,8 +286,9 @@ export class GoveeMqttClient {
    * Parse MQTT status message
    *
    * @param payload Raw MQTT message buffer
+   * @param topic   AWS-IoT topic the message arrived on
    */
-  private handleMessage(payload: Buffer): void {
+  private handleMessage(payload: Buffer, topic: string): void {
     try {
       const raw = JSON.parse(payload.toString()) as Record<string, unknown>;
 
@@ -298,12 +307,32 @@ export class GoveeMqttClient {
 
       if (sku || device) {
         this.onStatus?.({ sku, device, state, op });
+        if (this.onPacket && device && Array.isArray(op?.command)) {
+          for (const cmd of op.command) {
+            if (typeof cmd === "string" && cmd) {
+              this.onPacket(device, topic, cmd);
+            }
+          }
+        }
       }
     } catch {
       this.log.debug(
         `MQTT: Failed to parse message: ${payload.toString().slice(0, 200)}`,
       );
     }
+  }
+
+  /**
+   * Register a hook called for every parsed MQTT packet. Used by the
+   * adapter to forward op.command hex strings into the DiagnosticsCollector
+   * for `info.diagnostics_export`.
+   *
+   * @param cb Callback receiving (deviceId, topic, hex)
+   */
+  setPacketHook(
+    cb: ((deviceId: string, topic: string, hex: string) => void) | null,
+  ): void {
+    this.onPacket = cb;
   }
 
   /** Schedule reconnect with exponential backoff */

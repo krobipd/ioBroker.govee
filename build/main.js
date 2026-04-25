@@ -319,6 +319,10 @@ class GoveeAdapter extends utils.Adapter {
         this.log,
         this
       );
+      this.mqttClient.setPacketHook((deviceId, topic, hex) => {
+        var _a2;
+        (_a2 = this.deviceManager) == null ? void 0 : _a2.getDiagnostics().addMqttPacket(deviceId, topic, hex);
+      });
       await this.mqttClient.connect(
         (update) => this.deviceManager.handleMqttStatus(update),
         (connected) => {
@@ -340,6 +344,10 @@ class GoveeAdapter extends utils.Adapter {
     const cachedOk = this.deviceManager.loadFromCache();
     if (config.apiKey) {
       this.cloudClient = new import_govee_cloud_client.GoveeCloudClient(config.apiKey, this.log);
+      this.cloudClient.setResponseHook((deviceId, endpoint, body) => {
+        var _a2;
+        (_a2 = this.deviceManager) == null ? void 0 : _a2.getDiagnostics().setApiResponse(deviceId, endpoint, body);
+      });
       this.deviceManager.setCloudClient(this.cloudClient);
       this.rateLimiter = new import_rate_limiter.RateLimiter(
         this.log,

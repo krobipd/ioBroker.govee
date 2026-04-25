@@ -84,6 +84,12 @@ class GoveeMqttClient {
   onConnection = null;
   onToken = null;
   /**
+   * Diagnostics hook — called for each parsed message with the device id,
+   * source topic and any op.command hex strings. The hook is responsible
+   * for forwarding to a DiagnosticsCollector if one is set up.
+   */
+  onPacket = null;
+  /**
    * @param email Govee account email
    * @param password Govee account password
    * @param log ioBroker logger
@@ -175,8 +181,8 @@ class GoveeMqttClient {
           }
         });
       });
-      this.client.on("message", (_topic, payload) => {
-        this.handleMessage(payload);
+      this.client.on("message", (topic, payload) => {
+        this.handleMessage(payload, topic);
       });
       this.client.on("error", (err) => {
         this.log.debug(`MQTT error: ${err.message}`);
@@ -237,8 +243,9 @@ class GoveeMqttClient {
    * Parse MQTT status message
    *
    * @param payload Raw MQTT message buffer
+   * @param topic   AWS-IoT topic the message arrived on
    */
-  handleMessage(payload) {
+  handleMessage(payload, topic) {
     var _a;
     try {
       const raw = JSON.parse(payload.toString());
@@ -248,12 +255,29 @@ class GoveeMqttClient {
       const op = raw.op && typeof raw.op === "object" ? raw.op : void 0;
       if (sku || device) {
         (_a = this.onStatus) == null ? void 0 : _a.call(this, { sku, device, state, op });
+        if (this.onPacket && device && Array.isArray(op == null ? void 0 : op.command)) {
+          for (const cmd of op.command) {
+            if (typeof cmd === "string" && cmd) {
+              this.onPacket(device, topic, cmd);
+            }
+          }
+        }
       }
     } catch {
       this.log.debug(
         `MQTT: Failed to parse message: ${payload.toString().slice(0, 200)}`
       );
     }
+  }
+  /**
+   * Register a hook called for every parsed MQTT packet. Used by the
+   * adapter to forward op.command hex strings into the DiagnosticsCollector
+   * for `info.diagnostics_export`.
+   *
+   * @param cb Callback receiving (deviceId, topic, hex)
+   */
+  setPacketHook(cb) {
+    this.onPacket = cb;
   }
   /** Schedule reconnect with exponential backoff */
   scheduleReconnect() {

@@ -1,5 +1,6 @@
 import { CommandRouter } from "./command-router.js";
 import { getDeviceQuirks } from "./device-registry.js";
+import { DiagnosticsCollector } from "./diagnostics.js";
 import type { GoveeApiClient } from "./govee-api-client.js";
 import type { GoveeCloudClient } from "./govee-cloud-client.js";
 import type { GoveeLanClient } from "./govee-lan-client.js";
@@ -204,6 +205,7 @@ export class DeviceManager {
   private readonly log: ioBroker.Logger;
   private readonly devices = new Map<string, GoveeDevice>();
   private readonly commandRouter: CommandRouter;
+  private readonly diagnostics: DiagnosticsCollector;
   private cloudClient: GoveeCloudClient | null = null;
   private apiClient: GoveeApiClient | null = null;
   private skuCache: SkuCache | null = null;
@@ -221,6 +223,15 @@ export class DeviceManager {
   constructor(log: ioBroker.Logger, timers: TimerAdapter) {
     this.log = log;
     this.commandRouter = new CommandRouter(log, timers);
+    this.diagnostics = new DiagnosticsCollector();
+  }
+
+  /**
+   * Expose the diagnostics collector so adapter-side hooks (MQTT,
+   * Cloud, log wrapper) can write into the per-device ring buffers.
+   */
+  getDiagnostics(): DiagnosticsCollector {
+    return this.diagnostics;
   }
 
   /**
@@ -1342,7 +1353,10 @@ export class DeviceManager {
   }
 
   /**
-   * Generate diagnostics data for a device — structured JSON for GitHub issue submission.
+   * Generate diagnostics data for a device — structured JSON for GitHub
+   * issue submission. Delegates to the DiagnosticsCollector so the JSON
+   * also includes ring-buffer context (recent logs, MQTT packets, last
+   * API responses).
    *
    * @param device Target device
    * @param adapterVersion Adapter version string
@@ -1351,60 +1365,6 @@ export class DeviceManager {
     device: GoveeDevice,
     adapterVersion: string,
   ): Record<string, unknown> {
-    const quirks = getDeviceQuirks(device.sku);
-    return {
-      adapter: "iobroker.govee-smart",
-      version: adapterVersion,
-      exportedAt: new Date().toISOString(),
-      device: {
-        sku: device.sku,
-        deviceId: device.deviceId,
-        name: device.name,
-        type: device.type,
-        segmentCount: device.segmentCount ?? null,
-        channels: { ...device.channels },
-        lanIp: device.lanIp ?? null,
-      },
-      capabilities: device.capabilities,
-      scenes: {
-        count: device.scenes.length,
-        names: device.scenes.map((s) => s.name),
-      },
-      diyScenes: {
-        count: device.diyScenes.length,
-        names: device.diyScenes.map((s) => s.name),
-      },
-      snapshots: {
-        count: device.snapshots.length,
-        names: device.snapshots.map((s) => s.name),
-      },
-      sceneLibrary: {
-        count: device.sceneLibrary.length,
-        entries: device.sceneLibrary.map((s) => ({
-          name: s.name,
-          sceneCode: s.sceneCode,
-          hasParam: !!s.scenceParam,
-          speedSupported: s.speedInfo?.supSpeed ?? false,
-        })),
-      },
-      musicLibrary: {
-        count: device.musicLibrary.length,
-        entries: device.musicLibrary.map((m) => ({
-          name: m.name,
-          musicCode: m.musicCode,
-          mode: m.mode ?? null,
-        })),
-      },
-      diyLibrary: {
-        count: device.diyLibrary.length,
-        entries: device.diyLibrary.map((d) => ({
-          name: d.name,
-          diyCode: d.diyCode,
-        })),
-      },
-      quirks: quirks ?? null,
-      skuFeatures: device.skuFeatures,
-      state: { ...device.state },
-    };
+    return this.diagnostics.generate(device, adapterVersion);
   }
 }

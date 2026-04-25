@@ -377,6 +377,14 @@ class GoveeAdapter extends utils.Adapter {
         this,
       );
 
+      // Forward every parsed MQTT op.command into the diagnostics ring buffer
+      // so info.diagnostics_export contains the recent packets per device.
+      this.mqttClient.setPacketHook((deviceId, topic, hex) => {
+        this.deviceManager
+          ?.getDiagnostics()
+          .addMqttPacket(deviceId, topic, hex);
+      });
+
       await this.mqttClient.connect(
         (update) => this.deviceManager!.handleMqttStatus(update),
         (connected) => {
@@ -400,6 +408,13 @@ class GoveeAdapter extends utils.Adapter {
 
     if (config.apiKey) {
       this.cloudClient = new GoveeCloudClient(config.apiKey, this.log);
+      // Capture the most recent Cloud response per (deviceId, endpoint) for
+      // diagnostics — bounded by the DiagnosticsCollector's response slot cap.
+      this.cloudClient.setResponseHook((deviceId, endpoint, body) => {
+        this.deviceManager
+          ?.getDiagnostics()
+          .setApiResponse(deviceId, endpoint, body);
+      });
       this.deviceManager.setCloudClient(this.cloudClient);
 
       this.rateLimiter = new RateLimiter(
