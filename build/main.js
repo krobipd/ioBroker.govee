@@ -1011,8 +1011,10 @@ class GoveeAdapter extends utils.Adapter {
    * its devices either.
    *
    * A future stale-pruning step that explicitly retires devices from the
-   * device-manager registry should also call `deviceManager.removeDevice`
-   * and `getDiagnostics().forget(deviceId)` for each retired device.
+   * device-manager registry should also drop the device from
+   * `deviceManager.devices` and call `getDiagnostics().forget(deviceId)` for
+   * each retired device — those reaping APIs come in with the pruning patch,
+   * not before (Memory `feedback_kein_phantom_schema`).
    */
   async reapStaleDevices() {
     if (!this.stateManager || !this.deviceManager) {

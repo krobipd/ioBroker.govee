@@ -54,6 +54,8 @@
   "files": [
     "admin",
     "build",
+    "devices.json",
+    "devices.schema.json",
     "io-package.json",
     "LICENSE",
     "README.md"

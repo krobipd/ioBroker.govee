@@ -677,6 +677,60 @@ describe("StateManager", () => {
             );
             expect(delDeviceCalls.length).to.equal(0);
         });
+
+        it("should delete state values before removing the device object", async () => {
+            const { adapter, calls } = createMockAdapter();
+            const sm = new StateManager(adapter as never);
+
+            const survivor = createTestDevice({ sku: "H6160", deviceId: "AABB1111" });
+            const stale = createTestDevice({ sku: "H6161", deviceId: "AABB2222" });
+            await sm.createDeviceStates(survivor, basicControlDefs());
+            await sm.createDeviceStates(stale, basicControlDefs());
+
+            await sm.cleanupDevices([survivor]);
+
+            // Find the indices of delStateAsync calls touching the stale prefix
+            // and the delObjectAsync call removing the stale device. The state
+            // deletes must come first so historical values don't outlive the
+            // device tree on disk.
+            const stalePrefix = "devices.h6161_2222";
+            const stateDeleteIdx = calls.findIndex(
+                (c) =>
+                    c.method === "delStateAsync" &&
+                    typeof c.args[0] === "string" &&
+                    (c.args[0] as string).startsWith(`${stalePrefix}.`),
+            );
+            const objectDeleteIdx = calls.findIndex(
+                (c) =>
+                    c.method === "delObjectAsync" &&
+                    c.args[0] === stalePrefix,
+            );
+            expect(stateDeleteIdx, "delStateAsync was called for the stale prefix").to.be.greaterThan(-1);
+            expect(objectDeleteIdx, "delObjectAsync was called for the stale prefix").to.be.greaterThan(-1);
+            expect(stateDeleteIdx).to.be.lessThan(
+                objectDeleteIdx,
+                "state values must be deleted before the device object",
+            );
+        });
+
+        it("should keep state values for surviving devices", async () => {
+            const { adapter, calls } = createMockAdapter();
+            const sm = new StateManager(adapter as never);
+
+            const survivor = createTestDevice({ sku: "H6160", deviceId: "AABB1111" });
+            await sm.createDeviceStates(survivor, basicControlDefs());
+
+            await sm.cleanupDevices([survivor]);
+
+            const survivorPrefix = "devices.h6160_1111";
+            const survivorStateDeletes = calls.filter(
+                (c) =>
+                    c.method === "delStateAsync" &&
+                    typeof c.args[0] === "string" &&
+                    (c.args[0] as string).startsWith(`${survivorPrefix}.`),
+            );
+            expect(survivorStateDeletes).to.have.lengthOf(0);
+        });
     });
 
     describe("cleanupAllChannelStates", () => {

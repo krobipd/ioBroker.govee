@@ -203,17 +203,6 @@ class DeviceManager {
     return Array.from(this.devices.values());
   }
   /**
-   * Drop a device from the internal map. Called after the state-manager
-   * has deleted its object tree so the DeviceManager's map doesn't grow
-   * unboundedly across the adapter's lifetime.
-   *
-   * @param sku Product model
-   * @param deviceId Device identifier
-   */
-  removeDevice(sku, deviceId) {
-    this.devices.delete(this.deviceKey(sku, deviceId));
-  }
-  /**
    * Load devices from local SKU cache.
    * Returns true if any devices were loaded (= Cloud not needed).
    */
