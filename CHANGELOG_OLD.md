@@ -1,4 +1,15 @@
 # Older Changes
+## 1.10.1 (2026-04-20)
+- Refresh button no longer re-fetches static SKU libraries (scene/music/DIY/features) — call count drops from ~7 to 2 per device per click. The endpoints returned 403 for many accounts and just produced minute-long rate-limiter backlogs.
+
+## 1.10.0 (2026-04-20)
+- Multi-packet A3 BLE scenes (`scenceParam`) are now activated via Cloud on devices without segments; bulbs and Curtain Lights silently dropped those packets before, so complex scenes never played.
+- Powering a device off resets every mode dropdown to `"---"` — both ioBroker and Govee-app initiated off events.
+
+## 1.9.1 (2026-04-20)
+- Each Cloud list (scenes / DIY / snapshots) is now guarded independently. Govee's `/device/scenes` sometimes returns e.g. 149 scenes + 0 snapshots when a snapshot clearly exists; the old combined guard then wiped existing snapshots and the dropdown errored on click.
+
+Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
 ## 1.9.0 (2026-04-20)
 - **BREAKING** — `snapshots.snapshot` renamed to `snapshots.snapshot_cloud` (clearer alongside `snapshot_local` / `snapshot_save` / `snapshot_delete`). Update scripts and VIS widgets; old state is removed on first start.

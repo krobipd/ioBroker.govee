@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "news": {
+      "2.0.3": {
+        "en": "Min js-controller correction: was incorrectly bumped to `>=7.0.23` in 2.0.2 (and admin downgraded from `>=7.6.20` to `>=7.6.17`). The repochecker-recommended values are `>=6.0.11` / `>=7.6.20` — restored.",
+        "de": "Min js-Controller-Korrektur: wurde falsch auf `>=7.0.23` in 2.0.2 (und admin downgraded von `>=7.6.20` auf `>=7.6.17 `) gesprungen. Die repochecker-recommended Werte sind `>=6.0.11 ` / `>=7.6.20 ` - restauriert.",
+        "ru": "Коррекция Min js-контроллера: в 2.0.2 она была неправильно увеличена до «>=7.0.23» (и админ был понижен с «>=7.6.20» до «>=7.6.17»). Рекомендуемые значения репочекера - \">=6.0.11\" / \">=7.6.20\" - восстановлены.",
+        "pt": "Min js-controller correção: foi incorretamente bateu para `>=7.0.23` em 2.0.2 (e admin desclassificado de `>=7.6,20` para `>=7.6.17`). Os valores recomendados pelo repochecker são `>=6.0.11` / `>=7.6.20` — restaurados.",
+        "nl": "Min js-controller correctie: werd foutief gestoten naar  De door de repochecker aanbevolen waardes zijn hersteld.",
+        "fr": "Correction de l'administrateur de Min js: a été incorrectement cognée à `>=7.0.23` en 2.0.2 (et l'administrateur a été rétrogradé de `>=7.6.20` à `>=7.6.17`). Les valeurs recommandées par repochecker sont `>=6.0.11` / `>=7.6.20` - restaurées.",
+        "it": "Min js-controller correzione: è stato erroneamente urtato a `>=7.0.23` in 2.0.2 (e admin downgraded da `>=7.6.20` a `>=7.6.17`). I valori repochecker-recommended sono `>=6.0.11` / `>=7.6.20` — ripristinati.",
+        "es": "Min js-controller correction: was incorrectly toped to ` ` {=7.0.23` in 2.0.2 (and admin downgraded from ` {=7.6.20` to ` {=7.6.17`). Los valores recomendados por el depositchecker son \" confianza=6.0.11 \" / ` confianza=7.6.20 \" , restaurados.",
+        "pl": "Korekta Min js- controller: została nieprawidłowo przeskoczona do '> = 7.0.23' w 2.0.2 (a admin zmniejszył się z '> = 7.6.20' do '> = 7.6.17'). Zalecane wartości repochecker- to '> = 6.0.11' / '> = 7.6.20' - przywrócone.",
+        "uk": "Нормативно звернулися до `>=7.0.23` в 2.0.2 (і адміністратором, опущений від `>=7.6.20` до `>=7.6.17`). Репочекерно-відновлені значення `>=6.0.11` / `>=7.6.20` — відновлено.",
+        "zh-cn": "Min js-controler更正:错误地在2.0.2中跌至QQ7.0.23 ' (行政级别从QQ7.6.20`降至QQ7.6.17)。 重新检查器推荐的数值为6.0.11` /`7.6.20 ' ——恢复."
+      },
       "2.0.2": {
         "en": "OpenAPI MQTT now uses a stable client ID across reconnects (Govee's broker treated each reconnect as a new connection). Min js-controller bumped to >=7.0.23. Consistency cleanup vs. the other krobi adapters.",
         "de": "OpenAPI MQTT verwendet jetzt eine stabile Client-ID über Reconnects hinweg (Goveeas Broker behandelte jeden Reconnect bisher als neue Verbindung). js-controller-Mindestversion auf >=7.0.23 angehoben. Konsistenz-Cleanup gegenüber den anderen krobi-Adaptern.",
@@ -80,19 +93,6 @@
         "pl": "Sceny A3 BLE z wielu pakietów (scenceParam) są teraz aktywowane przez Cloud na urządzeniach bez segmentów; żarówki i Curtain Lights po cichu odrzucały te pakiety, więc złożone sceny nigdy się nie odtwarzały. Wyłączenie urządzenia resetuje wszystkie listy modów do '---' — zdarzenia z ioBrokera i z aplikacji Govee.",
         "uk": "Multi-packet A3 BLE сцени (scenceParam) тепер активуються через Cloud на пристроях без сегментів; bulbs і Curtain Lights раніше мовчки відкидали ці пакети, тож складні сцени не запускалися. Вимкнення пристрою скидає всі моди-випадайки на '---' — як для ioBroker, так і для Govee-app off-події.",
         "zh-cn": "多包 A3 BLE 场景（scenceParam）现在在没有 segments 的设备上通过 Cloud 激活；灯泡和 Curtain Lights 之前会静默丢弃这些包，导致复杂场景从未播放。关闭设备时所有模式下拉菜单重置为 '---' —— ioBroker 和 Govee-app 触发的关机事件都生效。"
-      },
-      "1.9.1": {
-        "en": "Each Cloud list (scenes / DIY / snapshots) is now guarded independently. Govee's /device/scenes sometimes returns e.g. 149 scenes + 0 snapshots when a snapshot clearly exists; the old combined guard wiped existing snapshots in that case and the dropdown errored on click.",
-        "de": "Jede Cloud-Liste (scenes / DIY / snapshots) wird jetzt unabhängig geguarded. Govees /device/scenes liefert manchmal z.B. 149 Szenen + 0 Snapshots, obwohl ein Snapshot offensichtlich existiert; der alte kombinierte Guard hat in dem Fall existierende Snapshots gelöscht und das Dropdown lief beim Klick auf einen Fehler.",
-        "ru": "Кожен Cloud-list (scenes / DIY / snapshots) тепер захищений окремо. Govee /device/scenes іноді повертає, наприклад, 149 сцен + 0 snapshots, коли snapshot явно існує; старий комбінований guard у такому разі стирав існуючі snapshots, і випадайка падала по кліку.",
-        "pt": "Cada lista do Cloud (scenes / DIY / snapshots) agora é protegida independentemente. O endpoint /device/scenes da Govee às vezes retorna, por exemplo, 149 scenes + 0 snapshots quando um snapshot claramente existe; o guard combinado antigo apagava os snapshots existentes nesse caso e o dropdown dava erro ao clicar.",
-        "nl": "Elke Cloud-lijst (scenes / DIY / snapshots) wordt nu apart beschermd. Govee's /device/scenes geeft soms bv. 149 scenes + 0 snapshots terug terwijl er duidelijk een snapshot is; de oude gecombineerde guard wiste dan bestaande snapshots en de dropdown errorde op klik.",
-        "fr": "Chaque liste Cloud (scenes / DIY / snapshots) est désormais protégée indépendamment. /device/scenes de Govee renvoie parfois p. ex. 149 scenes + 0 snapshots alors qu'un snapshot existe clairement; l'ancien guard combiné effaçait les snapshots existants dans ce cas et le dropdown plantait au clic.",
-        "it": "Ogni lista Cloud (scenes / DIY / snapshots) viene ora protetta indipendentemente. Il /device/scenes di Govee a volte restituisce ad es. 149 scene + 0 snapshots quando uno snapshot chiaramente esiste; il vecchio guard combinato in tal caso cancellava gli snapshot esistenti e il dropdown dava errore al clic.",
-        "es": "Cada lista de Cloud (scenes / DIY / snapshots) se protege ahora de forma independiente. El /device/scenes de Govee a veces devuelve p. ej. 149 escenas + 0 snapshots cuando un snapshot claramente existe; el guard combinado anterior borraba en ese caso los snapshots existentes y el desplegable fallaba al hacer clic.",
-        "pl": "Każda lista Cloud (scenes / DIY / snapshots) jest teraz zabezpieczona niezależnie. Endpoint /device/scenes Govee czasem zwraca np. 149 scen + 0 snapshotów, choć snapshot najwyraźniej istnieje; stary łączony guard w takim przypadku kasował istniejące snapshoty, a dropdown rzucał błąd przy kliknięciu.",
-        "uk": "Кожен Cloud-list (scenes / DIY / snapshots) тепер захищений окремо. Govee /device/scenes іноді повертає, наприклад, 149 сцен + 0 snapshots, коли snapshot явно є; старий комбінований guard у такому випадку стирав існуючі snapshots, і випадайка кидала помилку по кліку.",
-        "zh-cn": "现在 Cloud 的每个列表（scenes / DIY / snapshots）独立保护。Govee 的 /device/scenes 偶尔会返回例如 149 个 scene + 0 个 snapshot，而 snapshot 明显存在；旧的合并 guard 在这种情况下会抹掉已有的 snapshot，导致下拉菜单点击时报错。"
       }
     },
     "titleLang": {

@@ -106,8 +106,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 2.0.3 (2026-04-26)
 - Min js-controller correction: was incorrectly bumped to `>=7.0.23` in 2.0.2 (and admin downgraded from `>=7.6.20` to `>=7.6.17`). The repochecker-recommended values are `>=6.0.11` / `>=7.6.20` — restored.
 
 ### 2.0.2 (2026-04-26)
@@ -134,18 +133,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - Scene / DIY-scene / snapshot / music-mode dropdowns now accept index-as-number, index-as-string and the entry name (case-insensitive). The state type is `mixed` — no more `expects type string but received number` warning when scripts write a numeric index.
 - Duplicate scene names from the cloud are auto-disambiguated with `" (2)"`, `" (3)"` suffixes; reverse-lookup is deterministic.
 - The adapter acks back the canonical key after activation, so the dropdown stays in sync regardless of how the value was written.
-
-### 1.10.1 (2026-04-20)
-- Refresh button no longer re-fetches static SKU libraries (scene/music/DIY/features) — call count drops from ~7 to 2 per device per click. The endpoints returned 403 for many accounts and just produced minute-long rate-limiter backlogs.
-
-### 1.10.0 (2026-04-20)
-- Multi-packet A3 BLE scenes (`scenceParam`) are now activated via Cloud on devices without segments; bulbs and Curtain Lights silently dropped those packets before, so complex scenes never played.
-- Powering a device off resets every mode dropdown to `"---"` — both ioBroker and Govee-app initiated off events.
-
-### 1.9.1 (2026-04-20)
-- Each Cloud list (scenes / DIY / snapshots) is now guarded independently. Govee's `/device/scenes` sometimes returns e.g. 149 scenes + 0 snapshots when a snapshot clearly exists; the old combined guard then wiped existing snapshots and the dropdown errored on click.
-
-Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
 ## Support
 
