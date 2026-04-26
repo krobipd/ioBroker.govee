@@ -107,7 +107,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ## Changelog
 
-### **WORK IN PROGRESS**
+### 2.0.2 (2026-04-26)
 - OpenAPI MQTT now keeps a stable client ID across reconnects (was `Date.now`-based, which Govee's broker treats as new connections).
 - Stop shipping the `manual-review` release-script plugin and the redundant `@iobroker/types` runtime dep — adapter-only consequences.
 - Bump min js-controller to `>=7.0.23` (matches latest-repo recommendation).
@@ -137,20 +137,12 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ### 1.10.0 (2026-04-20)
 - Multi-packet A3 BLE scenes (`scenceParam`) are now activated via Cloud on devices without segments; bulbs and Curtain Lights silently dropped those packets before, so complex scenes never played.
-- Powering a device off now resets every mode dropdown to `"---"` — both ioBroker and Govee-app initiated off events.
+- Powering a device off resets every mode dropdown to `"---"` — both ioBroker and Govee-app initiated off events.
 
 ### 1.9.1 (2026-04-20)
 - Each Cloud list (scenes / DIY / snapshots) is now guarded independently. Govee's `/device/scenes` sometimes returns e.g. 149 scenes + 0 snapshots when a snapshot clearly exists; the old combined guard then wiped existing snapshots and the dropdown errored on click.
 
-### 1.9.0 (2026-04-20)
-- **BREAKING** — `snapshots.snapshot` renamed to `snapshots.snapshot_cloud` (clearer alongside `snapshot_local` / `snapshot_save` / `snapshot_delete`). Update scripts and VIS widgets; old state is removed on first start.
-- Fix — scenes and snapshots are re-fetched from the Cloud on every adapter start. Previously a stale `scenesChecked` flag could hide new Govee-app snapshots until the cache was wiped.
-- New — `info.refresh_cloud_data` button to trigger the same fresh fetch without restarting the adapter.
-- All four snapshot states carry a `common.desc` so the object browser distinguishes Govee-app from ioBroker snapshots.
-
 Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
-
----
 
 ## Support
 
