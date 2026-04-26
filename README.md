@@ -61,7 +61,7 @@ Full user documentation lives in the **[Wiki](https://github.com/krobipd/ioBroke
 ## Requirements
 
 - Node.js >= 20
-- ioBroker js-controller >= 7.0.23
+- ioBroker js-controller >= 6.0.11
 - ioBroker Admin >= 7.6.20
 - A Govee account and at least one Govee WiFi device. LAN control needs a light with LAN mode enabled in the Govee Home app — see Govee's [LAN-supported device list](https://app-h5.govee.com/user-manual/wlan-guide).
 
@@ -106,6 +106,9 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+
+### **WORK IN PROGRESS**
+- Min js-controller correction: was incorrectly bumped to `>=7.0.23` in 2.0.2 (and admin downgraded from `>=7.6.20` to `>=7.6.17`). The repochecker-recommended values are `>=6.0.11` / `>=7.6.20` — restored.
 
 ### 2.0.2 (2026-04-26)
 - OpenAPI MQTT now keeps a stable client ID across reconnects (was `Date.now`-based, which Govee's broker treats as new connections).
