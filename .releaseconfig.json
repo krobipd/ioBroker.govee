@@ -1,6 +1,10 @@
 {
 	"plugins": ["iobroker", "license"],
 	"exec": {
-		"before_commit": ["npm run build", "git add build/"]
+		"before_commit": [
+			"python3 ../scripts/audit-krobi-consistency.py --release-mode",
+			"npm run build",
+			"git add build/"
+		]
 	}
 }
