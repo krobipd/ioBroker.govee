@@ -34,15 +34,26 @@ jobs:
       - name: Verify io-package.json against repochecker recommended versions
         run: |
           set -euo pipefail
-          curl -fsSL --max-time 30 \
-            https://raw.githubusercontent.com/ioBroker/ioBroker.repochecker/master/lib/M1000_IOPackageJson.js \
-            -o /tmp/m1000.js
+          URL="https://raw.githubusercontent.com/ioBroker/ioBroker.repochecker/master/lib/M1000_IOPackageJson.js"
+          HTTP_STATUS=$(curl -sLo /tmp/m1000.js -w "%{http_code}" --max-time 30 "$URL" || echo "000")
+          if [ "$HTTP_STATUS" = "404" ]; then
+            echo "::error ::Repochecker source returned 404 — M1000_IOPackageJson.js moved/renamed. Update workflow URL."
+            exit 1
+          fi
+          if [ "$HTTP_STATUS" = "000" ] || [ "$HTTP_STATUS" -ge 500 ] 2>/dev/null; then
+            echo "::warning ::Repochecker source not reachable (HTTP $HTTP_STATUS) — skipping live check"
+            exit 0
+          fi
+          if [ "$HTTP_STATUS" -ne 200 ] 2>/dev/null; then
+            echo "::warning ::Repochecker source returned HTTP $HTTP_STATUS — skipping live check"
+            exit 0
+          fi
           JS_REC=$(grep -oE "recommendedJsControllerVersion[[:space:]]*=[[:space:]]*'[^']+'" /tmp/m1000.js \
                    | head -1 | sed -E "s/.*'([^']+)'.*/\1/")
           ADMIN_REC=$(grep -oE "recommendedAdminVersion[[:space:]]*=[[:space:]]*'[^']+'" /tmp/m1000.js \
                       | head -1 | sed -E "s/.*'([^']+)'.*/\1/")
           if [ -z "${JS_REC}" ] || [ -z "${ADMIN_REC}" ]; then
-            echo "::error ::Repochecker source format changed — could not parse recommended versions from M1000_IOPackageJson.js. Update workflow regex."
+            echo "::error ::Repochecker source format changed — could not parse recommended versions. Update workflow regex."
             exit 1
           fi
           echo "Repochecker recommends: js-controller >=${JS_REC}, admin >=${ADMIN_REC}"
@@ -79,6 +90,16 @@ jobs:
       - run: npm ci
       - run: npm run validate-devices
 
+  workflow-lint:
+    if: contains(github.event.head_commit.message, '[skip ci]') == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint workflow YAML files (actionlint)
+        uses: reviewdog/action-actionlint@v1
+        with:
+          fail_on_error: true
+
   adapter-tests:
     if: contains(github.event.head_commit.message, '[skip ci]') == false
     needs: [check-and-lint, validate-devices]
@@ -96,7 +117,7 @@ jobs:
           build: true
 
   deploy:
-    needs: [check-and-lint, validate-devices, adapter-tests, repochecker-version-gate]
+    needs: [check-and-lint, validate-devices, adapter-tests, repochecker-version-gate, workflow-lint]
     if: |
       contains(github.event.head_commit.message, '[skip ci]') == false &&
       github.event_name == 'push' &&
