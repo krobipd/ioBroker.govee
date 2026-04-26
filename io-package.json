@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "news": {
       "2.0.2": {
         "en": "OpenAPI MQTT now uses a stable client ID across reconnects (Govee's broker treated each reconnect as a new connection). Min js-controller bumped to >=7.0.23. Consistency cleanup vs. the other krobi adapters.",
