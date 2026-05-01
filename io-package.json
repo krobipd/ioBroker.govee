@@ -1,9 +1,9 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.0.3",
+    "version": "2.1.0",
     "news": {
-      "NEXT": {
+      "2.1.0": {
         "en": "2FA login + persisted MQTT credentials. info.online fixed for App-API sensors (H5179). New info.diagnostics_tier per device. Capability-driven scene/snapshot dropdowns.",
         "de": "2FA-Login + persistierte MQTT-Credentials. info.online fuer App-API-Sensoren behoben (H5179). Neuer info.diagnostics_tier pro Geraet. Capability-getriebene Szenen-/Snapshot-Dropdowns.",
         "ru": "2FA-логин + сохраняемые MQTT-credentials. info.online исправлен для App-API сенсоров (H5179). Новый info.diagnostics_tier на устройство. Сцены/снапшоты по capabilities.",

@@ -1,4 +1,9 @@
 # Older Changes
+## 1.11.0 (2026-04-25)
+
+- Scene / DIY-scene / snapshot / music-mode dropdowns now accept index-as-number, index-as-string and the entry name (case-insensitive). The state type is `mixed` — no more `expects type string but received number` warning when scripts write a numeric index.
+- Duplicate scene names from the cloud are auto-disambiguated with `" (2)"`, `" (3)"` suffixes; reverse-lookup is deterministic.
+- The adapter acks back the canonical key after activation, so the dropdown stays in sync regardless of how the value was written.
 
 ## 1.10.1 (2026-04-20)
 
@@ -12,8 +17,6 @@
 ## 1.9.1 (2026-04-20)
 
 - Each Cloud list (scenes / DIY / snapshots) is now guarded independently. Govee's `/device/scenes` sometimes returns e.g. 149 scenes + 0 snapshots when a snapshot clearly exists; the old combined guard then wiped existing snapshots and the dropdown errored on click.
-
-Older entries have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
 ## 1.9.0 (2026-04-20)
 

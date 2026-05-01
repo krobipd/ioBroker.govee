@@ -123,8 +123,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 2.1.0 (2026-05-01)
 
 - 2FA login flow for Govee accounts that require email verification — adapter settings expose a verification-code button + field; the code is consumed on the next login and cleared automatically.
 - MQTT credentials are persisted across restarts so the verification email is not re-sent on every reboot, with a proactive refresh shortly before the token expires.
@@ -162,11 +161,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - `devices.json` in the repo root tracks 36 SKUs and is the single source of truth for the Wiki and for runtime quirk overrides.
 - New state `info.openapiMqttConnected` for the OpenAPI-MQTT channel; `info.mqttConnected` keeps tracking AWS IoT MQTT for lights.
 
-### 1.11.0 (2026-04-25)
-
-- Scene / DIY-scene / snapshot / music-mode dropdowns now accept index-as-number, index-as-string and the entry name (case-insensitive). The state type is `mixed` — no more `expects type string but received number` warning when scripts write a numeric index.
-- Duplicate scene names from the cloud are auto-disambiguated with `" (2)"`, `" (3)"` suffixes; reverse-lookup is deterministic.
-- The adapter acks back the canonical key after activation, so the dropdown stays in sync regardless of how the value was written.
+Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
 ## Support
 
