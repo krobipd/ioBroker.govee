@@ -1096,10 +1096,48 @@ class DeviceManager {
         continue;
       }
       (_a = this.onCloudCapabilities) == null ? void 0 : _a.call(this, device, caps);
+      this.applyOnlineCap(device, caps);
       this.diagnostics.setApiResponse(device.deviceId, "/device/rest/devices/v1/list", entry);
       updated++;
     }
     return updated;
+  }
+  /**
+   * Pull the `devices.capabilities.online` entry (if any) out of a
+   * synthetic capability list and apply it directly to
+   * `device.state.online` plus `lastSeenOnNetwork`. Surfaces via
+   * onDeviceUpdate so the adapter's `info.online` state matches the
+   * App-API / OpenAPI-MQTT signal. If no online cap is in the list but
+   * the list is non-empty (i.e. fresh data arrived), the device is
+   * considered online — same convention as the LAN/MQTT paths.
+   *
+   * @param device Target device
+   * @param caps Capability list from the source pipeline
+   */
+  applyOnlineCap(device, caps) {
+    var _a;
+    let online;
+    for (const c of caps) {
+      if (c && typeof c.type === "string" && (c.type === "devices.capabilities.online" || c.type === "online") && c.state && typeof c.state.value === "boolean") {
+        online = c.state.value;
+        break;
+      }
+    }
+    if (online === void 0 && caps.length > 0) {
+      online = true;
+    }
+    if (online === void 0) {
+      return;
+    }
+    if (device.state.online === online && online === true) {
+      device.lastSeenOnNetwork = Date.now();
+      return;
+    }
+    device.state.online = online;
+    if (online) {
+      device.lastSeenOnNetwork = Date.now();
+    }
+    (_a = this.onDeviceUpdate) == null ? void 0 : _a.call(this, device, { online });
   }
   /**
    * Hook callback for sources that emit `CloudStateCapability[]` updates
@@ -1147,6 +1185,7 @@ class DeviceManager {
       return;
     }
     (_a = this.onCloudCapabilities) == null ? void 0 : _a.call(this, device, event.capabilities);
+    this.applyOnlineCap(device, event.capabilities);
   }
 }
 function buildCapabilitiesFromAppEntry(entry) {

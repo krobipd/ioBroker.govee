@@ -8,7 +8,7 @@ import {
 } from "./device-manager";
 import type { AppDeviceEntry } from "./govee-api-client";
 import { _resetDeviceRegistry, initDeviceRegistry } from "./device-registry";
-import type { CloudCapability, GoveeDevice, LanDevice, MqttStatusUpdate } from "./types";
+import type { CloudCapability, DeviceState, GoveeDevice, LanDevice, MqttStatusUpdate } from "./types";
 
 /**
  * Quirk-dependent tests (e.g. generateDiagnostics for H6141) need the
@@ -2219,6 +2219,107 @@ describe("DeviceManager — loadFromCache merge", () => {
       dm2.handleOpenApiEvent({ sku: "H5179", device: "x", capabilities: null as never });
       dm2.handleOpenApiEvent({ sku: "H5179", device: "x", capabilities: [] });
       expect(called).to.equal(0);
+    });
+  });
+
+  describe("applyOnlineCap (Pkt 12 — info.online for App-API + OpenAPI-MQTT)", () => {
+    it("flips device.state.online when App-API delivers online:true", async () => {
+      const dm2 = new DeviceManager(mockLog, mockTimers);
+      dm2.handleLanDiscovery({ ip: "192.168.1.81", device: "AABBCCDDEEFF0081", sku: "H5179" } as LanDevice);
+      const dev = dm2.getDevices()[0];
+      dev.type = "devices.types.thermometer";
+      dev.state.online = false;
+
+      const updates: Array<Partial<DeviceState>> = [];
+      dm2.setCallbacks((_, s) => updates.push(s), () => {});
+
+      const apiClient = {
+        hasBearerToken: () => true,
+        fetchDeviceList: async () => [
+          {
+            sku: "H5179",
+            device: "AABBCCDDEEFF0081",
+            lastData: { online: true, tem: 2150, hum: 4500 },
+          },
+        ],
+      };
+      dm2.setApiClient(apiClient as never);
+      await dm2.pollAppApi();
+
+      expect(dev.state.online).to.equal(true);
+      expect(updates.some(u => u.online === true), "onDeviceUpdate fires for online flip").to.be.true;
+    });
+
+    it("flips device.state.online when App-API delivers online:false", async () => {
+      const dm2 = new DeviceManager(mockLog, mockTimers);
+      dm2.handleLanDiscovery({ ip: "192.168.1.82", device: "AABBCCDDEEFF0082", sku: "H5179" } as LanDevice);
+      const dev = dm2.getDevices()[0];
+      dev.type = "devices.types.thermometer";
+      dev.state.online = true;
+
+      const updates: Array<Partial<DeviceState>> = [];
+      dm2.setCallbacks((_, s) => updates.push(s), () => {});
+
+      const apiClient = {
+        hasBearerToken: () => true,
+        fetchDeviceList: async () => [
+          {
+            sku: "H5179",
+            device: "AABBCCDDEEFF0082",
+            lastData: { online: false, tem: 2150 },
+          },
+        ],
+      };
+      dm2.setApiClient(apiClient as never);
+      await dm2.pollAppApi();
+
+      expect(dev.state.online).to.equal(false);
+      expect(updates.some(u => u.online === false), "onDeviceUpdate fires for offline flip").to.be.true;
+    });
+
+    it("OpenAPI-MQTT events drive info.online via applyOnlineCap", () => {
+      const dm2 = new DeviceManager(mockLog, mockTimers);
+      dm2.handleLanDiscovery({ ip: "192.168.1.83", device: "AABBCCDDEEFF0083", sku: "H5179" } as LanDevice);
+      const dev = dm2.getDevices()[0];
+      dev.state.online = false;
+
+      const updates: Array<Partial<DeviceState>> = [];
+      dm2.setCallbacks((_, s) => updates.push(s), () => {});
+
+      dm2.handleOpenApiEvent({
+        sku: "H5179",
+        device: "AABBCCDDEEFF0083",
+        capabilities: [
+          { type: "devices.capabilities.online", instance: "online", state: { value: true } },
+          { type: "devices.capabilities.event", instance: "lackWaterEvent", state: { value: true } },
+        ],
+      });
+
+      expect(dev.state.online).to.equal(true);
+      expect(updates.some(u => u.online === true), "onDeviceUpdate fires for OpenAPI-MQTT online").to.be.true;
+    });
+
+    it("treats data-without-online-flag as online (matches LAN/MQTT convention)", () => {
+      const dm2 = new DeviceManager(mockLog, mockTimers);
+      dm2.handleLanDiscovery({ ip: "192.168.1.84", device: "AABBCCDDEEFF0084", sku: "H5179" } as LanDevice);
+      const dev = dm2.getDevices()[0];
+      dev.state.online = false;
+
+      const updates: Array<Partial<DeviceState>> = [];
+      dm2.setCallbacks((_, s) => updates.push(s), () => {});
+
+      dm2.handleOpenApiEvent({
+        sku: "H5179",
+        device: "AABBCCDDEEFF0084",
+        // No `online` cap — just a sensor reading. LAN/MQTT treat
+        // "fresh data arrived" as implicit online; do the same here.
+        capabilities: [
+          { type: "devices.capabilities.property", instance: "sensorTemperature", state: { value: 21.5 } },
+        ],
+      });
+
+      expect(dev.state.online).to.equal(true);
+      expect(updates.some(u => u.online === true)).to.be.true;
     });
   });
 });

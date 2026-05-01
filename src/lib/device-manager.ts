@@ -1347,10 +1347,64 @@ export class DeviceManager {
       // onCloudCapabilities callback so main.ts's normal setState
       // pipeline (mapCloudStateValue + setStateAsync) handles them.
       this.onCloudCapabilities?.(device, caps);
+      // mapSingleCapability returns null for the synthetic `online`
+      // cap (online is a device-level property, not a regular state),
+      // so onCloudCapabilities never reaches info.online via the
+      // capability pipeline. Pluck it out and apply it directly —
+      // otherwise sensor SKUs like H5179 stay at info.online=false
+      // forever even while their readings keep updating.
+      this.applyOnlineCap(device, caps);
       this.diagnostics.setApiResponse(device.deviceId, "/device/rest/devices/v1/list", entry);
       updated++;
     }
     return updated;
+  }
+
+  /**
+   * Pull the `devices.capabilities.online` entry (if any) out of a
+   * synthetic capability list and apply it directly to
+   * `device.state.online` plus `lastSeenOnNetwork`. Surfaces via
+   * onDeviceUpdate so the adapter's `info.online` state matches the
+   * App-API / OpenAPI-MQTT signal. If no online cap is in the list but
+   * the list is non-empty (i.e. fresh data arrived), the device is
+   * considered online — same convention as the LAN/MQTT paths.
+   *
+   * @param device Target device
+   * @param caps Capability list from the source pipeline
+   */
+  private applyOnlineCap(device: GoveeDevice, caps: CloudStateCapability[]): void {
+    let online: boolean | undefined;
+    for (const c of caps) {
+      if (
+        c &&
+        typeof c.type === "string" &&
+        (c.type === "devices.capabilities.online" || c.type === "online") &&
+        c.state &&
+        typeof c.state.value === "boolean"
+      ) {
+        online = c.state.value;
+        break;
+      }
+    }
+    // Fresh data with no online flag → assume online (LAN/MQTT use the
+    // same "we just heard from the device" convention).
+    if (online === undefined && caps.length > 0) {
+      online = true;
+    }
+    if (online === undefined) {
+      return;
+    }
+    if (device.state.online === online && online === true) {
+      // Already online + still online — only refresh the lastSeen ts
+      // and skip the onDeviceUpdate noise.
+      device.lastSeenOnNetwork = Date.now();
+      return;
+    }
+    device.state.online = online;
+    if (online) {
+      device.lastSeenOnNetwork = Date.now();
+    }
+    this.onDeviceUpdate?.(device, { online });
   }
 
   /**
@@ -1400,6 +1454,11 @@ export class DeviceManager {
       return;
     }
     this.onCloudCapabilities?.(device, event.capabilities);
+    // Same online-cap unwrap as the App-API path. OpenAPI-MQTT events
+    // are the only signal we get for appliance state (heater on/off,
+    // ice-bucket-full, …) — without this, info.online for those SKUs
+    // never flips to true even while events stream in.
+    this.applyOnlineCap(device, event.capabilities);
   }
 }
 
