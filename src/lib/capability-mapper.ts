@@ -94,6 +94,32 @@ export function mapCapabilities(capabilities: CloudCapability[]): StateDefinitio
 }
 
 /**
+ * Probe `capabilities` for a `devices.capabilities.dynamic_scene` entry of
+ * the given instance (lightScene / diyScene / snapshot). Used to gate the
+ * scene/snapshot dropdowns capability-driven instead of data-driven — a
+ * device that exposes the cap should always show the dropdown, even if
+ * the scene list hasn't been fetched yet.
+ *
+ * @param capabilities Device capabilities from Cloud API
+ * @param instance The dynamic_scene instance to look up
+ */
+export function hasDynamicSceneCapability(
+  capabilities: CloudCapability[],
+  instance: "lightScene" | "diyScene" | "snapshot",
+): boolean {
+  if (!Array.isArray(capabilities)) {
+    return false;
+  }
+  return capabilities.some(
+    cap =>
+      typeof cap?.type === "string" &&
+      typeof cap?.instance === "string" &&
+      (cap.type === "devices.capabilities.dynamic_scene" || cap.type === "dynamic_scene") &&
+      cap.instance === instance,
+  );
+}
+
+/**
  * Default state definitions for LAN-only devices (no Cloud capabilities).
  * All LAN-capable Govee lights support: power, brightness, color, color temperature.
  */
@@ -961,7 +987,12 @@ export function buildDeviceStateDefs(
   // empty snapshot dropdowns and a useless save/delete button pair.
   const isLight = device.type === "devices.types.light";
 
-  if (isLight && device.scenes.length > 0) {
+  // Capability-driven: if the device's Cloud capabilities expose the
+  // dynamic_scene instance, always create the dropdown — even before
+  // /device/scenes has been queried (an empty list still beats a
+  // missing state). Guards against the H61D5-style case where the
+  // user's first restart shows no scenes / snapshots datapoints.
+  if (isLight && hasDynamicSceneCapability(device.capabilities, "lightScene")) {
     stateDefs.push({
       id: "light_scene",
       name: "Light Scene",
@@ -1015,7 +1046,7 @@ export function buildDeviceStateDefs(
     });
   }
 
-  if (isLight && device.diyScenes.length > 0) {
+  if (isLight && hasDynamicSceneCapability(device.capabilities, "diyScene")) {
     stateDefs.push({
       id: "diy_scene",
       name: "DIY Scene",
@@ -1030,7 +1061,7 @@ export function buildDeviceStateDefs(
     });
   }
 
-  if (isLight && device.snapshots.length > 0) {
+  if (isLight && hasDynamicSceneCapability(device.capabilities, "snapshot")) {
     stateDefs.push({
       id: "snapshot_cloud",
       name: "Cloud Snapshot",

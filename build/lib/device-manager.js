@@ -26,6 +26,7 @@ __export(device_manager_exports, {
   resolveSegmentCount: () => resolveSegmentCount
 });
 module.exports = __toCommonJS(device_manager_exports);
+var import_capability_mapper = require("./capability-mapper");
 var import_command_router = require("./command-router");
 var import_device_registry = require("./device-registry");
 var import_diagnostics = require("./diagnostics");
@@ -283,7 +284,8 @@ class DeviceManager {
       let changed = this.mergeCloudDevices(cloudDevices);
       for (const cd of cloudDevices) {
         const caps = Array.isArray(cd.capabilities) ? cd.capabilities : [];
-        const isLight = cd.type === "devices.types.light" || caps.some((c) => c && typeof c.type === "string" && c.type.includes("dynamic_scene"));
+        const hasSceneCap = (0, import_capability_mapper.hasDynamicSceneCapability)(caps, "lightScene") || (0, import_capability_mapper.hasDynamicSceneCapability)(caps, "diyScene") || (0, import_capability_mapper.hasDynamicSceneCapability)(caps, "snapshot");
+        const isLight = cd.type === "devices.types.light" || hasSceneCap;
         if (isLight) {
           const device = this.devices.get(this.deviceKey(cd.sku, cd.device));
           if (device) {

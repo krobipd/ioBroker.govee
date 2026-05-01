@@ -1,3 +1,4 @@
+import { hasDynamicSceneCapability } from "./capability-mapper";
 import { CommandRouter } from "./command-router";
 import { getDeviceQuirks, isSeedAndDormant } from "./device-registry";
 import { DiagnosticsCollector } from "./diagnostics";
@@ -391,12 +392,19 @@ export class DeviceManager {
       // Step 1: Merge Cloud devices into local device map
       let changed = this.mergeCloudDevices(cloudDevices);
 
-      // Step 2: Load scenes, snapshots, and libraries for light devices
+      // Step 2: Load scenes, snapshots, and libraries for any device that
+      // exposes a `dynamic_scene` capability — independent of `cd.type`.
+      // Govee occasionally returns devices with `type` missing or a value
+      // we don't recognise; keying off the capability is what the rest of
+      // the codebase already uses to decide whether scene/snapshot states
+      // exist, so the loader has to follow the same rule.
       for (const cd of cloudDevices) {
         const caps = Array.isArray(cd.capabilities) ? cd.capabilities : [];
-        const isLight =
-          cd.type === "devices.types.light" ||
-          caps.some(c => c && typeof c.type === "string" && c.type.includes("dynamic_scene"));
+        const hasSceneCap =
+          hasDynamicSceneCapability(caps, "lightScene") ||
+          hasDynamicSceneCapability(caps, "diyScene") ||
+          hasDynamicSceneCapability(caps, "snapshot");
+        const isLight = cd.type === "devices.types.light" || hasSceneCap;
         if (isLight) {
           const device = this.devices.get(this.deviceKey(cd.sku, cd.device));
           if (device) {

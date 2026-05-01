@@ -858,8 +858,14 @@ describe("CapabilityMapper", () => {
         name: "Test Light",
         type: "devices.types.light",
         lanIp: "192.168.1.100",
+        // Caps include the three dynamic_scene instances so the dropdown
+        // gating (capability-driven since v2.1.0) creates the states even
+        // when the scenes/snapshots arrays start empty.
         capabilities: [
           { type: "devices.capabilities.on_off", instance: "powerSwitch", parameters: { dataType: "ENUM" } },
+          { type: "devices.capabilities.dynamic_scene", instance: "lightScene", parameters: { dataType: "ENUM" } },
+          { type: "devices.capabilities.dynamic_scene", instance: "diyScene", parameters: { dataType: "ENUM" } },
+          { type: "devices.capabilities.dynamic_scene", instance: "snapshot", parameters: { dataType: "ENUM" } },
         ],
         scenes: [],
         diyScenes: [],
@@ -921,6 +927,43 @@ describe("CapabilityMapper", () => {
       expect(localDef).to.exist;
       expect(localDef!.type).to.equal("mixed");
       expect(localDef!.states).to.deep.equal({ 0: "---" });
+    });
+
+    it("light_scene/diy_scene/snapshot_cloud created from capability even with empty arrays", () => {
+      // First-run case: device exposes the dynamic_scene capability but
+      // /device/scenes hasn't been queried yet, so scenes/diyScenes/snapshots
+      // are still empty. Pre-v2.1.0 the dropdowns weren't created and the
+      // datapoints were missing for the user. Capability-driven gating
+      // creates the states with just `0: "---"`, ready to be filled later.
+      const device = makeDevice({
+        scenes: [],
+        diyScenes: [],
+        snapshots: [],
+      });
+      const defs = buildDeviceStateDefs(device);
+      const sceneDef = defs.find(d => d.id === "light_scene");
+      const diyDef = defs.find(d => d.id === "diy_scene");
+      const snapDef = defs.find(d => d.id === "snapshot_cloud");
+      expect(sceneDef, "light_scene must exist").to.exist;
+      expect(diyDef, "diy_scene must exist").to.exist;
+      expect(snapDef, "snapshot_cloud must exist").to.exist;
+      expect(sceneDef!.states).to.deep.equal({ 0: "---" });
+      expect(diyDef!.states).to.deep.equal({ 0: "---" });
+      expect(snapDef!.states).to.deep.equal({ 0: "---" });
+    });
+
+    it("dropdown states NOT created when device lacks dynamic_scene capability", () => {
+      // Sensor / appliance with no dynamic_scene capability — must NOT get
+      // a phantom scene dropdown.
+      const device = makeDevice({
+        capabilities: [
+          { type: "devices.capabilities.on_off", instance: "powerSwitch", parameters: { dataType: "ENUM" } },
+        ],
+      });
+      const defs = buildDeviceStateDefs(device);
+      expect(defs.find(d => d.id === "light_scene"), "light_scene must NOT exist").to.be.undefined;
+      expect(defs.find(d => d.id === "diy_scene"), "diy_scene must NOT exist").to.be.undefined;
+      expect(defs.find(d => d.id === "snapshot_cloud"), "snapshot_cloud must NOT exist").to.be.undefined;
     });
   });
 

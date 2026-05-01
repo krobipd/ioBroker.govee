@@ -21,6 +21,7 @@ __export(capability_mapper_exports, {
   applyQuirksToStates: () => applyQuirksToStates,
   buildDeviceStateDefs: () => buildDeviceStateDefs,
   getDefaultLanStates: () => getDefaultLanStates,
+  hasDynamicSceneCapability: () => hasDynamicSceneCapability,
   mapCapabilities: () => mapCapabilities,
   mapCloudStateValue: () => mapCloudStateValue,
   planCloudCapabilityWrites: () => planCloudCapabilityWrites
@@ -55,6 +56,14 @@ function mapCapabilities(capabilities) {
     }
   }
   return states;
+}
+function hasDynamicSceneCapability(capabilities, instance) {
+  if (!Array.isArray(capabilities)) {
+    return false;
+  }
+  return capabilities.some(
+    (cap) => typeof (cap == null ? void 0 : cap.type) === "string" && typeof (cap == null ? void 0 : cap.instance) === "string" && (cap.type === "devices.capabilities.dynamic_scene" || cap.type === "dynamic_scene") && cap.instance === instance
+  );
 }
 function getDefaultLanStates() {
   return [
@@ -693,7 +702,7 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
   }
   applyQuirksToStates(device.sku, stateDefs);
   const isLight = device.type === "devices.types.light";
-  if (isLight && device.scenes.length > 0) {
+  if (isLight && hasDynamicSceneCapability(device.capabilities, "lightScene")) {
     stateDefs.push({
       id: "light_scene",
       name: "Light Scene",
@@ -743,7 +752,7 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
       channel: "scenes"
     });
   }
-  if (isLight && device.diyScenes.length > 0) {
+  if (isLight && hasDynamicSceneCapability(device.capabilities, "diyScene")) {
     stateDefs.push({
       id: "diy_scene",
       name: "DIY Scene",
@@ -757,7 +766,7 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
       channel: "scenes"
     });
   }
-  if (isLight && device.snapshots.length > 0) {
+  if (isLight && hasDynamicSceneCapability(device.capabilities, "snapshot")) {
     stateDefs.push({
       id: "snapshot_cloud",
       name: "Cloud Snapshot",
@@ -913,6 +922,7 @@ function buildGroupStateDefs(members) {
   applyQuirksToStates,
   buildDeviceStateDefs,
   getDefaultLanStates,
+  hasDynamicSceneCapability,
   mapCapabilities,
   mapCloudStateValue,
   planCloudCapabilityWrites
