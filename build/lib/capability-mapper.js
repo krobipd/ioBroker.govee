@@ -33,10 +33,19 @@ function coerceBool(v) {
   return v === true || v === 1 || v === "1" || v === "true";
 }
 function safeStringify(v) {
-  if (typeof v === "object" || typeof v === "function") {
-    return JSON.stringify(v);
+  switch (typeof v) {
+    case "string":
+      return v;
+    case "number":
+    case "bigint":
+    case "boolean":
+    case "symbol":
+      return v.toString();
+    case "undefined":
+      return "undefined";
+    default:
+      return JSON.stringify(v);
   }
-  return String(v);
 }
 function coerceNum(v) {
   if (typeof v === "number" && Number.isFinite(v)) {
