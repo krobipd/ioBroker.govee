@@ -69,10 +69,7 @@ class RateLimiter {
     const msUntilMidnight = this.millisUntilNextUtcMidnight();
     this.dayResetKickoff = this.timers.setTimeout(() => {
       this.resetDaily();
-      this.dayResetTimer = this.timers.setInterval(
-        () => this.resetDaily(),
-        864e5
-      );
+      this.dayResetTimer = this.timers.setInterval(() => this.resetDaily(), 864e5);
     }, msUntilMidnight);
     this.processTimer = this.timers.setInterval(() => {
       this.processQueue();
@@ -100,25 +97,13 @@ class RateLimiter {
   }
   /** Zero the daily counter and log. Separate so kickoff + interval share it. */
   resetDaily() {
-    this.log.debug(
-      `Rate limiter: daily reset (used ${this.callsToday} calls today)`
-    );
+    this.log.debug(`Rate limiter: daily reset (used ${this.callsToday} calls today)`);
     this.callsToday = 0;
   }
   /** Milliseconds from now until the next UTC midnight tick. */
   millisUntilNextUtcMidnight() {
     const now = /* @__PURE__ */ new Date();
-    const next = new Date(
-      Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate() + 1,
-        0,
-        0,
-        0,
-        0
-      )
-    );
+    const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0));
     return next.getTime() - now.getTime();
   }
   /**
@@ -164,9 +149,7 @@ class RateLimiter {
         this.callsThisMinute++;
         this.callsToday++;
         call.execute().catch((err) => {
-          this.log.debug(
-            `Queued call failed: ${err instanceof Error ? err.message : String(err)}`
-          );
+          this.log.debug(`Queued call failed: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
     }

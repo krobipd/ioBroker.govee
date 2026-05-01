@@ -64,9 +64,7 @@ class SkuCache {
       }
       this.log.debug(`Cache saved for ${data.sku}`);
     } catch (e) {
-      this.log.warn(
-        `Cache write failed for ${data.sku}: ${e instanceof Error ? e.message : String(e)}`
-      );
+      this.log.warn(`Cache write failed for ${data.sku}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
   /** Load all cached devices. */
@@ -126,9 +124,7 @@ class SkuCache {
     } catch {
     }
     if (pruned > 0) {
-      this.log.info(
-        `Cache: pruned ${pruned} stale entries (not seen on network for ${maxAgeDays}+ days)`
-      );
+      this.log.info(`Cache: pruned ${pruned} stale entries (not seen on network for ${maxAgeDays}+ days)`);
     }
     return pruned;
   }
@@ -145,9 +141,7 @@ class SkuCache {
       }
       this.log.debug("Cache cleared");
     } catch (e) {
-      this.log.debug(
-        `Cache clear failed: ${e instanceof Error ? e.message : String(e)}`
-      );
+      this.log.debug(`Cache clear failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
   /**

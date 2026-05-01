@@ -121,7 +121,9 @@
       "uk": "Керування пристроями Govee WiFi через LAN, MQTT та Cloud API.",
       "zh-cn": "通过 LAN、MQTT 和 Cloud API 控制 Govee WiFi 设备。"
     },
-    "authors": ["krobi <krobi@power-dreams.com>"],
+    "authors": [
+      "krobi <krobi@power-dreams.com>"
+    ],
     "licenseInformation": {
       "license": "MIT",
       "type": "free"
@@ -135,7 +137,14 @@
     "loglevel": "info",
     "mode": "daemon",
     "messagebox": true,
-    "keywords": ["govee", "lights", "led", "lan", "mqtt", "ble"],
+    "keywords": [
+      "govee",
+      "lights",
+      "led",
+      "lan",
+      "mqtt",
+      "ble"
+    ],
     "type": "lighting",
     "compact": true,
     "connectionType": "local",
@@ -155,10 +164,28 @@
       {
         "admin": ">=7.6.20"
       }
+    ],
+    "encryptedNative": [
+      "mqttBearerToken",
+      "mqttIotEndpoint",
+      "mqttP12Cert",
+      "mqttP12Pass"
+    ],
+    "protectedNative": [
+      "mqttBearerToken",
+      "mqttIotEndpoint",
+      "mqttP12Cert",
+      "mqttP12Pass"
     ]
   },
-  "encryptedNative": ["apiKey", "goveePassword"],
-  "protectedNative": ["apiKey", "goveePassword"],
+  "encryptedNative": [
+    "apiKey",
+    "goveePassword"
+  ],
+  "protectedNative": [
+    "apiKey",
+    "goveePassword"
+  ],
   "instanceObjects": [
     {
       "_id": "info",
@@ -307,6 +334,13 @@
     "goveePassword": "",
     "networkInterface": "0.0.0.0",
     "experimentalQuirks": false,
-    "mqttVerificationCode": ""
+    "mqttVerificationCode": "",
+    "mqttAccountId": "",
+    "mqttAccountTopic": "",
+    "mqttTokenExpiresAt": 0,
+    "mqttBearerToken": "",
+    "mqttIotEndpoint": "",
+    "mqttP12Cert": "",
+    "mqttP12Pass": ""
   }
 }

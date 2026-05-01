@@ -21,7 +21,7 @@ __export(diagnostics_exports, {
   DiagnosticsCollector: () => DiagnosticsCollector
 });
 module.exports = __toCommonJS(diagnostics_exports);
-var import_device_registry = require("./device-registry.js");
+var import_device_registry = require("./device-registry");
 const MAX_LOGS = 20;
 const MAX_PACKETS = 10;
 const MAX_RESPONSE_ENDPOINTS = 5;

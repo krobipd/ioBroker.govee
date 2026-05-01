@@ -9,6 +9,7 @@ import {
   type GoveeIotKeyResponse,
   type GoveeLoginResponse,
   type MqttStatusUpdate,
+  type PersistedMqttCredentials,
   type TimerAdapter,
 } from "./types";
 
@@ -144,6 +145,41 @@ export class GoveeMqttClient {
     return this._bearerToken;
   }
 
+  /** Persisted credentials from a previous run; null until setPersistedCredentials() is called. */
+  private persisted: PersistedMqttCredentials | null = null;
+  /** Hook fired after a successful login so the adapter can persist the new credentials. */
+  private onCredentialsRefresh: ((creds: PersistedMqttCredentials) => void) | null = null;
+  /** Pre-scheduled timer for proactive token refresh (5 min before expiry). */
+  private refreshTimer: ioBroker.Timeout | undefined = undefined;
+
+  /**
+   * True between calling mqtt.connect() with persisted creds and the first
+   * `connect` event. If `close` fires while this is still true, the cached
+   * cert/token are invalid — wipe them so the next attempt does a fresh login.
+   */
+  private persistedAttemptInFlight = false;
+
+  /**
+   * Hand the client persisted credentials from a previous successful login.
+   * If the bearer token is not yet expired, the next connect() will skip the
+   * full login flow and try MQTT with the stored cert directly.
+   *
+   * @param creds Persisted credentials, or null to clear
+   */
+  setPersistedCredentials(creds: PersistedMqttCredentials | null): void {
+    this.persisted = creds;
+  }
+
+  /**
+   * Fired after a successful login so the adapter can write the bundle to
+   * `encryptedNative`/`native`. Includes the (potentially refreshed) TTL.
+   *
+   * @param cb Callback
+   */
+  setOnCredentialsRefresh(cb: ((creds: PersistedMqttCredentials) => void) | null): void {
+    this.onCredentialsRefresh = cb;
+  }
+
   /**
    * Connect to Govee MQTT.
    * Flow: Login → Get IoT Key → Extract certs from P12 → Connect MQTT
@@ -164,6 +200,14 @@ export class GoveeMqttClient {
     }
 
     try {
+      // Step 0: Try the persisted credentials first. If the cached bearer
+      // token is still inside its TTL and the stored P12 cert lets us connect,
+      // skip the full login flow — that avoids spamming the user's email
+      // with a 2FA verification request on every adapter restart.
+      if (this.tryPersistedReuse()) {
+        return;
+      }
+
       // Step 1: Login
       const codeWasSent = (this.verificationCode ?? "").trim().length > 0;
       const loginResp = await this.login();
@@ -217,6 +261,23 @@ export class GoveeMqttClient {
       // Step 3: Extract key + cert from P12
       const { key, cert, ca } = this.extractCertsFromP12(p12, p12Pass);
 
+      // Persist the fresh credentials so the next adapter restart skips this
+      // whole login dance (and avoids the 2FA email storm). TTL comes from
+      // Govee — `token_expire_cycle` (snake) or `tokenExpireCycle` (camel),
+      // depending on the response variant. 1h fallback if Govee sends nothing.
+      const ttlSec = loginResp.client.token_expire_cycle ?? loginResp.client.tokenExpireCycle ?? 3600;
+      const expiresAt = Date.now() + ttlSec * 1000;
+      this.onCredentialsRefresh?.({
+        bearerToken: this._bearerToken,
+        iotEndpoint: endpoint,
+        p12Cert: p12,
+        p12Pass,
+        accountId: this.accountId,
+        accountTopic: this.accountTopic,
+        tokenExpiresAt: expiresAt,
+      });
+      this.scheduleProactiveRefresh(expiresAt);
+
       // Step 4: Connect MQTT with mutual TLS
       const clientId = `AP/${this.accountId}/${this.sessionUuid}`;
       this.client = mqtt.connect(`mqtts://${endpoint}:8883`, {
@@ -230,44 +291,7 @@ export class GoveeMqttClient {
         rejectUnauthorized: true,
       });
 
-      this.client.on("connect", () => {
-        this.reconnectAttempts = 0;
-        this.authFailCount = 0;
-        if (this.lastErrorCategory) {
-          this.log.info("MQTT connection restored");
-          this.lastErrorCategory = null;
-        } else {
-          this.log.info("MQTT connected to AWS IoT");
-        }
-
-        // Subscribe to account topic for status updates
-        this.client?.subscribe(this.accountTopic, { qos: 0 }, err => {
-          if (err) {
-            this.log.warn(`MQTT subscribe failed: ${err.message}`);
-          } else {
-            this.log.debug(`MQTT subscribed to account topic`);
-            this.onConnection?.(true);
-          }
-        });
-      });
-
-      this.client.on("message", (topic, payload) => {
-        this.handleMessage(payload, topic);
-      });
-
-      this.client.on("error", err => {
-        this.log.debug(`MQTT error: ${err.message}`);
-      });
-
-      this.client.on("close", () => {
-        this.onConnection?.(false);
-        // Only warn on first disconnect, debug on repeated
-        if (!this.lastErrorCategory) {
-          this.lastErrorCategory = "NETWORK";
-          this.log.debug("MQTT disconnected — will reconnect");
-        }
-        this.scheduleReconnect();
-      });
+      this.attachClientHandlers();
     } catch (err) {
       const category = classifyError(err);
       const msg = `MQTT connection failed: ${err instanceof Error ? err.message : String(err)}`;
@@ -401,6 +425,137 @@ export class GoveeMqttClient {
 
     this.reconnectTimer = this.timers.setTimeout(() => {
       this.reconnectTimer = undefined;
+      if (this.onStatus && this.onConnection) {
+        void this.connect(this.onStatus, this.onConnection);
+      }
+    }, delay);
+  }
+
+  /**
+   * Reuse path: if a persisted bundle exists and is not expired yet, try
+   * MQTT directly with the stored cert. Returns true if a connection was
+   * initiated (caller should NOT continue to login).
+   *
+   * Uses the same ON-event handlers as the full login path — a successful
+   * connect publishes `mqttConnected: true` exactly like a fresh login.
+   * On failure (cert rejected, token revoked, network) we just return false
+   * and the caller falls through to the full login.
+   */
+  private tryPersistedReuse(): boolean {
+    const creds = this.persisted;
+    if (!creds || !creds.bearerToken || !creds.iotEndpoint || !creds.p12Cert) {
+      return false;
+    }
+    if (creds.tokenExpiresAt <= Date.now()) {
+      return false;
+    }
+    let extracted;
+    try {
+      extracted = this.extractCertsFromP12(creds.p12Cert, creds.p12Pass);
+    } catch (e) {
+      this.log.debug(
+        `Persisted P12 cert unusable: ${e instanceof Error ? e.message : String(e)} — falling back to fresh login`,
+      );
+      return false;
+    }
+    this._bearerToken = creds.bearerToken;
+    this.accountId = creds.accountId;
+    this.accountTopic = creds.accountTopic;
+    this.onToken?.(this._bearerToken);
+    const clientId = `AP/${creds.accountId}/${this.sessionUuid}`;
+    this.log.info("MQTT: trying cached credentials (no fresh login)");
+    this.persistedAttemptInFlight = true;
+    this.client = mqtt.connect(`mqtts://${creds.iotEndpoint}:8883`, {
+      clientId,
+      key: extracted.key,
+      cert: extracted.cert,
+      ca: extracted.ca,
+      protocolVersion: 4,
+      keepalive: 60,
+      reconnectPeriod: 0,
+      rejectUnauthorized: true,
+    });
+    this.attachClientHandlers();
+    this.scheduleProactiveRefresh(creds.tokenExpiresAt);
+    return true;
+  }
+
+  /**
+   * Attach the standard `connect` / `message` / `error` / `close` handlers
+   * to the current `this.client`. Extracted so both paths (fresh login and
+   * persisted reuse) share exactly the same event wiring.
+   */
+  private attachClientHandlers(): void {
+    if (!this.client) {
+      return;
+    }
+    this.client.on("connect", () => {
+      this.persistedAttemptInFlight = false;
+      this.reconnectAttempts = 0;
+      this.authFailCount = 0;
+      if (this.lastErrorCategory) {
+        this.log.info("MQTT connection restored");
+        this.lastErrorCategory = null;
+      } else {
+        this.log.info("MQTT connected to AWS IoT");
+      }
+      this.client?.subscribe(this.accountTopic, { qos: 0 }, err => {
+        if (err) {
+          this.log.warn(`MQTT subscribe failed: ${err.message}`);
+        } else {
+          this.log.debug("MQTT subscribed to account topic");
+          this.onConnection?.(true);
+        }
+      });
+    });
+    this.client.on("message", (topic, payload) => {
+      this.handleMessage(payload, topic);
+    });
+    this.client.on("error", err => {
+      this.log.debug(`MQTT error: ${err.message}`);
+    });
+    this.client.on("close", () => {
+      this.onConnection?.(false);
+      // Cached cert/token failed before producing a single successful
+      // connect — assume the bundle is stale (cert revoked, token
+      // expired before our TTL guess, account topic changed). Wipe it
+      // so scheduleReconnect → connect() falls through to a fresh login.
+      if (this.persistedAttemptInFlight) {
+        this.persistedAttemptInFlight = false;
+        this.persisted = null;
+        this.log.info("MQTT: cached credentials rejected — falling back to fresh login");
+      }
+      if (!this.lastErrorCategory) {
+        this.lastErrorCategory = "NETWORK";
+        this.log.debug("MQTT disconnected — will reconnect");
+      }
+      this.scheduleReconnect();
+    });
+  }
+
+  /**
+   * Schedule a proactive re-login 5 minutes before token expiry. Govee
+   * doesn't push token-rotation events, so we trigger one ourselves to
+   * avoid hitting the expired-token cliff in the middle of a streaming session.
+   *
+   * @param expiresAt ms-timestamp at which the bearer token will be rejected
+   */
+  private scheduleProactiveRefresh(expiresAt: number): void {
+    if (this.refreshTimer) {
+      this.timers.clearTimeout(this.refreshTimer);
+      this.refreshTimer = undefined;
+    }
+    const refreshAt = expiresAt - 5 * 60 * 1000;
+    const delay = refreshAt - Date.now();
+    if (delay <= 0) {
+      return;
+    }
+    this.refreshTimer = this.timers.setTimeout(() => {
+      this.refreshTimer = undefined;
+      this.log.debug("Proactive MQTT token refresh triggered");
+      // Force a fresh login by clearing the persisted bundle, then reconnect.
+      this.persisted = null;
+      this.disconnect();
       if (this.onStatus && this.onConnection) {
         void this.connect(this.onStatus, this.onConnection);
       }

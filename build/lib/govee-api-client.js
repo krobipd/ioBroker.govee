@@ -23,10 +23,12 @@ __export(govee_api_client_exports, {
   parseSettings: () => parseSettings
 });
 module.exports = __toCommonJS(govee_api_client_exports);
-var import_http_client = require("./http-client.js");
-var import_govee_constants = require("./govee-constants.js");
+var import_http_client = require("./http-client");
+var import_govee_constants = require("./govee-constants");
 class GoveeApiClient {
   bearerToken = null;
+  /** Account-derived client ID. Defaults to anonymous fallback until setEmail() is called. */
+  clientId = (0, import_govee_constants.deriveGoveeClientId)(void 0);
   /**
    * Update the bearer token (obtained from MQTT login).
    *
@@ -34,6 +36,18 @@ class GoveeApiClient {
    */
   setBearerToken(token) {
     this.bearerToken = token;
+  }
+  /**
+   * Update the account email so subsequent requests use the matching
+   * UUIDv5-derived client ID. Public endpoints (scene/music/DIY libraries)
+   * still work with the anonymous fallback, but the bearer-token endpoints
+   * (sensor /device/rest/devices/v1/list) match better when the clientId
+   * mirrors the one used during the MQTT login.
+   *
+   * @param email Govee account email
+   */
+  setEmail(email) {
+    this.clientId = (0, import_govee_constants.deriveGoveeClientId)(email);
   }
   /** Check if bearer token is available (set after MQTT login) */
   hasBearerToken() {
@@ -45,7 +59,7 @@ class GoveeApiClient {
     return {
       Authorization: `Bearer ${(_a = this.bearerToken) != null ? _a : ""}`,
       appVersion: import_govee_constants.GOVEE_APP_VERSION,
-      clientId: import_govee_constants.GOVEE_CLIENT_ID,
+      clientId: this.clientId,
       clientType: import_govee_constants.GOVEE_CLIENT_TYPE,
       "User-Agent": import_govee_constants.GOVEE_USER_AGENT
     };

@@ -55,6 +55,12 @@ function classifyError(err) {
   if (msg.includes("429") || msg.includes("Rate limit") || msg.includes("Rate limited")) {
     return "RATE_LIMIT";
   }
+  if (msg.includes("Verification required") || msg.includes("status 454") && !msg.includes("invalid")) {
+    return "VERIFICATION_PENDING";
+  }
+  if (msg.includes("Verification code invalid") || msg.includes("status 455")) {
+    return "VERIFICATION_FAILED";
+  }
   if (msg.includes("401") || msg.includes("403") || msg.includes("Login failed") || msg.includes("auth")) {
     return "AUTH";
   }
@@ -89,10 +95,7 @@ function parseSegmentList(input, maxIndex) {
   if (trimmed === "") {
     return { indices: [], error: "list is empty" };
   }
-  const effectiveMax = Math.min(
-    Number.isFinite(maxIndex) && maxIndex >= 0 ? Math.floor(maxIndex) : HARD_MAX,
-    HARD_MAX
-  );
+  const effectiveMax = Math.min(Number.isFinite(maxIndex) && maxIndex >= 0 ? Math.floor(maxIndex) : HARD_MAX, HARD_MAX);
   const set = /* @__PURE__ */ new Set();
   const parts = trimmed.split(",");
   for (const raw of parts) {

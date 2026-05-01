@@ -22,7 +22,7 @@ __export(segment_wizard_exports, {
   wizardIdleText: () => wizardIdleText
 });
 module.exports = __toCommonJS(segment_wizard_exports);
-var import_device_manager = require("./device-manager.js");
+var import_device_manager = require("./device-manager");
 const WIZARD_STRINGS = {
   en: {
     idle: "No wizard active. Pick an LED strip above and click \u25B6 Start.",
@@ -107,10 +107,7 @@ function format(template, params) {
   if (!params) {
     return template;
   }
-  return template.replace(
-    /\{(\w+)\}/g,
-    (m, key) => key in params ? String(params[key]) : m
-  );
+  return template.replace(/\{(\w+)\}/g, (m, key) => key in params ? String(params[key]) : m);
 }
 const IDLE_TIMEOUT_MS = 5 * 6e4;
 function wizardIdleText(lang) {
@@ -118,9 +115,7 @@ function wizardIdleText(lang) {
 }
 function hasSegmentCapability(device) {
   const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
-  return caps.some(
-    (c) => c && typeof c.type === "string" && c.type.includes("segment_color_setting")
-  );
+  return caps.some((c) => c && typeof c.type === "string" && c.type.includes("segment_color_setting"));
 }
 class SegmentWizard {
   /** @param host Host interface wired up to the adapter. */
@@ -430,9 +425,7 @@ ${this.t("finishTreeRebuilt")}`,
       return;
     }
     const total = import_device_manager.SEGMENT_HARD_MAX + 1;
-    const others = Array.from({ length: total }, (_, i) => i).filter(
-      (i) => i !== idx
-    );
+    const others = Array.from({ length: total }, (_, i) => i).filter((i) => i !== idx);
     if (others.length > 0) {
       await this.host.sendCommand(device, "segmentBatch", {
         segments: others,
@@ -464,12 +457,7 @@ ${this.t("finishTreeRebuilt")}`,
     }
     const color = parseInt(baseline.colorRgb.slice(1), 16);
     const brightness = (_b = baseline.brightness) != null ? _b : 100;
-    const atomic = await this.host.restoreStripAtomic(
-      device,
-      total,
-      color,
-      brightness
-    );
+    const atomic = await this.host.restoreStripAtomic(device, total, color, brightness);
     if (atomic) {
       return;
     }

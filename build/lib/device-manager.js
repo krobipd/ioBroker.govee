@@ -26,11 +26,11 @@ __export(device_manager_exports, {
   resolveSegmentCount: () => resolveSegmentCount
 });
 module.exports = __toCommonJS(device_manager_exports);
-var import_command_router = require("./command-router.js");
-var import_device_registry = require("./device-registry.js");
-var import_diagnostics = require("./diagnostics.js");
-var import_types = require("./types.js");
-var import_http_client = require("./http-client.js");
+var import_command_router = require("./command-router");
+var import_device_registry = require("./device-registry");
+var import_diagnostics = require("./diagnostics");
+var import_types = require("./types");
+var import_http_client = require("./http-client");
 function parseMqttSegmentData(commands) {
   if (!Array.isArray(commands)) {
     return [];
@@ -248,9 +248,7 @@ class DeviceManager {
     if (changed) {
       this.log.info(`Loaded ${cached.length} device(s) from cache`);
     }
-    const hasLight = Array.from(this.devices.values()).some(
-      (d) => d.type === "devices.types.light"
-    );
+    const hasLight = Array.from(this.devices.values()).some((d) => d.type === "devices.types.light");
     if (hasLight) {
       this.log.debug("Cache loaded \u2014 will refresh scenes/snapshots via Cloud");
       return false;
@@ -285,9 +283,7 @@ class DeviceManager {
       let changed = this.mergeCloudDevices(cloudDevices);
       for (const cd of cloudDevices) {
         const caps = Array.isArray(cd.capabilities) ? cd.capabilities : [];
-        const isLight = cd.type === "devices.types.light" || caps.some(
-          (c) => c && typeof c.type === "string" && c.type.includes("dynamic_scene")
-        );
+        const isLight = cd.type === "devices.types.light" || caps.some((c) => c && typeof c.type === "string" && c.type.includes("dynamic_scene"));
         if (isLight) {
           const device = this.devices.get(this.deviceKey(cd.sku, cd.device));
           if (device) {
@@ -354,9 +350,7 @@ class DeviceManager {
       return false;
     }
     let anyChanged = false;
-    const lights = Array.from(this.devices.values()).filter(
-      (d) => d.type === "devices.types.light"
-    );
+    const lights = Array.from(this.devices.values()).filter((d) => d.type === "devices.types.light");
     for (const device of lights) {
       const cd = {
         sku: device.sku,
@@ -409,9 +403,7 @@ class DeviceManager {
       }
       const quirks = (0, import_device_registry.getDeviceQuirks)(cd.sku);
       if (quirks == null ? void 0 : quirks.brokenPlatformApi) {
-        this.log.debug(
-          `${cd.sku} has known broken platform API metadata \u2014 capabilities may be incomplete`
-        );
+        this.log.debug(`${cd.sku} has known broken platform API metadata \u2014 capabilities may be incomplete`);
       }
     }
     return changed;
@@ -464,15 +456,11 @@ class DeviceManager {
         }
       );
       if ((_a = snapCap == null ? void 0 : snapCap.parameters) == null ? void 0 : _a.options) {
-        device.snapshots = snapCap.parameters.options.filter(
-          (o) => o && typeof o.name === "string" && o.value !== void 0 && o.value !== null
-        ).map((o) => ({
+        device.snapshots = snapCap.parameters.options.filter((o) => o && typeof o.name === "string" && o.value !== void 0 && o.value !== null).map((o) => ({
           name: o.name,
           value: typeof o.value === "number" ? o.value : o.value
         }));
-        this.log.debug(
-          `Snapshots from capabilities for ${cd.sku}: ${device.snapshots.length}`
-        );
+        this.log.debug(`Snapshots from capabilities for ${cd.sku}: ${device.snapshots.length}`);
       }
     }
     return device.scenes.length > 0 || device.diyScenes.length > 0 || device.snapshots.length > 0;
@@ -521,9 +509,7 @@ class DeviceManager {
             this.log.debug(`Music library for ${sku}: ${lib.length} modes`);
           }
         } catch (e) {
-          this.log.debug(
-            `Could not load music library for ${sku}: ${e instanceof Error ? e.message : String(e)}`
-          );
+          this.log.debug(`Could not load music library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
     }
@@ -537,9 +523,7 @@ class DeviceManager {
             this.log.debug(`DIY library for ${sku}: ${lib.length} effects`);
           }
         } catch (e) {
-          this.log.debug(
-            `Could not load DIY library for ${sku}: ${e instanceof Error ? e.message : String(e)}`
-          );
+          this.log.debug(`Could not load DIY library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
     }
@@ -550,24 +534,17 @@ class DeviceManager {
           if (features) {
             device.skuFeatures = features;
             changed = true;
-            this.log.debug(
-              `SKU features for ${sku}: ${JSON.stringify(features).slice(0, 200)}`
-            );
+            this.log.debug(`SKU features for ${sku}: ${JSON.stringify(features).slice(0, 200)}`);
           }
         } catch (e) {
-          this.log.debug(
-            `Could not load SKU features for ${sku}: ${e instanceof Error ? e.message : String(e)}`
-          );
+          this.log.debug(`Could not load SKU features for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
     }
     if (!device.snapshotBleCmds && device.snapshots.length > 0) {
       await runLimited(async () => {
         try {
-          const snaps = await this.apiClient.fetchSnapshots(
-            sku,
-            device.deviceId
-          );
+          const snaps = await this.apiClient.fetchSnapshots(sku, device.deviceId);
           if (snaps.length > 0) {
             device.snapshotBleCmds = device.snapshots.map((ds) => {
               var _a;
@@ -575,14 +552,10 @@ class DeviceManager {
               return (_a = match == null ? void 0 : match.bleCmds) != null ? _a : [];
             });
             changed = true;
-            this.log.debug(
-              `Snapshot BLE for ${sku}: ${snaps.length} snapshots with local data`
-            );
+            this.log.debug(`Snapshot BLE for ${sku}: ${snaps.length} snapshots with local data`);
           }
         } catch (e) {
-          this.log.debug(
-            `Could not load snapshot BLE for ${sku}: ${e instanceof Error ? e.message : String(e)}`
-          );
+          this.log.debug(`Could not load snapshot BLE for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
     }
@@ -600,9 +573,7 @@ class DeviceManager {
       return false;
     }
     if (!this.apiClient.hasBearerToken()) {
-      this.log.debug(
-        "Group membership requires Email+Password \u2014 skipping member resolution"
-      );
+      this.log.debug("Group membership requires Email+Password \u2014 skipping member resolution");
       return false;
     }
     try {
@@ -616,9 +587,7 @@ class DeviceManager {
         if (group.sku !== "BaseGroup") {
           continue;
         }
-        const apiGroup = apiGroups.find(
-          (g) => String(g.groupId) === group.deviceId
-        );
+        const apiGroup = apiGroups.find((g) => String(g.groupId) === group.deviceId);
         if (!apiGroup) {
           continue;
         }
@@ -628,27 +597,21 @@ class DeviceManager {
           if (resolved) {
             members.push({ sku: resolved.sku, deviceId: resolved.deviceId });
           } else {
-            this.log.debug(
-              `Group "${group.name}": member ${m.sku}/${m.deviceId} not in device map`
-            );
+            this.log.debug(`Group "${group.name}": member ${m.sku}/${m.deviceId} not in device map`);
           }
         }
         group.groupMembers = members;
         if (members.length > 0) {
           changed = true;
         }
-        this.log.debug(
-          `Group "${group.name}": ${members.length}/${apiGroup.devices.length} members resolved`
-        );
+        this.log.debug(`Group "${group.name}": ${members.length}/${apiGroup.devices.length} members resolved`);
       }
       if (changed) {
         (_a = this.onDeviceListChanged) == null ? void 0 : _a.call(this, this.getDevices());
       }
       return changed;
     } catch (e) {
-      this.log.debug(
-        `Could not load group members: ${e instanceof Error ? e.message : String(e)}`
-      );
+      this.log.debug(`Could not load group members: ${e instanceof Error ? e.message : String(e)}`);
       return false;
     }
   }
@@ -663,18 +626,14 @@ class DeviceManager {
       const isLight = device.type === "devices.types.light";
       if (isLight && !device.scenesChecked) {
         skippedCount++;
-        this.log.debug(
-          `Not caching ${device.name} (${device.sku}) \u2014 scenes not yet checked`
-        );
+        this.log.debug(`Not caching ${device.name} (${device.sku}) \u2014 scenes not yet checked`);
       } else {
         this.skuCache.save(this.goveeDeviceToCached(device));
         cachedCount++;
       }
     }
     if (skippedCount > 0) {
-      this.log.debug(
-        `Cached ${cachedCount} device(s), skipped ${skippedCount} not yet checked`
-      );
+      this.log.debug(`Cached ${cachedCount} device(s), skipped ${skippedCount} not yet checked`);
     } else {
       this.log.debug(`Cached ${cachedCount} device(s) \u2014 next start uses cache`);
     }
@@ -703,9 +662,7 @@ class DeviceManager {
       matched.channels.lan = true;
       matched.lastSeenOnNetwork = Date.now();
       if (ipChanged) {
-        this.log.debug(
-          `LAN: ${matched.name} (${matched.sku}) at ${lanDevice.ip}`
-        );
+        this.log.debug(`LAN: ${matched.name} (${matched.sku}) at ${lanDevice.ip}`);
         (_a = this.onLanIpChanged) == null ? void 0 : _a.call(this, matched, lanDevice.ip);
       }
     } else {
@@ -878,12 +835,7 @@ class DeviceManager {
    * @param value Command value
    */
   async sendCapabilityCommand(device, capabilityType, capabilityInstance, value) {
-    return this.commandRouter.sendCapabilityCommand(
-      device,
-      capabilityType,
-      capabilityInstance,
-      value
-    );
+    return this.commandRouter.sendCapabilityCommand(device, capabilityType, capabilityInstance, value);
   }
   /** Callback when device LAN IP changes */
   onLanIpChanged;
@@ -976,9 +928,7 @@ class DeviceManager {
         value: {}
         // ptReal uses sceneLibrary directly, Cloud payload not needed
       }));
-      this.log.debug(
-        `${device.sku}: ${device.scenes.length} scenes from library (Cloud scenes missing)`
-      );
+      this.log.debug(`${device.sku}: ${device.scenes.length} scenes from library (Cloud scenes missing)`);
     }
   }
   /**
@@ -1111,11 +1061,7 @@ class DeviceManager {
         continue;
       }
       (_a = this.onCloudCapabilities) == null ? void 0 : _a.call(this, device, caps);
-      this.diagnostics.setApiResponse(
-        device.deviceId,
-        "/device/rest/devices/v1/list",
-        entry
-      );
+      this.diagnostics.setApiResponse(device.deviceId, "/device/rest/devices/v1/list", entry);
       updated++;
     }
     return updated;

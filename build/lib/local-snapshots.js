@@ -61,9 +61,7 @@ class LocalSnapshotStore {
         return Array.isArray(data == null ? void 0 : data.snapshots) ? data.snapshots : [];
       }
     } catch (e) {
-      this.log.debug(
-        `Snapshot read failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`
-      );
+      this.log.debug(`Snapshot read failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
     }
     return [];
   }
@@ -127,9 +125,7 @@ class LocalSnapshotStore {
         fs.closeSync(fd);
       }
     } catch (e) {
-      this.log.warn(
-        `Snapshot write failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`
-      );
+      this.log.warn(`Snapshot write failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
   /**

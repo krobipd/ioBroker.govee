@@ -95,9 +95,7 @@ class GoveeLanClient {
         try {
           (_b = this.scanSocket) == null ? void 0 : _b.addMembership(MULTICAST_ADDR, bindAddr);
         } catch {
-          this.log.debug(
-            "Could not join multicast group \u2014 using broadcast fallback"
-          );
+          this.log.debug("Could not join multicast group \u2014 using broadcast fallback");
         }
         this.sendScan();
       });
@@ -308,9 +306,7 @@ class GoveeLanClient {
       return;
     }
     const MAX_SEGMENTS = 56;
-    const others = Array.from({ length: MAX_SEGMENTS }, (_, i) => i).filter(
-      (i) => i !== idx
-    );
+    const others = Array.from({ length: MAX_SEGMENTS }, (_, i) => i).filter((i) => i !== idx);
     this.setColor(ip, 255, 255, 255);
     const delayMs = 150;
     this.timers.setTimeout(() => {
@@ -338,10 +334,7 @@ class GoveeLanClient {
       return;
     }
     const all = Array.from({ length: total }, (_, i) => i);
-    this.sendPtReal(ip, [
-      buildSegmentColorPacket(r, g, b, all),
-      buildSegmentBrightnessPacket(brightness, all)
-    ]);
+    this.sendPtReal(ip, [buildSegmentColorPacket(r, g, b, all), buildSegmentBrightnessPacket(brightness, all)]);
   }
   /**
    * Request device status
@@ -358,18 +351,11 @@ class GoveeLanClient {
       msg: { cmd: "scan", data: { account_topic: "reserve" } }
     };
     const buf = Buffer.from(JSON.stringify(scanMsg));
-    (_a = this.scanSocket) == null ? void 0 : _a.send(
-      buf,
-      0,
-      buf.length,
-      SCAN_PORT,
-      MULTICAST_ADDR,
-      (err) => {
-        if (err) {
-          this.log.debug(`LAN scan send error: ${err.message}`);
-        }
+    (_a = this.scanSocket) == null ? void 0 : _a.send(buf, 0, buf.length, SCAN_PORT, MULTICAST_ADDR, (err) => {
+      if (err) {
+        this.log.debug(`LAN scan send error: ${err.message}`);
       }
-    );
+    });
   }
   /**
    * Parse incoming UDP message
@@ -392,9 +378,7 @@ class GoveeLanClient {
         this.handleStatusResponse(payload, sourceIp);
       }
     } catch {
-      this.log.debug(
-        `LAN: Failed to parse message: ${msg.toString().slice(0, 200)}`
-      );
+      this.log.debug(`LAN: Failed to parse message: ${msg.toString().slice(0, 200)}`);
     }
   }
   /**
@@ -421,9 +405,7 @@ class GoveeLanClient {
         }
       }
       this.seenDeviceIps.add(key);
-      this.log.debug(
-        `LAN: Found ${lanDevice.sku} (${lanDevice.device}) at ${lanDevice.ip}`
-      );
+      this.log.debug(`LAN: Found ${lanDevice.sku} (${lanDevice.device}) at ${lanDevice.ip}`);
     }
     (_a = this.onDiscovery) == null ? void 0 : _a.call(this, lanDevice);
   }
@@ -519,15 +501,11 @@ function buildDiyPackets(scenceParam) {
       packets.push(Buffer.from(finishPacket([...chunk])).toString("base64"));
     }
   }
-  packets.push(
-    Buffer.from(finishPacket([51, 5, 10])).toString("base64")
-  );
+  packets.push(Buffer.from(finishPacket([51, 5, 10])).toString("base64"));
   return packets;
 }
 function buildGradientPacket(on) {
-  return Buffer.from(finishPacket([51, 20, on ? 1 : 0])).toString(
-    "base64"
-  );
+  return Buffer.from(finishPacket([51, 20, on ? 1 : 0])).toString("base64");
 }
 function buildMusicModePacket(subMode, r = 0, g = 0, b = 0) {
   const data = [51, 5, 1, subMode & 255];
@@ -566,14 +544,7 @@ function buildSegmentColorPacket(r, g, b, segments) {
   return Buffer.from(finishPacket(data)).toString("base64");
 }
 function buildSegmentBrightnessPacket(brightness, segments) {
-  const data = [
-    51,
-    5,
-    21,
-    2,
-    Math.max(0, Math.min(100, brightness)),
-    ...buildSegmentBitmask(segments, 14)
-  ];
+  const data = [51, 5, 21, 2, Math.max(0, Math.min(100, brightness)), ...buildSegmentBitmask(segments, 14)];
   return Buffer.from(finishPacket(data)).toString("base64");
 }
 function applySceneSpeed(scenceParam, speedLevel, speedConfig) {

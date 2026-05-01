@@ -29,6 +29,7 @@ import {
   type CloudStateCapability,
   type DeviceState,
   type GoveeDevice,
+  type PersistedMqttCredentials,
 } from "./lib/types";
 
 /**
@@ -311,6 +312,19 @@ class GoveeAdapter extends utils.Adapter {
         if (reason === "failed") {
           this.clearVerificationCodeSetting().catch(() => {});
         }
+      });
+
+      // Re-use cached MQTT credentials across restarts: P12 cert + bearer
+      // are encrypted in adapter native. If they're still valid we skip the
+      // login flow entirely (and avoid spamming the user with 2FA emails).
+      const cachedCreds = this.buildPersistedCredsFromConfig(config);
+      if (cachedCreds) {
+        this.mqttClient.setPersistedCredentials(cachedCreds);
+      }
+      this.mqttClient.setOnCredentialsRefresh(creds => {
+        this.persistMqttCredentials(creds).catch(e => {
+          this.log.warn(`Could not persist MQTT credentials: ${e instanceof Error ? e.message : String(e)}`);
+        });
       });
 
       await this.mqttClient.connect(
@@ -1588,6 +1602,55 @@ class GoveeAdapter extends utils.Adapter {
   private async clearVerificationCodeSetting(): Promise<void> {
     await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
       native: { mqttVerificationCode: "" },
+    });
+  }
+
+  /**
+   * Read the persisted MQTT bundle out of adapter native. Returns null if
+   * any required field is missing — the caller falls back to a fresh login.
+   *
+   * @param config Adapter native settings
+   */
+  private buildPersistedCredsFromConfig(config: AdapterConfig): PersistedMqttCredentials | null {
+    const bearer = config.mqttBearerToken ?? "";
+    const endpoint = config.mqttIotEndpoint ?? "";
+    const p12 = config.mqttP12Cert ?? "";
+    const p12Pass = config.mqttP12Pass ?? "";
+    const accountId = config.mqttAccountId ?? "";
+    const accountTopic = config.mqttAccountTopic ?? "";
+    const expiresAt = Number(config.mqttTokenExpiresAt ?? 0);
+    if (!bearer || !endpoint || !p12 || !accountId || !accountTopic || !expiresAt) {
+      return null;
+    }
+    return {
+      bearerToken: bearer,
+      iotEndpoint: endpoint,
+      p12Cert: p12,
+      p12Pass,
+      accountId,
+      accountTopic,
+      tokenExpiresAt: expiresAt,
+    };
+  }
+
+  /**
+   * Persist freshly-issued MQTT credentials back into adapter native. The
+   * P12 cert + bearer are listed in `encryptedNative` / `protectedNative`
+   * (io-package.json) so js-controller transparently encrypts them at rest.
+   *
+   * @param creds The freshly-issued MQTT bundle from a successful login
+   */
+  private async persistMqttCredentials(creds: PersistedMqttCredentials): Promise<void> {
+    await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
+      native: {
+        mqttBearerToken: creds.bearerToken,
+        mqttIotEndpoint: creds.iotEndpoint,
+        mqttP12Cert: creds.p12Cert,
+        mqttP12Pass: creds.p12Pass,
+        mqttAccountId: creds.accountId,
+        mqttAccountTopic: creds.accountTopic,
+        mqttTokenExpiresAt: creds.tokenExpiresAt,
+      },
     });
   }
 

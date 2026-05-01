@@ -33,7 +33,7 @@ __export(govee_openapi_mqtt_client_exports, {
 module.exports = __toCommonJS(govee_openapi_mqtt_client_exports);
 var crypto = __toESM(require("node:crypto"));
 var mqtt = __toESM(require("mqtt"));
-var import_types = require("./types.js");
+var import_types = require("./types");
 const MAX_CONNECT_FAILURES = 5;
 const BROKER_URL = "mqtts://mqtt.openapi.govee.com:8883";
 class GoveeOpenapiMqttClient {
@@ -116,9 +116,7 @@ class GoveeOpenapiMqttClient {
         if (category === "AUTH") {
           this.connectFailCount++;
           if (this.connectFailCount >= MAX_CONNECT_FAILURES) {
-            this.log.warn(
-              "OpenAPI MQTT auth failed repeatedly \u2014 check API key"
-            );
+            this.log.warn("OpenAPI MQTT auth failed repeatedly \u2014 check API key");
             (_a = this.onConnection) == null ? void 0 : _a.call(this, false);
             this.disconnect();
             return;
@@ -181,24 +179,18 @@ class GoveeOpenapiMqttClient {
       const sku = (_b = raw.sku) != null ? _b : "";
       const device = (_c = raw.device) != null ? _c : "";
       if (!sku && !device) {
-        this.log.debug(
-          `OpenAPI MQTT: message without device info: ${payload.toString().slice(0, 200)}`
-        );
+        this.log.debug(`OpenAPI MQTT: message without device info: ${payload.toString().slice(0, 200)}`);
         return;
       }
       const caps = raw.capabilities;
       if (!caps || !Array.isArray(caps) || caps.length === 0) {
-        this.log.debug(
-          `OpenAPI MQTT: message without capabilities from ${sku}: ${payload.toString().slice(0, 300)}`
-        );
+        this.log.debug(`OpenAPI MQTT: message without capabilities from ${sku}: ${payload.toString().slice(0, 300)}`);
         return;
       }
       const event = { sku, device, capabilities: caps };
       (_d = this.onEvent) == null ? void 0 : _d.call(this, event);
     } catch {
-      this.log.debug(
-        `OpenAPI MQTT: failed to parse message: ${payload.toString().slice(0, 200)}`
-      );
+      this.log.debug(`OpenAPI MQTT: failed to parse message: ${payload.toString().slice(0, 200)}`);
     }
   }
   /** Schedule reconnect with exponential backoff */
@@ -210,13 +202,8 @@ class GoveeOpenapiMqttClient {
       return;
     }
     this.reconnectAttempts++;
-    const delay = Math.min(
-      5e3 * Math.pow(2, this.reconnectAttempts - 1),
-      3e5
-    );
-    this.log.debug(
-      `OpenAPI MQTT: reconnecting in ${delay / 1e3}s (attempt ${this.reconnectAttempts})`
-    );
+    const delay = Math.min(5e3 * Math.pow(2, this.reconnectAttempts - 1), 3e5);
+    this.log.debug(`OpenAPI MQTT: reconnecting in ${delay / 1e3}s (attempt ${this.reconnectAttempts})`);
     this.reconnectTimer = this.timers.setTimeout(() => {
       var _a;
       this.reconnectTimer = void 0;

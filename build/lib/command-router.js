@@ -21,8 +21,8 @@ __export(command_router_exports, {
   CommandRouter: () => CommandRouter
 });
 module.exports = __toCommonJS(command_router_exports);
-var import_types = require("./types.js");
-var import_govee_lan_client = require("./govee-lan-client.js");
+var import_types = require("./types");
+var import_govee_lan_client = require("./govee-lan-client");
 const FORCE_COLOR_MODE_SETTLE_MS = 150;
 class CommandRouter {
   log;
@@ -99,9 +99,7 @@ class CommandRouter {
     const current = typeof device.state.colorRgb === "string" ? device.state.colorRgb : null;
     const { r, g, b } = current ? (0, import_types.hexToRgb)(current) : { r: 255, g: 255, b: 255 };
     this.lanClient.setColor(device.lanIp, r, g, b);
-    await new Promise(
-      (resolve) => this.timers.setTimeout(() => resolve(), FORCE_COLOR_MODE_SETTLE_MS)
-    );
+    await new Promise((resolve) => this.timers.setTimeout(() => resolve(), FORCE_COLOR_MODE_SETTLE_MS));
   }
   /**
    * Send a command to a device — routes through LAN → Cloud.
@@ -141,29 +139,15 @@ class CommandRouter {
           const r = parsed.color >> 16 & 255;
           const g = parsed.color >> 8 & 255;
           const b = parsed.color & 255;
-          this.lanClient.setSegmentColor(
-            device.lanIp,
-            r,
-            g,
-            b,
-            parsed.segments
-          );
+          this.lanClient.setSegmentColor(device.lanIp, r, g, b, parsed.segments);
         }
         if (parsed.brightness !== void 0) {
-          this.lanClient.setSegmentBrightness(
-            device.lanIp,
-            parsed.brightness,
-            parsed.segments
-          );
+          this.lanClient.setSegmentBrightness(device.lanIp, parsed.brightness, parsed.segments);
         }
         return;
       }
       if (device.channels.cloud && this.cloudClient && parsed) {
-        await this.sendSegmentBatchParsed(
-          device,
-          typeof value === "string" ? value : "",
-          parsed
-        );
+        await this.sendSegmentBatchParsed(device, typeof value === "string" ? value : "", parsed);
         return;
       }
       return;
@@ -175,9 +159,7 @@ class CommandRouter {
       }
       if (device.lanIp && this.lanClient) {
         await this.forceColorMode(device);
-        this.lanClient.setSegmentBrightness(device.lanIp, value, [
-          segIdx
-        ]);
+        this.lanClient.setSegmentBrightness(device.lanIp, value, [segIdx]);
         return;
       }
       if (device.channels.cloud && this.cloudClient) {
@@ -207,9 +189,7 @@ class CommandRouter {
    */
   async sendCapabilityCommand(device, capabilityType, capabilityInstance, value) {
     if (!this.cloudClient || !device.channels.cloud) {
-      this.log.debug(
-        `Cloud not available for generic command on ${device.name}`
-      );
+      this.log.debug(`Cloud not available for generic command on ${device.name}`);
       return;
     }
     const shortType = capabilityType.replace("devices.capabilities.", "");
@@ -241,9 +221,7 @@ class CommandRouter {
       return;
     }
     if (!parsed) {
-      this.log.warn(
-        `Invalid segment command "${commandStr}" for ${device.name}`
-      );
+      this.log.warn(`Invalid segment command "${commandStr}" for ${device.name}`);
       return;
     }
     const cap = this.findCapabilityForCommand(device, "segmentColor:0");
@@ -253,13 +231,10 @@ class CommandRouter {
     }
     if (parsed.color !== void 0) {
       const execute = async () => {
-        await this.cloudClient.controlDevice(
-          device.sku,
-          device.deviceId,
-          cap.type,
-          cap.instance,
-          { segment: parsed.segments, rgb: parsed.color }
-        );
+        await this.cloudClient.controlDevice(device.sku, device.deviceId, cap.type, cap.instance, {
+          segment: parsed.segments,
+          rgb: parsed.color
+        });
       };
       await this.executeRateLimited(execute);
     }
@@ -359,9 +334,7 @@ class CommandRouter {
     if (!Array.isArray(v.segments) || v.segments.length === 0) {
       return null;
     }
-    const segments = v.segments.filter(
-      (n) => typeof n === "number" && Number.isFinite(n) && n >= 0
-    );
+    const segments = v.segments.filter((n) => typeof n === "number" && Number.isFinite(n) && n >= 0);
     if (segments.length === 0) {
       return null;
     }
@@ -396,9 +369,7 @@ class CommandRouter {
       case "lightScene": {
         const idx = parseInt(String(value), 10);
         if (isNaN(idx) || idx < 1 || idx > device.scenes.length) {
-          this.log.warn(
-            `${device.sku}: invalid light scene index ${String(value)} for cloud`
-          );
+          this.log.warn(`${device.sku}: invalid light scene index ${String(value)} for cloud`);
           return value;
         }
         return device.scenes[idx - 1].value;
@@ -406,9 +377,7 @@ class CommandRouter {
       case "diyScene": {
         const idx = parseInt(String(value), 10);
         if (isNaN(idx) || idx < 1 || idx > device.diyScenes.length) {
-          this.log.warn(
-            `${device.sku}: invalid DIY scene index ${String(value)} for cloud`
-          );
+          this.log.warn(`${device.sku}: invalid DIY scene index ${String(value)} for cloud`);
           return value;
         }
         return device.diyScenes[idx - 1].value;
@@ -416,9 +385,7 @@ class CommandRouter {
       case "snapshot": {
         const idx = parseInt(String(value), 10);
         if (isNaN(idx) || idx < 1 || idx > device.snapshots.length) {
-          this.log.warn(
-            `${device.sku}: invalid snapshot index ${String(value)} for cloud`
-          );
+          this.log.warn(`${device.sku}: invalid snapshot index ${String(value)} for cloud`);
           return value;
         }
         return device.snapshots[idx - 1].value;
@@ -523,20 +490,14 @@ class CommandRouter {
       case "diyScene": {
         const diyIdx = parseInt(String(value), 10);
         if (isNaN(diyIdx) || diyIdx < 1 || diyIdx > device.diyScenes.length) {
-          this.log.warn(
-            `${device.sku}: invalid DIY scene index ${String(value)}`
-          );
+          this.log.warn(`${device.sku}: invalid DIY scene index ${String(value)}`);
           return;
         }
         const diyScene = device.diyScenes[diyIdx - 1];
         if (diyScene) {
-          const diyLib = device.diyLibrary.find(
-            (d) => d.name === diyScene.name
-          );
+          const diyLib = device.diyLibrary.find((d) => d.name === diyScene.name);
           if (diyLib) {
-            this.log.debug(
-              `ptReal DIY: ${diyScene.name} \u2192 code=${diyLib.diyCode}`
-            );
+            this.log.debug(`ptReal DIY: ${diyScene.name} \u2192 code=${diyLib.diyCode}`);
             this.lanClient.setDiyScene(device.lanIp, (_a = diyLib.scenceParam) != null ? _a : "");
             return;
           }
@@ -548,9 +509,7 @@ class CommandRouter {
       case "lightScene": {
         const idx = parseInt(String(value), 10);
         if (isNaN(idx) || idx < 1 || idx > device.scenes.length) {
-          this.log.warn(
-            `${device.sku}: invalid light scene index ${String(value)}`
-          );
+          this.log.warn(`${device.sku}: invalid light scene index ${String(value)}`);
           return;
         }
         const scene = device.scenes[idx - 1];
@@ -570,15 +529,9 @@ class CommandRouter {
             }
             let param = baseParam;
             if (device.sceneSpeed !== void 0 && device.sceneSpeed > 0 && ((_d = libEntry.speedInfo) == null ? void 0 : _d.supSpeed) && libEntry.speedInfo.config) {
-              param = (0, import_govee_lan_client.applySceneSpeed)(
-                param,
-                device.sceneSpeed,
-                libEntry.speedInfo.config
-              );
+              param = (0, import_govee_lan_client.applySceneSpeed)(param, device.sceneSpeed, libEntry.speedInfo.config);
             }
-            this.log.debug(
-              `ptReal: ${scene.name} \u2192 code=${libEntry.sceneCode}`
-            );
+            this.log.debug(`ptReal: ${scene.name} \u2192 code=${libEntry.sceneCode}`);
             this.lanClient.setScene(device.lanIp, libEntry.sceneCode, param);
             return;
           }
@@ -590,18 +543,14 @@ class CommandRouter {
       case "snapshot": {
         const idx = parseInt(String(value), 10);
         if (isNaN(idx) || idx < 1 || idx > device.snapshots.length) {
-          this.log.warn(
-            `${device.sku}: invalid snapshot index ${String(value)}`
-          );
+          this.log.warn(`${device.sku}: invalid snapshot index ${String(value)}`);
           return;
         }
         const cmdGroups = (_e = device.snapshotBleCmds) == null ? void 0 : _e[idx - 1];
         if (cmdGroups && cmdGroups.length > 0) {
           const allPackets = cmdGroups.flat();
           if (allPackets.length > 0) {
-            this.log.debug(
-              `ptReal Snapshot: ${device.snapshots[idx - 1].name} \u2192 ${allPackets.length} packets`
-            );
+            this.log.debug(`ptReal Snapshot: ${device.snapshots[idx - 1].name} \u2192 ${allPackets.length} packets`);
             this.lanClient.sendPtReal(device.lanIp, allPackets);
             return;
           }
@@ -628,20 +577,12 @@ class CommandRouter {
     }
     const cap = this.findCapabilityForCommand(device, command);
     if (!cap) {
-      this.log.debug(
-        `No Cloud capability for command '${command}' on ${device.sku}`
-      );
+      this.log.debug(`No Cloud capability for command '${command}' on ${device.sku}`);
       return;
     }
     const cloudValue = this.toCloudValue(device, command, value);
     const execute = async () => {
-      await this.cloudClient.controlDevice(
-        device.sku,
-        device.deviceId,
-        cap.type,
-        cap.instance,
-        cloudValue
-      );
+      await this.cloudClient.controlDevice(device.sku, device.deviceId, cap.type, cap.instance, cloudValue);
     };
     await this.executeRateLimited(execute);
   }

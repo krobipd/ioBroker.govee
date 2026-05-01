@@ -108,9 +108,7 @@ class CloudRetryLoop {
     this.retryTimer = this.host.setTimeout(() => {
       this.retryTimer = void 0;
       this.runAttempt().catch(
-        (e) => this.host.log.debug(
-          `Cloud retry failed: ${e instanceof Error ? e.message : String(e)}`
-        )
+        (e) => this.host.log.debug(`Cloud retry failed: ${e instanceof Error ? e.message : String(e)}`)
       );
     }, delayMs);
   }

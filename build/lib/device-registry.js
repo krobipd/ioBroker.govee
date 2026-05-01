@@ -78,9 +78,7 @@ class DeviceRegistry {
     try {
       raw = fs.readFileSync(filePath, "utf-8");
     } catch (err) {
-      (_a = this.log) == null ? void 0 : _a.warn(
-        `device-registry: cannot read ${filePath}: ${err instanceof Error ? err.message : String(err)}`
-      );
+      (_a = this.log) == null ? void 0 : _a.warn(`device-registry: cannot read ${filePath}: ${err instanceof Error ? err.message : String(err)}`);
       return;
     }
     let parsed;

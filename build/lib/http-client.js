@@ -59,13 +59,7 @@ function httpsRequest(options) {
         const raw = Buffer.concat(chunks).toString();
         const statusCode = (_a2 = res.statusCode) != null ? _a2 : 0;
         if (statusCode < 200 || statusCode >= 400) {
-          reject(
-            new HttpError(
-              `HTTP ${statusCode}: ${raw.slice(0, 200)}`,
-              statusCode,
-              res.headers
-            )
-          );
+          reject(new HttpError(`HTTP ${statusCode}: ${raw.slice(0, 200)}`, statusCode, res.headers));
           return;
         }
         try {

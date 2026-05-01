@@ -21,20 +21,13 @@ __export(state_manager_exports, {
   StateManager: () => StateManager
 });
 module.exports = __toCommonJS(state_manager_exports);
-var import_device_icons = require("./device-icons.js");
-var import_device_manager = require("./device-manager.js");
-var import_types = require("./types.js");
+var import_device_icons = require("./device-icons");
+var import_device_manager = require("./device-manager");
+var import_types = require("./types");
 function sanitize(str) {
   return str.replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase();
 }
-const MANAGED_CHANNELS = [
-  "control",
-  "scenes",
-  "music",
-  "snapshots",
-  "sensor",
-  "events"
-];
+const MANAGED_CHANNELS = ["control", "scenes", "music", "snapshots", "sensor", "events"];
 const CHANNEL_NAMES = {
   control: "Controls",
   scenes: "Scenes",
@@ -44,14 +37,7 @@ const CHANNEL_NAMES = {
   events: "Events",
   info: "Device Information"
 };
-const SENSOR_STATE_IDS = /* @__PURE__ */ new Set([
-  "temperature",
-  "humidity",
-  "battery",
-  "co2",
-  "carbondioxide",
-  "online"
-]);
+const SENSOR_STATE_IDS = /* @__PURE__ */ new Set(["temperature", "humidity", "battery", "co2", "carbondioxide", "online"]);
 const EVENT_STATE_IDS = /* @__PURE__ */ new Set([
   "lackwater",
   "lackwaterevent",
@@ -187,9 +173,7 @@ class StateManager {
     const newPrefix = this.devicePrefix(device);
     const oldPrefix = this.prefixMap.get(key);
     if (oldPrefix && oldPrefix !== newPrefix) {
-      this.adapter.log.debug(
-        `Migrating device ${device.sku}: ${oldPrefix} \u2192 ${newPrefix}`
-      );
+      this.adapter.log.debug(`Migrating device ${device.sku}: ${oldPrefix} \u2192 ${newPrefix}`);
       await this.adapter.delObjectAsync(oldPrefix, { recursive: true });
       const oldChannelKey = `${oldPrefix}.`;
       for (const mapKey of this.stateChannelMap.keys()) {
@@ -220,57 +204,21 @@ class StateManager {
       common: { name: "Device Information" },
       native: {}
     });
-    await this.ensureState(
-      `${prefix}.info.name`,
-      "Name",
-      "string",
-      "text",
-      false
-    );
+    await this.ensureState(`${prefix}.info.name`, "Name", "string", "text", false);
     await this.adapter.setStateAsync(`${prefix}.info.name`, {
       val: device.name,
       ack: true
     });
     if (!isGroup) {
-      await this.ensureState(
-        `${prefix}.info.online`,
-        "Online",
-        "boolean",
-        "indicator.reachable",
-        false
-      );
+      await this.ensureState(`${prefix}.info.online`, "Online", "boolean", "indicator.reachable", false);
       await this.adapter.setStateAsync(`${prefix}.info.online`, {
         val: (_a = device.state.online) != null ? _a : false,
         ack: true
       });
-      await this.ensureState(
-        `${prefix}.info.model`,
-        "Model",
-        "string",
-        "text",
-        false
-      );
-      await this.ensureState(
-        `${prefix}.info.serial`,
-        "Serial Number",
-        "string",
-        "text",
-        false
-      );
-      await this.ensureState(
-        `${prefix}.info.ip`,
-        "IP Address",
-        "string",
-        "info.ip",
-        false
-      );
-      await this.ensureState(
-        `${prefix}.info.type`,
-        "Device Type",
-        "string",
-        "text",
-        false
-      );
+      await this.ensureState(`${prefix}.info.model`, "Model", "string", "text", false);
+      await this.ensureState(`${prefix}.info.serial`, "Serial Number", "string", "text", false);
+      await this.ensureState(`${prefix}.info.ip`, "IP Address", "string", "info.ip", false);
+      await this.ensureState(`${prefix}.info.type`, "Device Type", "string", "text", false);
       await this.adapter.setStateAsync(`${prefix}.info.model`, {
         val: device.sku,
         ack: true
@@ -292,34 +240,19 @@ class StateManager {
         const shortId = (0, import_types.normalizeDeviceId)(m.deviceId).slice(-4);
         return sanitize(`${m.sku}_${shortId}`);
       }).join(", ");
-      await this.ensureState(
-        `${prefix}.info.members`,
-        "Members",
-        "string",
-        "text",
-        false
-      );
+      await this.ensureState(`${prefix}.info.members`, "Members", "string", "text", false);
       await this.adapter.setStateAsync(`${prefix}.info.members`, {
         val: memberIds,
         ack: true
       });
-      for (const staleId of [
-        "online",
-        "model",
-        "serial",
-        "ip",
-        "diagnostics_export",
-        "diagnostics_result"
-      ]) {
+      for (const staleId of ["online", "model", "serial", "ip", "diagnostics_export", "diagnostics_result"]) {
         await this.adapter.delObjectAsync(`${prefix}.info.${staleId}`).catch(() => {
         });
         await this.adapter.delStateAsync(`${prefix}.info.${staleId}`).catch(() => {
         });
       }
     }
-    const nonSegmentDefs = stateDefs.filter(
-      (d) => !d.id.startsWith("_segment_")
-    );
+    const nonSegmentDefs = stateDefs.filter((d) => !d.id.startsWith("_segment_"));
     const channelGroups = /* @__PURE__ */ new Map();
     for (const def of nonSegmentDefs) {
       const channel = (_d = def.channel) != null ? _d : "control";
@@ -373,9 +306,7 @@ class StateManager {
           }
         });
         if (def.def !== void 0) {
-          const current = await this.adapter.getStateAsync(
-            `${prefix}.${channel}.${def.id}`
-          );
+          const current = await this.adapter.getStateAsync(`${prefix}.${channel}.${def.id}`);
           if (!current || current.val === null || current.val === void 0) {
             await this.adapter.setStateAsync(`${prefix}.${channel}.${def.id}`, {
               val: def.def,
@@ -417,13 +348,7 @@ class StateManager {
     device.segmentCount = segmentCount;
     const validIndices = device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0 ? device.manualSegments.slice().sort((a, b) => a - b) : Array.from({ length: segmentCount }, (_, i) => i);
     const reportedCount = validIndices.length;
-    await this.ensureState(
-      `${prefix}.segments.count`,
-      "Segment Count",
-      "number",
-      "value",
-      false
-    );
+    await this.ensureState(`${prefix}.segments.count`, "Segment Count", "number", "value", false);
     await this.adapter.setStateAsync(`${prefix}.segments.count`, {
       val: reportedCount,
       ack: true
@@ -481,23 +406,20 @@ class StateManager {
         },
         native: {}
       });
-      await this.adapter.extendObjectAsync(
-        `${prefix}.segments.${i}.brightness`,
-        {
-          type: "state",
-          common: {
-            name: "Brightness",
-            type: "number",
-            role: "level.brightness",
-            read: true,
-            write: true,
-            min: 0,
-            max: 100,
-            unit: "%"
-          },
-          native: {}
-        }
-      );
+      await this.adapter.extendObjectAsync(`${prefix}.segments.${i}.brightness`, {
+        type: "state",
+        common: {
+          name: "Brightness",
+          type: "number",
+          role: "level.brightness",
+          read: true,
+          write: true,
+          min: 0,
+          max: 100,
+          unit: "%"
+        },
+        native: {}
+      });
     }
     await this.adapter.extendObjectAsync(`${prefix}.segments.command`, {
       type: "state",
@@ -523,14 +445,10 @@ class StateManager {
   async cleanupExcessSegments(prefix, validIndices) {
     const valid = new Set(validIndices);
     const segPrefix = `${this.adapter.namespace}.${prefix}.segments.`;
-    const existing = await this.adapter.getObjectViewAsync(
-      "system",
-      "channel",
-      {
-        startkey: segPrefix,
-        endkey: `${segPrefix}\u9999`
-      }
-    );
+    const existing = await this.adapter.getObjectViewAsync("system", "channel", {
+      startkey: segPrefix,
+      endkey: `${segPrefix}\u9999`
+    });
     if (!(existing == null ? void 0 : existing.rows)) {
       return;
     }
@@ -561,9 +479,7 @@ class StateManager {
     const prefix = this.devicePrefix(device);
     const writes = [];
     const set = (id, val) => {
-      writes.push(
-        this.adapter.setStateAsync(id, { val, ack: true }).catch(() => void 0)
-      );
+      writes.push(this.adapter.setStateAsync(id, { val, ack: true }).catch(() => void 0));
     };
     if (state.online !== void 0) {
       set(`${prefix}.info.online`, state.online);
@@ -601,13 +517,7 @@ class StateManager {
       common: { name: "Groups Status" },
       native: {}
     });
-    await this.ensureState(
-      "groups.info.online",
-      "Cloud Online",
-      "boolean",
-      "indicator.reachable",
-      false
-    );
+    await this.ensureState("groups.info.online", "Cloud Online", "boolean", "indicator.reachable", false);
     await this.adapter.setStateAsync("groups.info.online", {
       val: online,
       ack: true
@@ -641,13 +551,7 @@ class StateManager {
       await this.adapter.delStateAsync(stateId).catch(() => {
       });
     } else {
-      await this.ensureState(
-        stateId,
-        "Unreachable Members",
-        "string",
-        "text",
-        false
-      );
+      await this.ensureState(stateId, "Unreachable Members", "string", "text", false);
       await this.adapter.setStateAsync(stateId, {
         val: unreachable.join(", "),
         ack: true
@@ -665,19 +569,13 @@ class StateManager {
    * @returns Prefixes of removed devices (e.g. "devices.h61be_1d6f")
    */
   async cleanupDevices(currentDevices) {
-    const currentPrefixes = new Set(
-      currentDevices.map((d) => this.devicePrefix(d))
-    );
+    const currentPrefixes = new Set(currentDevices.map((d) => this.devicePrefix(d)));
     const removed = [];
     for (const folder of ["devices", "groups"]) {
-      const existingObjects = await this.adapter.getObjectViewAsync(
-        "system",
-        "device",
-        {
-          startkey: `${this.adapter.namespace}.${folder}.`,
-          endkey: `${this.adapter.namespace}.${folder}.\u9999`
-        }
-      );
+      const existingObjects = await this.adapter.getObjectViewAsync("system", "device", {
+        startkey: `${this.adapter.namespace}.${folder}.`,
+        endkey: `${this.adapter.namespace}.${folder}.\u9999`
+      });
       if (!(existingObjects == null ? void 0 : existingObjects.rows)) {
         continue;
       }
@@ -691,10 +589,7 @@ class StateManager {
           }).catch(() => void 0);
           if (stateRows == null ? void 0 : stateRows.rows) {
             for (const stateRow of stateRows.rows) {
-              const stateLocalId = stateRow.id.replace(
-                `${this.adapter.namespace}.`,
-                ""
-              );
+              const stateLocalId = stateRow.id.replace(`${this.adapter.namespace}.`, "");
               await this.adapter.delStateAsync(stateLocalId).catch(() => void 0);
             }
           }

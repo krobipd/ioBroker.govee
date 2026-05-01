@@ -21,6 +21,24 @@ export interface AdapterConfig {
    * on success. Cleared automatically on 454/455 fail too.
    */
   mqttVerificationCode: string;
+  /** Cached MQTT bearer token (encryptedNative). Populated after a successful login. */
+  mqttBearerToken: string;
+  /** Cached AWS IoT endpoint (encryptedNative). Populated after a successful login. */
+  mqttIotEndpoint: string;
+  /** Cached Govee P12 certificate as base64 (encryptedNative). */
+  mqttP12Cert: string;
+  /** Cached Govee P12 password (encryptedNative). */
+  mqttP12Pass: string;
+  /** Cached Govee account id (numeric, plain native). */
+  mqttAccountId: string;
+  /** Cached MQTT account topic (plain native). */
+  mqttAccountTopic: string;
+  /**
+   * Wall-clock ms-timestamp at which the cached bearer token expires.
+   * 0 = no cache yet. The reuse path checks this before attempting MQTT
+   * with the stored cert; on miss/expired we fall back to a full login.
+   */
+  mqttTokenExpiresAt: number;
 }
 
 /**
@@ -175,7 +193,33 @@ export interface GoveeLoginResponse {
     accountId: number | string;
     /** MQTT topic for status updates */
     topic: string;
+    /** Token TTL in seconds. Govee uses this name; some responses also send `tokenExpireCycle`. */
+    token_expire_cycle?: number;
+    tokenExpireCycle?: number;
   };
+}
+
+/**
+ * Bundle of credentials persisted across adapter restarts so we don't have
+ * to log in every time (which would spam the Govee 2FA email each restart).
+ * Populated from `native` after a successful login, fed back into the next
+ * MQTT connect.
+ */
+export interface PersistedMqttCredentials {
+  /** Govee bearer token from /v1/login. */
+  bearerToken: string;
+  /** AWS IoT endpoint hostname (xxx-ats.iot.<region>.amazonaws.com). */
+  iotEndpoint: string;
+  /** Base64-encoded PKCS#12 cert bundle from /iot/key. */
+  p12Cert: string;
+  /** Password for the P12 cert (also from /iot/key). */
+  p12Pass: string;
+  /** Govee account-id, used to build the MQTT clientId. */
+  accountId: string;
+  /** MQTT topic the account subscribes to for status push. */
+  accountTopic: string;
+  /** ms-timestamp at which the bearer token expires (Date.now() + ttlMs). */
+  tokenExpiresAt: number;
 }
 
 /** IoT key response from app2.govee.com */

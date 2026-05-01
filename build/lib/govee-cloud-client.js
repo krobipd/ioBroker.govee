@@ -21,7 +21,7 @@ __export(govee_cloud_client_exports, {
   GoveeCloudClient: () => GoveeCloudClient
 });
 module.exports = __toCommonJS(govee_cloud_client_exports);
-var import_http_client = require("./http-client.js");
+var import_http_client = require("./http-client");
 const BASE_URL = "https://openapi.api.govee.com";
 class GoveeCloudClient {
   apiKey;
@@ -51,10 +51,7 @@ class GoveeCloudClient {
   }
   /** Fetch all devices with their capabilities */
   async getDevices() {
-    const resp = await this.request(
-      "GET",
-      "/router/api/v1/user/devices"
-    );
+    const resp = await this.request("GET", "/router/api/v1/user/devices");
     return Array.isArray(resp == null ? void 0 : resp.data) ? resp.data : [];
   }
   /**
@@ -65,14 +62,10 @@ class GoveeCloudClient {
    */
   async getDeviceState(sku, device) {
     var _a, _b;
-    const resp = await this.request(
-      "POST",
-      "/router/api/v1/device/state",
-      {
-        requestId: `state_${Date.now()}`,
-        payload: { sku, device }
-      }
-    );
+    const resp = await this.request("POST", "/router/api/v1/device/state", {
+      requestId: `state_${Date.now()}`,
+      payload: { sku, device }
+    });
     (_a = this.onResponse) == null ? void 0 : _a.call(this, device, "/router/api/v1/device/state", resp);
     const caps = (_b = resp == null ? void 0 : resp.data) == null ? void 0 : _b.capabilities;
     return Array.isArray(caps) ? caps : [];
@@ -109,14 +102,10 @@ class GoveeCloudClient {
    */
   async getScenes(sku, device) {
     var _a, _b;
-    const resp = await this.request(
-      "POST",
-      "/router/api/v1/device/scenes",
-      {
-        requestId: "scenes",
-        payload: { sku, device }
-      }
-    );
+    const resp = await this.request("POST", "/router/api/v1/device/scenes", {
+      requestId: "scenes",
+      payload: { sku, device }
+    });
     const lightScenes = [];
     const diyScenes = [];
     const snapshots = [];
@@ -126,9 +115,7 @@ class GoveeCloudClient {
         continue;
       }
       const opts = Array.isArray((_b = cap.parameters) == null ? void 0 : _b.options) ? cap.parameters.options : [];
-      this.log.debug(
-        `Scenes endpoint: instance=${cap.instance}, options=${opts.length}`
-      );
+      this.log.debug(`Scenes endpoint: instance=${cap.instance}, options=${opts.length}`);
       const mapped = opts.filter(
         (o) => !!o && typeof o.name === "string" && typeof o.value === "object"
       ).map((o) => ({
@@ -153,14 +140,10 @@ class GoveeCloudClient {
    */
   async getDiyScenes(sku, device) {
     var _a, _b;
-    const resp = await this.request(
-      "POST",
-      "/router/api/v1/device/diy-scenes",
-      {
-        requestId: "diy-scenes",
-        payload: { sku, device }
-      }
-    );
+    const resp = await this.request("POST", "/router/api/v1/device/diy-scenes", {
+      requestId: "diy-scenes",
+      payload: { sku, device }
+    });
     const scenes = [];
     const caps = Array.isArray((_a = resp == null ? void 0 : resp.payload) == null ? void 0 : _a.capabilities) ? resp.payload.capabilities : [];
     for (const cap of caps) {
@@ -168,9 +151,7 @@ class GoveeCloudClient {
         continue;
       }
       const opts = Array.isArray((_b = cap.parameters) == null ? void 0 : _b.options) ? cap.parameters.options : [];
-      this.log.debug(
-        `DIY-Scenes endpoint: instance=${cap.instance}, options=${opts.length}`
-      );
+      this.log.debug(`DIY-Scenes endpoint: instance=${cap.instance}, options=${opts.length}`);
       scenes.push(
         ...opts.filter(
           (o) => !!o && typeof o.name === "string" && typeof o.value === "object"
@@ -199,11 +180,7 @@ class GoveeCloudClient {
     } catch (err) {
       if (err instanceof import_http_client.HttpError && err.statusCode === 429) {
         const retryAfter = String((_a = err.headers["retry-after"]) != null ? _a : "unknown");
-        throw new import_http_client.HttpError(
-          `Rate limited \u2014 retry after ${retryAfter}s`,
-          429,
-          err.headers
-        );
+        throw new import_http_client.HttpError(`Rate limited \u2014 retry after ${retryAfter}s`, 429, err.headers);
       }
       throw err;
     }

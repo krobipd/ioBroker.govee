@@ -26,8 +26,8 @@ __export(capability_mapper_exports, {
   planCloudCapabilityWrites: () => planCloudCapabilityWrites
 });
 module.exports = __toCommonJS(capability_mapper_exports);
-var import_types = require("./types.js");
-var import_device_registry = require("./device-registry.js");
+var import_types = require("./types");
+var import_device_registry = require("./device-registry");
 function coerceBool(v) {
   return v === true || v === 1 || v === "1" || v === "true";
 }
@@ -464,9 +464,7 @@ function mapMusicSetting(cap) {
     return [];
   }
   const states = [];
-  const modeField = fields.find(
-    (f) => f && typeof f.fieldName === "string" && f.fieldName === "musicMode"
-  );
+  const modeField = fields.find((f) => f && typeof f.fieldName === "string" && f.fieldName === "musicMode");
   if ((modeField == null ? void 0 : modeField.options) && Array.isArray(modeField.options) && modeField.options.length > 0) {
     const modeStates = { 0: "---" };
     for (const opt of modeField.options) {
@@ -487,9 +485,7 @@ function mapMusicSetting(cap) {
       capabilityInstance: cap.instance
     });
   }
-  const sensField = fields.find(
-    (f) => f && typeof f.fieldName === "string" && f.fieldName === "sensitivity"
-  );
+  const sensField = fields.find((f) => f && typeof f.fieldName === "string" && f.fieldName === "sensitivity");
   if (sensField == null ? void 0 : sensField.range) {
     states.push({
       id: "music_sensitivity",
@@ -505,9 +501,7 @@ function mapMusicSetting(cap) {
       capabilityInstance: cap.instance
     });
   }
-  const autoColorField = fields.find(
-    (f) => f && typeof f.fieldName === "string" && f.fieldName === "autoColor"
-  );
+  const autoColorField = fields.find((f) => f && typeof f.fieldName === "string" && f.fieldName === "autoColor");
   if (autoColorField) {
     states.push({
       id: "music_auto_color",
@@ -848,9 +842,7 @@ function memberHasControlState(member, stateId) {
   const caps = Array.isArray(member.capabilities) ? member.capabilities : [];
   switch (stateId) {
     case "power":
-      return caps.some(
-        (c) => c && typeof c.type === "string" && c.type.endsWith("on_off")
-      );
+      return caps.some((c) => c && typeof c.type === "string" && c.type.endsWith("on_off"));
     case "brightness":
       return caps.some(
         (c) => c && typeof c.type === "string" && typeof c.instance === "string" && c.type.endsWith("range") && c.instance === "brightness"
@@ -880,9 +872,7 @@ function buildGroupStateDefs(members) {
   }
   if (controllable.every((m) => m.scenes.length > 0)) {
     const firstNames = controllable[0].scenes.map((s) => s.name);
-    const commonNames = firstNames.filter(
-      (name) => controllable.every((m) => m.scenes.some((s) => s.name === name))
-    );
+    const commonNames = firstNames.filter((name) => controllable.every((m) => m.scenes.some((s) => s.name === name)));
     if (commonNames.length > 0) {
       stateDefs.push({
         id: "light_scene",
@@ -900,9 +890,7 @@ function buildGroupStateDefs(members) {
   }
   if (controllable.every((m) => m.musicLibrary.length > 0)) {
     const firstNames = controllable[0].musicLibrary.map((m) => m.name);
-    const commonNames = firstNames.filter(
-      (name) => controllable.every((m) => m.musicLibrary.some((ml) => ml.name === name))
-    );
+    const commonNames = firstNames.filter((name) => controllable.every((m) => m.musicLibrary.some((ml) => ml.name === name)));
     if (commonNames.length > 0) {
       stateDefs.push({
         id: "music_mode",
