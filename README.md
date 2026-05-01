@@ -28,18 +28,6 @@ The Wiki lists every supported model and its test status:
 
 ---
 
-## What's new in 2.1.0
-
-- **2FA login flow** for Govee accounts that require email verification — verification-code button + field in adapter settings.
-- **MQTT credentials persisted across restarts** so the verification email is not re-sent on every reboot.
-- **`info.online` fixed for App-API sensors and OpenAPI-MQTT appliances** (e.g. H5179 thermometers stuck at offline).
-- **`info.diagnostics_tier` per device** — `verified` / `reported` / `seed` / `unknown`. See the [State tree](https://github.com/krobipd/ioBroker.govee-smart/wiki/State-Tree) / [Datenpunkte](https://github.com/krobipd/ioBroker.govee-smart/wiki/Datenpunkte) Wiki page.
-- **Capability-driven scene/snapshot dropdowns** — visible from the first start.
-- **Refresh-Cloud-Data button** refetches the scene/music/DIY libraries again.
-- Min js-controller `>=7.0.7`, min admin `>=7.7.22`.
-
----
-
 ## Documentation
 
 Full user documentation lives in the **[Wiki](https://github.com/krobipd/ioBroker.govee-smart/wiki)**.
