@@ -1,11 +1,11 @@
-import { CommandRouter } from "./command-router.js";
-import { getDeviceQuirks, isSeedAndDormant } from "./device-registry.js";
-import { DiagnosticsCollector } from "./diagnostics.js";
-import type { AppDeviceEntry, GoveeApiClient } from "./govee-api-client.js";
-import type { GoveeCloudClient } from "./govee-cloud-client.js";
-import type { GoveeLanClient } from "./govee-lan-client.js";
-import type { RateLimiter } from "./rate-limiter.js";
-import type { CachedDeviceData, SkuCache } from "./sku-cache.js";
+import { CommandRouter } from "./command-router";
+import { getDeviceQuirks, isSeedAndDormant } from "./device-registry";
+import { DiagnosticsCollector } from "./diagnostics";
+import type { AppDeviceEntry, GoveeApiClient } from "./govee-api-client";
+import type { GoveeCloudClient } from "./govee-cloud-client";
+import type { GoveeLanClient } from "./govee-lan-client";
+import type { RateLimiter } from "./rate-limiter";
+import type { CachedDeviceData, SkuCache } from "./sku-cache";
 import {
   classifyError,
   normalizeDeviceId,
@@ -19,8 +19,8 @@ import {
   type LanDevice,
   type MqttStatusUpdate,
   type TimerAdapter,
-} from "./types.js";
-import { HttpError } from "./http-client.js";
+} from "./types";
+import { HttpError } from "./http-client";
 
 /** Parsed per-segment data from MQTT BLE packets */
 export interface MqttSegmentData {
@@ -115,11 +115,7 @@ export function parseMqttSegmentData(commands: string[]): MqttSegmentData[] {
  * @param device Target device
  */
 export function getEffectiveSegmentIndices(device: GoveeDevice): number[] {
-  if (
-    device.manualMode &&
-    Array.isArray(device.manualSegments) &&
-    device.manualSegments.length > 0
-  ) {
+  if (device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0) {
     return device.manualSegments.slice();
   }
   const count = device.segmentCount ?? 0;
@@ -152,11 +148,7 @@ export function resolveSegmentCount(device: GoveeDevice): number {
   const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
   let min = Number.POSITIVE_INFINITY;
   for (const c of caps) {
-    if (
-      !c ||
-      typeof c.type !== "string" ||
-      !c.type.includes("segment_color_setting")
-    ) {
+    if (!c || typeof c.type !== "string" || !c.type.includes("segment_color_setting")) {
       continue;
     }
     const params = (c as { parameters?: { fields?: unknown[] } }).parameters;
@@ -197,13 +189,9 @@ export class DeviceManager {
   private cloudClient: GoveeCloudClient | null = null;
   private apiClient: GoveeApiClient | null = null;
   private skuCache: SkuCache | null = null;
-  private onDeviceUpdate:
-    | ((device: GoveeDevice, state: Partial<DeviceState>) => void)
-    | null = null;
+  private onDeviceUpdate: ((device: GoveeDevice, state: Partial<DeviceState>) => void) | null = null;
   private onDeviceListChanged: ((devices: GoveeDevice[]) => void) | null = null;
-  private onCloudCapabilities:
-    | ((device: GoveeDevice, caps: CloudStateCapability[]) => void)
-    | null = null;
+  private onCloudCapabilities: ((device: GoveeDevice, caps: CloudStateCapability[]) => void) | null = null;
   /** Per-source dedup so a Cloud NETWORK error doesn't shadow an App-API one. */
   private lastErrorCategory: ErrorCategory | null = null;
   private lastAppApiErrorCategory: ErrorCategory | null = null;
@@ -351,9 +339,7 @@ export class DeviceManager {
     // cache. The refetch costs one call per light device per startup, well
     // within rate limits. Users can also trigger a fresh fetch without
     // restart via `info.refresh_cloud_data`.
-    const hasLight = Array.from(this.devices.values()).some(
-      (d) => d.type === "devices.types.light",
-    );
+    const hasLight = Array.from(this.devices.values()).some(d => d.type === "devices.types.light");
     if (hasLight) {
       this.log.debug("Cache loaded — will refresh scenes/snapshots via Cloud");
       return false;
@@ -387,7 +373,7 @@ export class DeviceManager {
       // without capabilities — those are almost certainly stale registrations.
       const cloudDevices = Array.isArray(rawCloudDevices)
         ? rawCloudDevices.filter(
-            (cd) =>
+            cd =>
               cd &&
               typeof cd.sku === "string" &&
               typeof cd.device === "string" &&
@@ -396,10 +382,7 @@ export class DeviceManager {
           )
         : [];
 
-      if (
-        Array.isArray(rawCloudDevices) &&
-        rawCloudDevices.length !== cloudDevices.length
-      ) {
+      if (Array.isArray(rawCloudDevices) && rawCloudDevices.length !== cloudDevices.length) {
         this.log.info(
           `Cloud: received ${rawCloudDevices.length} devices raw, ${cloudDevices.length} after filter (skipped stale entries without capabilities)`,
         );
@@ -413,12 +396,7 @@ export class DeviceManager {
         const caps = Array.isArray(cd.capabilities) ? cd.capabilities : [];
         const isLight =
           cd.type === "devices.types.light" ||
-          caps.some(
-            (c) =>
-              c &&
-              typeof c.type === "string" &&
-              c.type.includes("dynamic_scene"),
-          );
+          caps.some(c => c && typeof c.type === "string" && c.type.includes("dynamic_scene"));
         if (isLight) {
           const device = this.devices.get(this.deviceKey(cd.sku, cd.device));
           if (device) {
@@ -460,9 +438,7 @@ export class DeviceManager {
       if (err instanceof HttpError && err.statusCode === 429) {
         const retryAfterRaw = err.headers["retry-after"];
         const retryAfterSec =
-          typeof retryAfterRaw === "string" && /^\d+$/.test(retryAfterRaw)
-            ? parseInt(retryAfterRaw, 10)
-            : 60;
+          typeof retryAfterRaw === "string" && /^\d+$/.test(retryAfterRaw) ? parseInt(retryAfterRaw, 10) : 60;
         return {
           ok: false,
           reason: "rate-limited",
@@ -503,18 +479,14 @@ export class DeviceManager {
       return false;
     }
     let anyChanged = false;
-    const lights = Array.from(this.devices.values()).filter(
-      (d) => d.type === "devices.types.light",
-    );
+    const lights = Array.from(this.devices.values()).filter(d => d.type === "devices.types.light");
     for (const device of lights) {
       const cd: CloudDevice = {
         sku: device.sku,
         device: device.deviceId,
         deviceName: device.name,
         type: device.type,
-        capabilities: Array.isArray(device.capabilities)
-          ? device.capabilities
-          : [],
+        capabilities: Array.isArray(device.capabilities) ? device.capabilities : [],
       };
       if (await this.loadDeviceScenes(device, cd)) {
         anyChanged = true;
@@ -550,9 +522,7 @@ export class DeviceManager {
       const existing = this.devices.get(this.deviceKey(cd.sku, cd.device));
       if (existing) {
         existing.name = cd.deviceName || existing.name;
-        existing.capabilities = Array.isArray(cd.capabilities)
-          ? cd.capabilities
-          : [];
+        existing.capabilities = Array.isArray(cd.capabilities) ? cd.capabilities : [];
         existing.type = cd.type;
         existing.channels.cloud = true;
       } else {
@@ -565,9 +535,7 @@ export class DeviceManager {
 
       const quirks = getDeviceQuirks(cd.sku);
       if (quirks?.brokenPlatformApi) {
-        this.log.debug(
-          `${cd.sku} has known broken platform API metadata — capabilities may be incomplete`,
-        );
+        this.log.debug(`${cd.sku} has known broken platform API metadata — capabilities may be incomplete`);
       }
     }
     return changed;
@@ -580,10 +548,7 @@ export class DeviceManager {
    * @param cd Cloud device data with capabilities
    * @returns true if any scene data changed
    */
-  private async loadDeviceScenes(
-    device: GoveeDevice,
-    cd: CloudDevice,
-  ): Promise<boolean> {
+  private async loadDeviceScenes(device: GoveeDevice, cd: CloudDevice): Promise<boolean> {
     // Scenes from dedicated scenes endpoint (rate-limited).
     // Guards are per-list, not combined: Govee's /device/scenes sometimes
     // returns 149 lightScenes + 0 snapshots (or vice versa) on back-to-back
@@ -593,8 +558,7 @@ export class DeviceManager {
     // list keeps the last-known-good data in place.
     const loadScenes = async (): Promise<void> => {
       try {
-        const { lightScenes, diyScenes, snapshots } =
-          await this.cloudClient!.getScenes(cd.sku, cd.device);
+        const { lightScenes, diyScenes, snapshots } = await this.cloudClient!.getScenes(cd.sku, cd.device);
         if (lightScenes.length > 0) {
           device.scenes = lightScenes;
         }
@@ -629,7 +593,7 @@ export class DeviceManager {
     if (device.snapshots.length === 0) {
       const caps = Array.isArray(cd.capabilities) ? cd.capabilities : [];
       const snapCap = caps.find(
-        (c) =>
+        c =>
           c &&
           c.type === "devices.capabilities.dynamic_scene" &&
           c.instance === "snapshot" &&
@@ -637,33 +601,18 @@ export class DeviceManager {
       );
       if (snapCap?.parameters?.options) {
         device.snapshots = snapCap.parameters.options
-          .filter(
-            (o) =>
-              o &&
-              typeof o.name === "string" &&
-              o.value !== undefined &&
-              o.value !== null,
-          )
-          .map((o) => ({
+          .filter(o => o && typeof o.name === "string" && o.value !== undefined && o.value !== null)
+          .map(o => ({
             name: o.name,
-            value:
-              typeof o.value === "number"
-                ? o.value
-                : (o.value as Record<string, unknown>),
+            value: typeof o.value === "number" ? o.value : (o.value as Record<string, unknown>),
           }));
-        this.log.debug(
-          `Snapshots from capabilities for ${cd.sku}: ${device.snapshots.length}`,
-        );
+        this.log.debug(`Snapshots from capabilities for ${cd.sku}: ${device.snapshots.length}`);
       }
     }
 
     // "Changed" = we ended up with any scene/snapshot data. Inner tracking
     // was redundant with this single-source check.
-    return (
-      device.scenes.length > 0 ||
-      device.diyScenes.length > 0 ||
-      device.snapshots.length > 0
-    );
+    return device.scenes.length > 0 || device.diyScenes.length > 0 || device.snapshots.length > 0;
   }
 
   /**
@@ -678,10 +627,7 @@ export class DeviceManager {
    * @param sku Product model
    * @returns true if any library data changed
    */
-  private async loadDeviceLibraries(
-    device: GoveeDevice,
-    sku: string,
-  ): Promise<boolean> {
+  private async loadDeviceLibraries(device: GoveeDevice, sku: string): Promise<boolean> {
     if (!this.apiClient) {
       return false;
     }
@@ -720,9 +666,7 @@ export class DeviceManager {
             this.log.debug(`Music library for ${sku}: ${lib.length} modes`);
           }
         } catch (e) {
-          this.log.debug(
-            `Could not load music library for ${sku}: ${e instanceof Error ? e.message : String(e)}`,
-          );
+          this.log.debug(`Could not load music library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
     }
@@ -737,9 +681,7 @@ export class DeviceManager {
             this.log.debug(`DIY library for ${sku}: ${lib.length} effects`);
           }
         } catch (e) {
-          this.log.debug(
-            `Could not load DIY library for ${sku}: ${e instanceof Error ? e.message : String(e)}`,
-          );
+          this.log.debug(`Could not load DIY library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
     }
@@ -751,14 +693,10 @@ export class DeviceManager {
           if (features) {
             device.skuFeatures = features;
             changed = true;
-            this.log.debug(
-              `SKU features for ${sku}: ${JSON.stringify(features).slice(0, 200)}`,
-            );
+            this.log.debug(`SKU features for ${sku}: ${JSON.stringify(features).slice(0, 200)}`);
           }
         } catch (e) {
-          this.log.debug(
-            `Could not load SKU features for ${sku}: ${e instanceof Error ? e.message : String(e)}`,
-          );
+          this.log.debug(`Could not load SKU features for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
     }
@@ -767,24 +705,17 @@ export class DeviceManager {
     if (!device.snapshotBleCmds && device.snapshots.length > 0) {
       await runLimited(async () => {
         try {
-          const snaps = await this.apiClient!.fetchSnapshots(
-            sku,
-            device.deviceId,
-          );
+          const snaps = await this.apiClient!.fetchSnapshots(sku, device.deviceId);
           if (snaps.length > 0) {
-            device.snapshotBleCmds = device.snapshots.map((ds) => {
-              const match = snaps.find((s) => s.name === ds.name);
+            device.snapshotBleCmds = device.snapshots.map(ds => {
+              const match = snaps.find(s => s.name === ds.name);
               return match?.bleCmds ?? [];
             });
             changed = true;
-            this.log.debug(
-              `Snapshot BLE for ${sku}: ${snaps.length} snapshots with local data`,
-            );
+            this.log.debug(`Snapshot BLE for ${sku}: ${snaps.length} snapshots with local data`);
           }
         } catch (e) {
-          this.log.debug(
-            `Could not load snapshot BLE for ${sku}: ${e instanceof Error ? e.message : String(e)}`,
-          );
+          this.log.debug(`Could not load snapshot BLE for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
     }
@@ -803,9 +734,7 @@ export class DeviceManager {
       return false;
     }
     if (!this.apiClient.hasBearerToken()) {
-      this.log.debug(
-        "Group membership requires Email+Password — skipping member resolution",
-      );
+      this.log.debug("Group membership requires Email+Password — skipping member resolution");
       return false;
     }
 
@@ -822,9 +751,7 @@ export class DeviceManager {
           continue;
         }
         // Match by groupId: BaseGroup deviceId is the numeric group ID as string
-        const apiGroup = apiGroups.find(
-          (g) => String(g.groupId) === group.deviceId,
-        );
+        const apiGroup = apiGroups.find(g => String(g.groupId) === group.deviceId);
         if (!apiGroup) {
           continue;
         }
@@ -836,9 +763,7 @@ export class DeviceManager {
           if (resolved) {
             members.push({ sku: resolved.sku, deviceId: resolved.deviceId });
           } else {
-            this.log.debug(
-              `Group "${group.name}": member ${m.sku}/${m.deviceId} not in device map`,
-            );
+            this.log.debug(`Group "${group.name}": member ${m.sku}/${m.deviceId} not in device map`);
           }
         }
 
@@ -846,9 +771,7 @@ export class DeviceManager {
         if (members.length > 0) {
           changed = true;
         }
-        this.log.debug(
-          `Group "${group.name}": ${members.length}/${apiGroup.devices.length} members resolved`,
-        );
+        this.log.debug(`Group "${group.name}": ${members.length}/${apiGroup.devices.length} members resolved`);
       }
 
       if (changed) {
@@ -856,9 +779,7 @@ export class DeviceManager {
       }
       return changed;
     } catch (e) {
-      this.log.debug(
-        `Could not load group members: ${e instanceof Error ? e.message : String(e)}`,
-      );
+      this.log.debug(`Could not load group members: ${e instanceof Error ? e.message : String(e)}`);
       return false;
     }
   }
@@ -877,9 +798,7 @@ export class DeviceManager {
       // once confirmed via scenesChecked=true.
       if (isLight && !device.scenesChecked) {
         skippedCount++;
-        this.log.debug(
-          `Not caching ${device.name} (${device.sku}) — scenes not yet checked`,
-        );
+        this.log.debug(`Not caching ${device.name} (${device.sku}) — scenes not yet checked`);
       } else {
         this.skuCache.save(this.goveeDeviceToCached(device));
         cachedCount++;
@@ -889,9 +808,7 @@ export class DeviceManager {
     // for every cache write. Significant events (scenes fetched, MQTT bumps)
     // log themselves elsewhere.
     if (skippedCount > 0) {
-      this.log.debug(
-        `Cached ${cachedCount} device(s), skipped ${skippedCount} not yet checked`,
-      );
+      this.log.debug(`Cached ${cachedCount} device(s), skipped ${skippedCount} not yet checked`);
     } else {
       this.log.debug(`Cached ${cachedCount} device(s) — next start uses cache`);
     }
@@ -906,9 +823,7 @@ export class DeviceManager {
     // Try to find by device ID (colon-separated in Cloud, varies in LAN)
     let matched: GoveeDevice | undefined;
     for (const dev of this.devices.values()) {
-      if (
-        normalizeDeviceId(dev.deviceId) === normalizeDeviceId(lanDevice.device)
-      ) {
+      if (normalizeDeviceId(dev.deviceId) === normalizeDeviceId(lanDevice.device)) {
         matched = dev;
         break;
       }
@@ -925,9 +840,7 @@ export class DeviceManager {
       matched.channels.lan = true;
       matched.lastSeenOnNetwork = Date.now();
       if (ipChanged) {
-        this.log.debug(
-          `LAN: ${matched.name} (${matched.sku}) at ${lanDevice.ip}`,
-        );
+        this.log.debug(`LAN: ${matched.name} (${matched.sku}) at ${lanDevice.ip}`);
         this.onLanIpChanged?.(matched, lanDevice.ip);
       }
     } else {
@@ -968,10 +881,7 @@ export class DeviceManager {
    * @param sku Govee SKU
    * @param displayName Device name as shown in Govee Home
    */
-  private maybeNudgeSeedSku(
-    sku: string,
-    displayName: string | undefined,
-  ): void {
+  private maybeNudgeSeedSku(sku: string, displayName: string | undefined): void {
     const upper = (typeof sku === "string" ? sku : "").toUpperCase();
     if (!upper || this.nudgedSeedSkus.has(upper)) {
       return;
@@ -1029,7 +939,7 @@ export class DeviceManager {
       const segData = parseMqttSegmentData(update.op.command);
 
       if (segData.length > 0) {
-        const maxSeen = Math.max(...segData.map((s) => s.index)) + 1;
+        const maxSeen = Math.max(...segData.map(s => s.index)) + 1;
         const current = device.segmentCount ?? 0;
         if (maxSeen > current) {
           this.log.info(
@@ -1051,10 +961,8 @@ export class DeviceManager {
       // Filter by manual-segments override if active — ignore indices the
       // user has declared as "not physically present" (cut strip).
       const filtered =
-        device.manualMode &&
-        Array.isArray(device.manualSegments) &&
-        device.manualSegments.length > 0
-          ? segData.filter((s) => device.manualSegments!.includes(s.index))
+        device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0
+          ? segData.filter(s => device.manualSegments!.includes(s.index))
           : segData;
       if (filtered.length > 0) {
         this.onMqttSegmentUpdate?.(device, filtered);
@@ -1118,10 +1026,7 @@ export class DeviceManager {
    */
   set onSegmentBatchUpdate(
     callback:
-      | ((
-          device: GoveeDevice,
-          batch: { segments: number[]; color?: number; brightness?: number },
-        ) => void)
+      | ((device: GoveeDevice, batch: { segments: number[]; color?: number; brightness?: number }) => void)
       | undefined,
   ) {
     this.commandRouter.onSegmentBatchUpdate = callback;
@@ -1134,11 +1039,7 @@ export class DeviceManager {
    * @param command Command type
    * @param value Command value
    */
-  async sendCommand(
-    device: GoveeDevice,
-    command: string,
-    value: unknown,
-  ): Promise<void> {
+  async sendCommand(device: GoveeDevice, command: string, value: unknown): Promise<void> {
     return this.commandRouter.sendCommand(device, command, value);
   }
 
@@ -1157,22 +1058,14 @@ export class DeviceManager {
     capabilityInstance: string,
     value: unknown,
   ): Promise<void> {
-    return this.commandRouter.sendCapabilityCommand(
-      device,
-      capabilityType,
-      capabilityInstance,
-      value,
-    );
+    return this.commandRouter.sendCapabilityCommand(device, capabilityType, capabilityInstance, value);
   }
 
   /** Callback when device LAN IP changes */
   onLanIpChanged?: (device: GoveeDevice, ip: string) => void;
 
   /** Callback when MQTT delivers per-segment state data (AA A5 BLE packets) */
-  onMqttSegmentUpdate?: (
-    device: GoveeDevice,
-    segments: MqttSegmentData[],
-  ) => void;
+  onMqttSegmentUpdate?: (device: GoveeDevice, segments: MqttSegmentData[]) => void;
 
   /**
    * Callback when the device's physical segment count turns out to be
@@ -1212,10 +1105,7 @@ export class DeviceManager {
    * @param sku Product model
    * @param deviceId Device identifier
    */
-  private findDeviceBySkuAndId(
-    sku: string,
-    deviceId: string,
-  ): GoveeDevice | undefined {
+  private findDeviceBySkuAndId(sku: string, deviceId: string): GoveeDevice | undefined {
     // Direct key lookup
     const direct = this.devices.get(this.deviceKey(sku, deviceId));
     if (direct) {
@@ -1267,13 +1157,11 @@ export class DeviceManager {
    */
   private populateScenesFromLibrary(device: GoveeDevice): void {
     if (device.scenes.length === 0 && device.sceneLibrary.length > 0) {
-      device.scenes = device.sceneLibrary.map((entry) => ({
+      device.scenes = device.sceneLibrary.map(entry => ({
         name: entry.name,
         value: {}, // ptReal uses sceneLibrary directly, Cloud payload not needed
       }));
-      this.log.debug(
-        `${device.sku}: ${device.scenes.length} scenes from library (Cloud scenes missing)`,
-      );
+      this.log.debug(`${device.sku}: ${device.scenes.length} scenes from library (Cloud scenes missing)`);
     }
   }
 
@@ -1345,20 +1233,13 @@ export class DeviceManager {
       scenesChecked: device.scenesChecked,
       lastSeenOnNetwork: device.lastSeenOnNetwork,
       segmentCount:
-        typeof device.segmentCount === "number" && device.segmentCount > 0
-          ? device.segmentCount
-          : undefined,
+        typeof device.segmentCount === "number" && device.segmentCount > 0 ? device.segmentCount : undefined,
       manualMode: device.manualMode ? true : undefined,
       manualSegments:
-        device.manualMode &&
-        Array.isArray(device.manualSegments) &&
-        device.manualSegments.length > 0
+        device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0
           ? device.manualSegments.slice()
           : undefined,
-      sceneSpeed:
-        typeof device.sceneSpeed === "number" && device.sceneSpeed > 0
-          ? device.sceneSpeed
-          : undefined,
+      sceneSpeed: typeof device.sceneSpeed === "number" && device.sceneSpeed > 0 ? device.sceneSpeed : undefined,
       cachedAt: Date.now(),
     };
   }
@@ -1372,10 +1253,7 @@ export class DeviceManager {
    * @param device Target device
    * @param adapterVersion Adapter version string
    */
-  generateDiagnostics(
-    device: GoveeDevice,
-    adapterVersion: string,
-  ): Record<string, unknown> {
+  generateDiagnostics(device: GoveeDevice, adapterVersion: string): Record<string, unknown> {
     return this.diagnostics.generate(device, adapterVersion);
   }
 
@@ -1433,11 +1311,7 @@ export class DeviceManager {
       // onCloudCapabilities callback so main.ts's normal setState
       // pipeline (mapCloudStateValue + setStateAsync) handles them.
       this.onCloudCapabilities?.(device, caps);
-      this.diagnostics.setApiResponse(
-        device.deviceId,
-        "/device/rest/devices/v1/list",
-        entry,
-      );
+      this.diagnostics.setApiResponse(device.deviceId, "/device/rest/devices/v1/list", entry);
       updated++;
     }
     return updated;
@@ -1450,9 +1324,7 @@ export class DeviceManager {
    *
    * @param cb Callback receiving (device, caps)
    */
-  setOnCloudCapabilities(
-    cb: ((device: GoveeDevice, caps: CloudStateCapability[]) => void) | null,
-  ): void {
+  setOnCloudCapabilities(cb: ((device: GoveeDevice, caps: CloudStateCapability[]) => void) | null): void {
     this.onCloudCapabilities = cb;
   }
 
@@ -1480,16 +1352,8 @@ export class DeviceManager {
    * @param event.device MAC-style device identifier
    * @param event.capabilities Capability list synthesised from the broker payload
    */
-  handleOpenApiEvent(event: {
-    sku: string;
-    device: string;
-    capabilities: CloudStateCapability[];
-  }): void {
-    if (
-      !event ||
-      typeof event.sku !== "string" ||
-      typeof event.device !== "string"
-    ) {
+  handleOpenApiEvent(event: { sku: string; device: string; capabilities: CloudStateCapability[] }): void {
+    if (!event || typeof event.sku !== "string" || typeof event.device !== "string") {
       return;
     }
     if (!Array.isArray(event.capabilities) || event.capabilities.length === 0) {
@@ -1514,9 +1378,7 @@ export class DeviceManager {
  *
  * @param entry One entry from `GoveeApiClient.fetchDeviceList()`
  */
-export function buildCapabilitiesFromAppEntry(
-  entry: AppDeviceEntry,
-): CloudStateCapability[] {
+export function buildCapabilitiesFromAppEntry(entry: AppDeviceEntry): CloudStateCapability[] {
   const caps: CloudStateCapability[] = [];
   const last = entry.lastData;
   if (!last) {
@@ -1549,11 +1411,7 @@ export function buildCapabilitiesFromAppEntry(
       instance: "battery",
       state: { value: last.battery },
     });
-  } else if (
-    entry.settings &&
-    typeof entry.settings.battery === "number" &&
-    Number.isFinite(entry.settings.battery)
-  ) {
+  } else if (entry.settings && typeof entry.settings.battery === "number" && Number.isFinite(entry.settings.battery)) {
     caps.push({
       type: "devices.capabilities.property",
       instance: "battery",

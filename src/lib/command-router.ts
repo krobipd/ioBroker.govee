@@ -1,8 +1,8 @@
-import { hexToRgb, type GoveeDevice, type TimerAdapter } from "./types.js";
-import type { GoveeCloudClient } from "./govee-cloud-client.js";
-import type { GoveeLanClient } from "./govee-lan-client.js";
-import { applySceneSpeed } from "./govee-lan-client.js";
-import type { RateLimiter } from "./rate-limiter.js";
+import { hexToRgb, type GoveeDevice, type TimerAdapter } from "./types";
+import type { GoveeCloudClient } from "./govee-cloud-client";
+import type { GoveeLanClient } from "./govee-lan-client";
+import { applySceneSpeed } from "./govee-lan-client";
+import type { RateLimiter } from "./rate-limiter";
 
 /**
  * Delay between switching the device into static-color mode and sending the
@@ -72,10 +72,7 @@ export class CommandRouter {
    * @param fn Async function to execute
    * @param priority Queue priority (0 = highest)
    */
-  async executeRateLimited(
-    fn: () => Promise<void>,
-    priority = 0,
-  ): Promise<void> {
+  async executeRateLimited(fn: () => Promise<void>, priority = 0): Promise<void> {
     if (this.rateLimiter) {
       await this.rateLimiter.tryExecute(fn, priority);
     } else {
@@ -101,18 +98,13 @@ export class CommandRouter {
     if (!device.lanIp || !this.lanClient) {
       return;
     }
-    const current =
-      typeof device.state.colorRgb === "string" ? device.state.colorRgb : null;
-    const { r, g, b } = current
-      ? hexToRgb(current)
-      : { r: 255, g: 255, b: 255 };
+    const current = typeof device.state.colorRgb === "string" ? device.state.colorRgb : null;
+    const { r, g, b } = current ? hexToRgb(current) : { r: 255, g: 255, b: 255 };
     this.lanClient.setColor(device.lanIp, r, g, b);
     // Delay routed through the adapter's timer wrapper so it gets cancelled
     // if the adapter unloads mid-delay. Native setTimeout would leave a
     // pending handle that fires into a half-torn-down adapter.
-    await new Promise<void>((resolve) =>
-      this.timers.setTimeout(() => resolve(), FORCE_COLOR_MODE_SETTLE_MS),
-    );
+    await new Promise<void>(resolve => this.timers.setTimeout(() => resolve(), FORCE_COLOR_MODE_SETTLE_MS));
   }
 
   /**
@@ -123,11 +115,7 @@ export class CommandRouter {
    * @param command Command type
    * @param value Command value
    */
-  async sendCommand(
-    device: GoveeDevice,
-    command: string,
-    value: unknown,
-  ): Promise<void> {
+  async sendCommand(device: GoveeDevice, command: string, value: unknown): Promise<void> {
     // Segment color: LAN ptReal first, Cloud fallback
     if (command.startsWith("segmentColor:")) {
       const segIdx = parseInt(command.split(":")[1], 10);
@@ -152,10 +140,7 @@ export class CommandRouter {
     // pre-parsed object { segments, color?, brightness? } from internal callers
     // like the detection wizard (avoids a string→parse round-trip).
     if (command === "segmentBatch") {
-      const parsed =
-        typeof value === "string"
-          ? this.parseSegmentBatch(device, value)
-          : this.coerceParsedBatch(value);
+      const parsed = typeof value === "string" ? this.parseSegmentBatch(device, value) : this.coerceParsedBatch(value);
       if (parsed) {
         this.onSegmentBatchUpdate?.(device, parsed);
       }
@@ -165,29 +150,15 @@ export class CommandRouter {
           const r = (parsed.color >> 16) & 0xff;
           const g = (parsed.color >> 8) & 0xff;
           const b = parsed.color & 0xff;
-          this.lanClient.setSegmentColor(
-            device.lanIp,
-            r,
-            g,
-            b,
-            parsed.segments,
-          );
+          this.lanClient.setSegmentColor(device.lanIp, r, g, b, parsed.segments);
         }
         if (parsed.brightness !== undefined) {
-          this.lanClient.setSegmentBrightness(
-            device.lanIp,
-            parsed.brightness,
-            parsed.segments,
-          );
+          this.lanClient.setSegmentBrightness(device.lanIp, parsed.brightness, parsed.segments);
         }
         return;
       }
       if (device.channels.cloud && this.cloudClient && parsed) {
-        await this.sendSegmentBatchParsed(
-          device,
-          typeof value === "string" ? value : "",
-          parsed,
-        );
+        await this.sendSegmentBatchParsed(device, typeof value === "string" ? value : "", parsed);
         return;
       }
       return;
@@ -201,9 +172,7 @@ export class CommandRouter {
       }
       if (device.lanIp && this.lanClient) {
         await this.forceColorMode(device);
-        this.lanClient.setSegmentBrightness(device.lanIp, value as number, [
-          segIdx,
-        ]);
+        this.lanClient.setSegmentBrightness(device.lanIp, value as number, [segIdx]);
         return;
       }
       if (device.channels.cloud && this.cloudClient) {
@@ -244,9 +213,7 @@ export class CommandRouter {
     value: unknown,
   ): Promise<void> {
     if (!this.cloudClient || !device.channels.cloud) {
-      this.log.debug(
-        `Cloud not available for generic command on ${device.name}`,
-      );
+      this.log.debug(`Cloud not available for generic command on ${device.name}`);
       return;
     }
 
@@ -287,9 +254,7 @@ export class CommandRouter {
     }
 
     if (!parsed) {
-      this.log.warn(
-        `Invalid segment command "${commandStr}" for ${device.name}`,
-      );
+      this.log.warn(`Invalid segment command "${commandStr}" for ${device.name}`);
       return;
     }
 
@@ -301,23 +266,18 @@ export class CommandRouter {
 
     if (parsed.color !== undefined) {
       const execute = async (): Promise<void> => {
-        await this.cloudClient!.controlDevice(
-          device.sku,
-          device.deviceId,
-          cap.type,
-          cap.instance,
-          { segment: parsed.segments, rgb: parsed.color },
-        );
+        await this.cloudClient!.controlDevice(device.sku, device.deviceId, cap.type, cap.instance, {
+          segment: parsed.segments,
+          rgb: parsed.color,
+        });
       };
       await this.executeRateLimited(execute);
     }
 
     if (parsed.brightness !== undefined) {
-      const caps = Array.isArray(device.capabilities)
-        ? device.capabilities
-        : [];
+      const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
       const brightCap = caps.find(
-        (c) =>
+        c =>
           c &&
           typeof c.type === "string" &&
           typeof c.instance === "string" &&
@@ -366,14 +326,11 @@ export class CommandRouter {
 
     // Effective physical segments: honor manual override for cut strips
     const validIndices =
-      device.manualMode &&
-      Array.isArray(device.manualSegments) &&
-      device.manualSegments.length > 0
+      device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0
         ? new Set(device.manualSegments)
         : null;
     const segCount = device.segmentCount ?? 0;
-    const isValid = (i: number): boolean =>
-      validIndices ? validIndices.has(i) : i >= 0 && i < segCount;
+    const isValid = (i: number): boolean => (validIndices ? validIndices.has(i) : i >= 0 && i < segCount);
 
     // Parse segment indices
     const segStr = parts[0].trim();
@@ -452,16 +409,11 @@ export class CommandRouter {
     if (!Array.isArray(v.segments) || v.segments.length === 0) {
       return null;
     }
-    const segments = v.segments.filter(
-      (n) => typeof n === "number" && Number.isFinite(n) && n >= 0,
-    ) as number[];
+    const segments = v.segments.filter(n => typeof n === "number" && Number.isFinite(n) && n >= 0) as number[];
     if (segments.length === 0) {
       return null;
     }
-    const color =
-      typeof v.color === "number" && Number.isFinite(v.color)
-        ? v.color & 0xffffff
-        : undefined;
+    const color = typeof v.color === "number" && Number.isFinite(v.color) ? v.color & 0xffffff : undefined;
     const brightness =
       typeof v.brightness === "number" && Number.isFinite(v.brightness)
         ? Math.max(0, Math.min(100, Math.round(v.brightness)))
@@ -497,9 +449,7 @@ export class CommandRouter {
         // Value is the dropdown index (string) — resolve to scene activation payload
         const idx = parseInt(String(value), 10);
         if (isNaN(idx) || idx < 1 || idx > device.scenes.length) {
-          this.log.warn(
-            `${device.sku}: invalid light scene index ${String(value)} for cloud`,
-          );
+          this.log.warn(`${device.sku}: invalid light scene index ${String(value)} for cloud`);
           return value;
         }
         return device.scenes[idx - 1].value;
@@ -507,9 +457,7 @@ export class CommandRouter {
       case "diyScene": {
         const idx = parseInt(String(value), 10);
         if (isNaN(idx) || idx < 1 || idx > device.diyScenes.length) {
-          this.log.warn(
-            `${device.sku}: invalid DIY scene index ${String(value)} for cloud`,
-          );
+          this.log.warn(`${device.sku}: invalid DIY scene index ${String(value)} for cloud`);
           return value;
         }
         return device.diyScenes[idx - 1].value;
@@ -517,9 +465,7 @@ export class CommandRouter {
       case "snapshot": {
         const idx = parseInt(String(value), 10);
         if (isNaN(idx) || idx < 1 || idx > device.snapshots.length) {
-          this.log.warn(
-            `${device.sku}: invalid snapshot index ${String(value)} for cloud`,
-          );
+          this.log.warn(`${device.sku}: invalid snapshot index ${String(value)} for cloud`);
           return value;
         }
         return device.snapshots[idx - 1].value;
@@ -552,70 +498,35 @@ export class CommandRouter {
    * @param device Target device
    * @param command Command type to find capability for
    */
-  findCapabilityForCommand(
-    device: GoveeDevice,
-    command: string,
-  ): { type: string; instance: string } | undefined {
+  findCapabilityForCommand(device: GoveeDevice, command: string): { type: string; instance: string } | undefined {
     const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
     for (const cap of caps) {
-      if (
-        !cap ||
-        typeof cap.type !== "string" ||
-        typeof cap.instance !== "string"
-      ) {
+      if (!cap || typeof cap.type !== "string" || typeof cap.instance !== "string") {
         continue;
       }
       const shortType = cap.type.replace("devices.capabilities.", "");
       if (command === "power" && shortType === "on_off") {
         return cap;
       }
-      if (
-        command === "brightness" &&
-        shortType === "range" &&
-        cap.instance.toLowerCase().includes("brightness")
-      ) {
+      if (command === "brightness" && shortType === "range" && cap.instance.toLowerCase().includes("brightness")) {
         return cap;
       }
-      if (
-        command === "colorRgb" &&
-        shortType === "color_setting" &&
-        cap.instance === "colorRgb"
-      ) {
+      if (command === "colorRgb" && shortType === "color_setting" && cap.instance === "colorRgb") {
         return cap;
       }
-      if (
-        command === "colorTemperature" &&
-        shortType === "color_setting" &&
-        cap.instance.includes("colorTem")
-      ) {
+      if (command === "colorTemperature" && shortType === "color_setting" && cap.instance.includes("colorTem")) {
         return cap;
       }
-      if (
-        command === "scene" &&
-        shortType === "mode" &&
-        cap.instance === "presetScene"
-      ) {
+      if (command === "scene" && shortType === "mode" && cap.instance === "presetScene") {
         return cap;
       }
-      if (
-        command === "lightScene" &&
-        shortType === "dynamic_scene" &&
-        cap.instance === "lightScene"
-      ) {
+      if (command === "lightScene" && shortType === "dynamic_scene" && cap.instance === "lightScene") {
         return cap;
       }
-      if (
-        command === "diyScene" &&
-        shortType === "dynamic_scene" &&
-        cap.instance === "diyScene"
-      ) {
+      if (command === "diyScene" && shortType === "dynamic_scene" && cap.instance === "diyScene") {
         return cap;
       }
-      if (
-        command === "snapshot" &&
-        shortType === "dynamic_scene" &&
-        cap.instance === "snapshot"
-      ) {
+      if (command === "snapshot" && shortType === "dynamic_scene" && cap.instance === "snapshot") {
         return cap;
       }
       if (
@@ -643,11 +554,7 @@ export class CommandRouter {
    * @param command Command type
    * @param value Command value
    */
-  private sendLanCommand(
-    device: GoveeDevice,
-    command: string,
-    value: unknown,
-  ): void {
+  private sendLanCommand(device: GoveeDevice, command: string, value: unknown): void {
     if (!device.lanIp || !this.lanClient) {
       return;
     }
@@ -674,20 +581,14 @@ export class CommandRouter {
         // Try ptReal BLE-over-LAN if DIY scene is in library
         const diyIdx = parseInt(String(value), 10);
         if (isNaN(diyIdx) || diyIdx < 1 || diyIdx > device.diyScenes.length) {
-          this.log.warn(
-            `${device.sku}: invalid DIY scene index ${String(value)}`,
-          );
+          this.log.warn(`${device.sku}: invalid DIY scene index ${String(value)}`);
           return;
         }
         const diyScene = device.diyScenes[diyIdx - 1];
         if (diyScene) {
-          const diyLib = device.diyLibrary.find(
-            (d) => d.name === diyScene.name,
-          );
+          const diyLib = device.diyLibrary.find(d => d.name === diyScene.name);
           if (diyLib) {
-            this.log.debug(
-              `ptReal DIY: ${diyScene.name} → code=${diyLib.diyCode}`,
-            );
+            this.log.debug(`ptReal DIY: ${diyScene.name} → code=${diyLib.diyCode}`);
             this.lanClient.setDiyScene(device.lanIp, diyLib.scenceParam ?? "");
             return;
           }
@@ -700,9 +601,7 @@ export class CommandRouter {
         // Try ptReal BLE-over-LAN if scene is in scene library
         const idx = parseInt(String(value), 10);
         if (isNaN(idx) || idx < 1 || idx > device.scenes.length) {
-          this.log.warn(
-            `${device.sku}: invalid light scene index ${String(value)}`,
-          );
+          this.log.warn(`${device.sku}: invalid light scene index ${String(value)}`);
           return;
         }
         const scene = device.scenes[idx - 1];
@@ -710,8 +609,7 @@ export class CommandRouter {
           // Match by exact name first, then by base name (strip -A/-B suffix)
           const baseName = scene.name.replace(/-[A-Z]$/, "");
           const libEntry =
-            device.sceneLibrary.find((s) => s.name === scene.name) ??
-            device.sceneLibrary.find((s) => s.name === baseName);
+            device.sceneLibrary.find(s => s.name === scene.name) ?? device.sceneLibrary.find(s => s.name === baseName);
           if (libEntry) {
             const baseParam = libEntry.scenceParam ?? "";
             // Devices without segment hardware (e.g. H70B3 Curtain Lights)
@@ -723,9 +621,7 @@ export class CommandRouter {
             // works. Simple scenes without scenceParam (older presets like
             // "Valentine's Day") still take the ptReal path — the single
             // activation packet is understood by every Govee light.
-            const hasSegments =
-              typeof device.segmentCount === "number" &&
-              device.segmentCount > 0;
+            const hasSegments = typeof device.segmentCount === "number" && device.segmentCount > 0;
             if (!hasSegments && baseParam.length > 0) {
               this.log.debug(
                 `ptReal scene ${scene.name} skipped — ${device.sku} has no segments, falling through to Cloud`,
@@ -740,15 +636,9 @@ export class CommandRouter {
               libEntry.speedInfo?.supSpeed &&
               libEntry.speedInfo.config
             ) {
-              param = applySceneSpeed(
-                param,
-                device.sceneSpeed,
-                libEntry.speedInfo.config,
-              );
+              param = applySceneSpeed(param, device.sceneSpeed, libEntry.speedInfo.config);
             }
-            this.log.debug(
-              `ptReal: ${scene.name} → code=${libEntry.sceneCode}`,
-            );
+            this.log.debug(`ptReal: ${scene.name} → code=${libEntry.sceneCode}`);
             this.lanClient.setScene(device.lanIp, libEntry.sceneCode, param);
             return;
           }
@@ -760,18 +650,14 @@ export class CommandRouter {
       case "snapshot": {
         const idx = parseInt(String(value), 10);
         if (isNaN(idx) || idx < 1 || idx > device.snapshots.length) {
-          this.log.warn(
-            `${device.sku}: invalid snapshot index ${String(value)}`,
-          );
+          this.log.warn(`${device.sku}: invalid snapshot index ${String(value)}`);
           return;
         }
         const cmdGroups = device.snapshotBleCmds?.[idx - 1];
         if (cmdGroups && cmdGroups.length > 0) {
           const allPackets = cmdGroups.flat();
           if (allPackets.length > 0) {
-            this.log.debug(
-              `ptReal Snapshot: ${device.snapshots[idx - 1].name} → ${allPackets.length} packets`,
-            );
+            this.log.debug(`ptReal Snapshot: ${device.snapshots[idx - 1].name} → ${allPackets.length} packets`);
             this.lanClient.sendPtReal(device.lanIp, allPackets);
             return;
           }
@@ -793,11 +679,7 @@ export class CommandRouter {
    * @param command Command type
    * @param value Command value
    */
-  private async sendCloudCommand(
-    device: GoveeDevice,
-    command: string,
-    value: unknown,
-  ): Promise<void> {
+  private async sendCloudCommand(device: GoveeDevice, command: string, value: unknown): Promise<void> {
     if (!this.cloudClient) {
       return;
     }
@@ -805,22 +687,14 @@ export class CommandRouter {
     // Find the matching capability
     const cap = this.findCapabilityForCommand(device, command);
     if (!cap) {
-      this.log.debug(
-        `No Cloud capability for command '${command}' on ${device.sku}`,
-      );
+      this.log.debug(`No Cloud capability for command '${command}' on ${device.sku}`);
       return;
     }
 
     const cloudValue = this.toCloudValue(device, command, value);
 
     const execute = async (): Promise<void> => {
-      await this.cloudClient!.controlDevice(
-        device.sku,
-        device.deviceId,
-        cap.type,
-        cap.instance,
-        cloudValue,
-      );
+      await this.cloudClient!.controlDevice(device.sku, device.deviceId, cap.type, cap.instance, cloudValue);
     };
 
     await this.executeRateLimited(execute);

@@ -1,33 +1,33 @@
 import config from "@iobroker/eslint-config";
 
 export default [
-    ...config,
-    {
-        languageOptions: {
-            parserOptions: {
-                projectService: { allowDefaultProject: ["*.mjs"] },
-                tsconfigRootDir: import.meta.dirname,
-            },
-        },
+  ...config,
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: { allowDefaultProject: ["*.mjs"] },
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
-    {
-        rules: {
-            "@typescript-eslint/no-floating-promises": "error",
-        },
+  },
+  {
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
     },
-    {
-        ignores: [
-            ".dev-server/",
-            ".vscode/",
-            "*.test.js",
-            "test/**",
-            "tools/**",
-            "*.config.mjs",
-            "build",
-            "build-test",
-            "admin",
-            "node_modules",
-            "**/adapter-config.d.ts",
-        ],
-    },
+  },
+  {
+    ignores: [
+      ".dev-server/",
+      ".vscode/",
+      "**/*.test.ts",
+      "*.test.js",
+      "test/**",
+      "tools/**",
+      "*.config.mjs",
+      "build",
+      "admin",
+      "node_modules",
+      "**/adapter-config.d.ts",
+    ],
+  },
 ];

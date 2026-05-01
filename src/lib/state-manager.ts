@@ -1,16 +1,8 @@
 import type * as utils from "@iobroker/adapter-core";
-import type { StateDefinition } from "./capability-mapper.js";
-import {
-  GROUP_ICON,
-  iconForGoveeType,
-  shortenGoveeType,
-} from "./device-icons.js";
-import { resolveSegmentCount } from "./device-manager.js";
-import {
-  normalizeDeviceId,
-  type DeviceState,
-  type GoveeDevice,
-} from "./types.js";
+import type { StateDefinition } from "./capability-mapper";
+import { GROUP_ICON, iconForGoveeType, shortenGoveeType } from "./device-icons";
+import { resolveSegmentCount } from "./device-manager";
+import { normalizeDeviceId, type DeviceState, type GoveeDevice } from "./types";
 
 /**
  * Sanitize a string for ioBroker object ID
@@ -29,14 +21,7 @@ function sanitize(str: string): string {
  * ensureState instead of stateDefs. Cleaning `info` by stateDef-set would
  * delete the adapter-managed ones.
  */
-const MANAGED_CHANNELS = [
-  "control",
-  "scenes",
-  "music",
-  "snapshots",
-  "sensor",
-  "events",
-];
+const MANAGED_CHANNELS = ["control", "scenes", "music", "snapshots", "sensor", "events"];
 /**
  * Display names used when the channel object is (re-)created. `info` is
  * listed here even though it's not in MANAGED_CHANNELS — capability-mapper
@@ -70,14 +55,7 @@ const CHANNEL_NAMES: Record<string, string> = {
  * needing a separate `createDeviceStates` pass for sensor-only devices.
  * Keep IDs lowercase; resolveStatePath calls this on the raw stateId.
  */
-const SENSOR_STATE_IDS = new Set([
-  "temperature",
-  "humidity",
-  "battery",
-  "co2",
-  "carbondioxide",
-  "online",
-]);
+const SENSOR_STATE_IDS = new Set(["temperature", "humidity", "battery", "co2", "carbondioxide", "online"]);
 const EVENT_STATE_IDS = new Set([
   "lackwater",
   "lackwaterevent",
@@ -177,9 +155,7 @@ export class StateManager {
    * @param stateId State ID suffix
    */
   resolveStatePath(prefix: string, stateId: string): string {
-    const channel =
-      this.stateChannelMap.get(`${prefix}.${stateId}`) ??
-      inferChannelFromStateId(stateId);
+    const channel = this.stateChannelMap.get(`${prefix}.${stateId}`) ?? inferChannelFromStateId(stateId);
     return `${prefix}.${channel}.${stateId}`;
   }
 
@@ -197,10 +173,7 @@ export class StateManager {
    * @param prefix Device prefix (e.g. "devices.h5179_aabb")
    * @param stateId State ID without channel (e.g. "battery")
    */
-  async ensureSyntheticStateObject(
-    prefix: string,
-    stateId: string,
-  ): Promise<void> {
+  async ensureSyntheticStateObject(prefix: string, stateId: string): Promise<void> {
     const meta = SYNTHETIC_STATE_META[stateId.toLowerCase()];
     if (!meta) {
       return;
@@ -240,19 +213,14 @@ export class StateManager {
    * @param device Govee device
    * @param stateDefs State definitions from capability mapper
    */
-  async createDeviceStates(
-    device: GoveeDevice,
-    stateDefs: StateDefinition[],
-  ): Promise<void> {
+  async createDeviceStates(device: GoveeDevice, stateDefs: StateDefinition[]): Promise<void> {
     const key = this.deviceKey(device);
     const newPrefix = this.devicePrefix(device);
     const oldPrefix = this.prefixMap.get(key);
 
     // Migrate if prefix changed (e.g., old naming scheme)
     if (oldPrefix && oldPrefix !== newPrefix) {
-      this.adapter.log.debug(
-        `Migrating device ${device.sku}: ${oldPrefix} → ${newPrefix}`,
-      );
+      this.adapter.log.debug(`Migrating device ${device.sku}: ${oldPrefix} → ${newPrefix}`);
       await this.adapter.delObjectAsync(oldPrefix, { recursive: true });
       // Drop stale channel-map entries under the old prefix so they don't
       // shadow resolveStatePath lookups after the rename.
@@ -294,61 +262,25 @@ export class StateManager {
       native: {},
     });
 
-    await this.ensureState(
-      `${prefix}.info.name`,
-      "Name",
-      "string",
-      "text",
-      false,
-    );
+    await this.ensureState(`${prefix}.info.name`, "Name", "string", "text", false);
     await this.adapter.setStateAsync(`${prefix}.info.name`, {
       val: device.name,
       ack: true,
     });
 
     if (!isGroup) {
-      await this.ensureState(
-        `${prefix}.info.online`,
-        "Online",
-        "boolean",
-        "indicator.reachable",
-        false,
-      );
+      await this.ensureState(`${prefix}.info.online`, "Online", "boolean", "indicator.reachable", false);
       await this.adapter.setStateAsync(`${prefix}.info.online`, {
         val: device.state.online ?? false,
         ack: true,
       });
-      await this.ensureState(
-        `${prefix}.info.model`,
-        "Model",
-        "string",
-        "text",
-        false,
-      );
-      await this.ensureState(
-        `${prefix}.info.serial`,
-        "Serial Number",
-        "string",
-        "text",
-        false,
-      );
-      await this.ensureState(
-        `${prefix}.info.ip`,
-        "IP Address",
-        "string",
-        "info.ip",
-        false,
-      );
+      await this.ensureState(`${prefix}.info.model`, "Model", "string", "text", false);
+      await this.ensureState(`${prefix}.info.serial`, "Serial Number", "string", "text", false);
+      await this.ensureState(`${prefix}.info.ip`, "IP Address", "string", "info.ip", false);
       // Device-type marker — short label like "light", "thermometer",
       // "heater" (Govee API type without the "devices.types." prefix).
       // Lets scripts filter `*.info.type === "light"` without parsing.
-      await this.ensureState(
-        `${prefix}.info.type`,
-        "Device Type",
-        "string",
-        "text",
-        false,
-      );
+      await this.ensureState(`${prefix}.info.type`, "Device Type", "string", "text", false);
       await this.adapter.setStateAsync(`${prefix}.info.model`, {
         val: device.sku,
         ack: true,
@@ -368,18 +300,12 @@ export class StateManager {
     } else {
       // Group members: comma-separated device prefix IDs
       const memberIds = (device.groupMembers ?? [])
-        .map((m) => {
+        .map(m => {
           const shortId = normalizeDeviceId(m.deviceId).slice(-4);
           return sanitize(`${m.sku}_${shortId}`);
         })
         .join(", ");
-      await this.ensureState(
-        `${prefix}.info.members`,
-        "Members",
-        "string",
-        "text",
-        false,
-      );
+      await this.ensureState(`${prefix}.info.members`, "Members", "string", "text", false);
       await this.adapter.setStateAsync(`${prefix}.info.members`, {
         val: memberIds,
         ack: true,
@@ -388,27 +314,14 @@ export class StateManager {
       // Legacy cleanup — groups never carry device-level info states or
       // diagnostics, but older installs had them. Drop any leftovers so the
       // tree reflects the current layout.
-      for (const staleId of [
-        "online",
-        "model",
-        "serial",
-        "ip",
-        "diagnostics_export",
-        "diagnostics_result",
-      ]) {
-        await this.adapter
-          .delObjectAsync(`${prefix}.info.${staleId}`)
-          .catch(() => {});
-        await this.adapter
-          .delStateAsync(`${prefix}.info.${staleId}`)
-          .catch(() => {});
+      for (const staleId of ["online", "model", "serial", "ip", "diagnostics_export", "diagnostics_result"]) {
+        await this.adapter.delObjectAsync(`${prefix}.info.${staleId}`).catch(() => {});
+        await this.adapter.delStateAsync(`${prefix}.info.${staleId}`).catch(() => {});
       }
     }
 
     // Group state defs by channel (control, scenes, music, snapshots)
-    const nonSegmentDefs = stateDefs.filter(
-      (d) => !d.id.startsWith("_segment_"),
-    );
+    const nonSegmentDefs = stateDefs.filter(d => !d.id.startsWith("_segment_"));
     const channelGroups = new Map<string, StateDefinition[]>();
     for (const def of nonSegmentDefs) {
       const channel = def.channel ?? "control";
@@ -470,9 +383,7 @@ export class StateManager {
 
         // Initialize or validate state value
         if (def.def !== undefined) {
-          const current = await this.adapter.getStateAsync(
-            `${prefix}.${channel}.${def.id}`,
-          );
+          const current = await this.adapter.getStateAsync(`${prefix}.${channel}.${def.id}`);
           if (!current || current.val === null || current.val === undefined) {
             // Set default value for new states
             await this.adapter.setStateAsync(`${prefix}.${channel}.${def.id}`, {
@@ -497,7 +408,7 @@ export class StateManager {
     await this.cleanupAllChannelStates(prefix, nonSegmentDefs);
 
     // Check if device has segment capabilities
-    const segmentDefs = stateDefs.filter((d) => d.id.startsWith("_segment_"));
+    const segmentDefs = stateDefs.filter(d => d.id.startsWith("_segment_"));
     if (segmentDefs.length > 0) {
       await this.createSegmentStates(device);
     }
@@ -531,20 +442,12 @@ export class StateManager {
 
     // Effective segment list — honor manual override if active (cut-strip support)
     const validIndices =
-      device.manualMode &&
-      Array.isArray(device.manualSegments) &&
-      device.manualSegments.length > 0
+      device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0
         ? device.manualSegments.slice().sort((a, b) => a - b)
         : Array.from({ length: segmentCount }, (_, i) => i);
     const reportedCount = validIndices.length;
 
-    await this.ensureState(
-      `${prefix}.segments.count`,
-      "Segment Count",
-      "number",
-      "value",
-      false,
-    );
+    await this.ensureState(`${prefix}.segments.count`, "Segment Count", "number", "value", false);
     await this.adapter.setStateAsync(`${prefix}.segments.count`, {
       val: reportedCount,
       ack: true,
@@ -583,9 +486,7 @@ export class StateManager {
     // ack=true keeps this out of the user-change handler path.
     const manualModeVal = device.manualMode === true;
     const manualListVal =
-      device.manualMode &&
-      Array.isArray(device.manualSegments) &&
-      device.manualSegments.length > 0
+      device.manualMode && Array.isArray(device.manualSegments) && device.manualSegments.length > 0
         ? device.manualSegments.join(",")
         : "";
     await this.adapter.setStateAsync(`${prefix}.segments.manual_mode`, {
@@ -616,23 +517,20 @@ export class StateManager {
         native: {},
       });
 
-      await this.adapter.extendObjectAsync(
-        `${prefix}.segments.${i}.brightness`,
-        {
-          type: "state",
-          common: {
-            name: "Brightness",
-            type: "number",
-            role: "level.brightness",
-            read: true,
-            write: true,
-            min: 0,
-            max: 100,
-            unit: "%",
-          } as ioBroker.StateCommon,
-          native: {},
-        },
-      );
+      await this.adapter.extendObjectAsync(`${prefix}.segments.${i}.brightness`, {
+        type: "state",
+        common: {
+          name: "Brightness",
+          type: "number",
+          role: "level.brightness",
+          read: true,
+          write: true,
+          min: 0,
+          max: 100,
+          unit: "%",
+        } as ioBroker.StateCommon,
+        native: {},
+      });
     }
 
     // Comfort command state for batch segment control
@@ -660,20 +558,13 @@ export class StateManager {
    * @param prefix Device prefix
    * @param validIndices Valid segment indices (all others will be deleted)
    */
-  private async cleanupExcessSegments(
-    prefix: string,
-    validIndices: number[],
-  ): Promise<void> {
+  private async cleanupExcessSegments(prefix: string, validIndices: number[]): Promise<void> {
     const valid = new Set(validIndices);
     const segPrefix = `${this.adapter.namespace}.${prefix}.segments.`;
-    const existing = await this.adapter.getObjectViewAsync(
-      "system",
-      "channel",
-      {
-        startkey: segPrefix,
-        endkey: `${segPrefix}\u9999`,
-      },
-    );
+    const existing = await this.adapter.getObjectViewAsync("system", "channel", {
+      startkey: segPrefix,
+      endkey: `${segPrefix}\u9999`,
+    });
 
     if (!existing?.rows) {
       return;
@@ -703,19 +594,12 @@ export class StateManager {
    * @param device Govee device
    * @param state Partial state update
    */
-  async updateDeviceState(
-    device: GoveeDevice,
-    state: Partial<DeviceState>,
-  ): Promise<void> {
+  async updateDeviceState(device: GoveeDevice, state: Partial<DeviceState>): Promise<void> {
     const prefix = this.devicePrefix(device);
     const writes: Promise<unknown>[] = [];
 
     const set = (id: string, val: ioBroker.StateValue): void => {
-      writes.push(
-        this.adapter
-          .setStateAsync(id, { val, ack: true })
-          .catch(() => undefined),
-      );
+      writes.push(this.adapter.setStateAsync(id, { val, ack: true }).catch(() => undefined));
     };
 
     if (state.online !== undefined) {
@@ -756,13 +640,7 @@ export class StateManager {
       common: { name: "Groups Status" },
       native: {},
     });
-    await this.ensureState(
-      "groups.info.online",
-      "Cloud Online",
-      "boolean",
-      "indicator.reachable",
-      false,
-    );
+    await this.ensureState("groups.info.online", "Cloud Online", "boolean", "indicator.reachable", false);
     await this.adapter.setStateAsync("groups.info.online", {
       val: online,
       ack: true,
@@ -775,9 +653,7 @@ export class StateManager {
    * @param online Cloud connection status
    */
   async updateGroupsOnline(online: boolean): Promise<void> {
-    await this.adapter
-      .setStateAsync("groups.info.online", { val: online, ack: true })
-      .catch(() => undefined);
+    await this.adapter.setStateAsync("groups.info.online", { val: online, ack: true }).catch(() => undefined);
   }
 
   /**
@@ -787,16 +663,13 @@ export class StateManager {
    * @param group BaseGroup device
    * @param memberDevices Resolved member devices
    */
-  async updateGroupMembersUnreachable(
-    group: GoveeDevice,
-    memberDevices: GoveeDevice[],
-  ): Promise<void> {
+  async updateGroupMembersUnreachable(group: GoveeDevice, memberDevices: GoveeDevice[]): Promise<void> {
     const prefix = this.devicePrefix(group);
     const stateId = `${prefix}.info.membersUnreachable`;
 
     const unreachable = memberDevices
-      .filter((m) => !m.state.online)
-      .map((m) => {
+      .filter(m => !m.state.online)
+      .map(m => {
         const shortId = normalizeDeviceId(m.deviceId).slice(-4);
         return sanitize(`${m.sku}_${shortId}`);
       });
@@ -806,13 +679,7 @@ export class StateManager {
       await this.adapter.delObjectAsync(stateId).catch(() => {});
       await this.adapter.delStateAsync(stateId).catch(() => {});
     } else {
-      await this.ensureState(
-        stateId,
-        "Unreachable Members",
-        "string",
-        "text",
-        false,
-      );
+      await this.ensureState(stateId, "Unreachable Members", "string", "text", false);
       await this.adapter.setStateAsync(stateId, {
         val: unreachable.join(", "),
         ack: true,
@@ -831,21 +698,15 @@ export class StateManager {
    * @returns Prefixes of removed devices (e.g. "devices.h61be_1d6f")
    */
   async cleanupDevices(currentDevices: GoveeDevice[]): Promise<string[]> {
-    const currentPrefixes = new Set(
-      currentDevices.map((d) => this.devicePrefix(d)),
-    );
+    const currentPrefixes = new Set(currentDevices.map(d => this.devicePrefix(d)));
     const removed: string[] = [];
 
     // Cleanup both devices/ and groups/ folders
     for (const folder of ["devices", "groups"]) {
-      const existingObjects = await this.adapter.getObjectViewAsync(
-        "system",
-        "device",
-        {
-          startkey: `${this.adapter.namespace}.${folder}.`,
-          endkey: `${this.adapter.namespace}.${folder}.\u9999`,
-        },
-      );
+      const existingObjects = await this.adapter.getObjectViewAsync("system", "device", {
+        startkey: `${this.adapter.namespace}.${folder}.`,
+        endkey: `${this.adapter.namespace}.${folder}.\u9999`,
+      });
 
       if (!existingObjects?.rows) {
         continue;
@@ -866,13 +727,8 @@ export class StateManager {
             .catch(() => undefined);
           if (stateRows?.rows) {
             for (const stateRow of stateRows.rows) {
-              const stateLocalId = stateRow.id.replace(
-                `${this.adapter.namespace}.`,
-                "",
-              );
-              await this.adapter
-                .delStateAsync(stateLocalId)
-                .catch(() => undefined);
+              const stateLocalId = stateRow.id.replace(`${this.adapter.namespace}.`, "");
+              await this.adapter.delStateAsync(stateLocalId).catch(() => undefined);
             }
           }
           await this.adapter.delObjectAsync(localId, { recursive: true });
@@ -895,10 +751,7 @@ export class StateManager {
    * @param prefix Device prefix
    * @param stateDefs Current state definitions (non-segment)
    */
-  private async cleanupAllChannelStates(
-    prefix: string,
-    stateDefs: StateDefinition[],
-  ): Promise<void> {
+  private async cleanupAllChannelStates(prefix: string, stateDefs: StateDefinition[]): Promise<void> {
     // Build expected state set per channel
     const expectedByChannel = new Map<string, Set<string>>();
     for (const def of stateDefs) {
@@ -918,10 +771,7 @@ export class StateManager {
       return;
     }
 
-    const totalsPerChannel = new Map<
-      string,
-      { seen: number; deleted: number }
-    >();
+    const totalsPerChannel = new Map<string, { seen: number; deleted: number }>();
     for (const row of existing.rows) {
       const rest = row.id.replace(devicePrefix, "");
       const dotIdx = rest.indexOf(".");
@@ -950,9 +800,7 @@ export class StateManager {
     for (const [channel, totals] of totalsPerChannel) {
       if (totals.deleted > 0 && totals.deleted === totals.seen) {
         this.adapter.log.debug(`Removing empty channel: ${prefix}.${channel}`);
-        await this.adapter
-          .delObjectAsync(`${prefix}.${channel}`)
-          .catch(() => undefined);
+        await this.adapter.delObjectAsync(`${prefix}.${channel}`).catch(() => undefined);
       }
     }
   }

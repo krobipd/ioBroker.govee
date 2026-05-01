@@ -4,24 +4,43 @@
 # Reference: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
 version: 2
 updates:
-
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: 'weekly'
-      day: 'wednesday'
+      interval: "weekly"
+      day: "wednesday"
     open-pull-requests-limit: 15
     assignees:
-      - 'krobipd'
-    versioning-strategy: 'increase'
+      - "krobipd"
+    versioning-strategy: "increase"
     cooldown:
       default-days: 7
+    ignore:
+      # @types/node must track engines.node (>=20). Block major bumps so
+      # type defs cannot drift ahead of the supported runtime range.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # typescript pinned to ~5.9.x because @iobroker/eslint-config@2 ships
+      # typescript-eslint@8 which requires TS ~5.x. Bump only when eslint-config
+      # adds TS 6 support.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # eslint pinned to v9 because @iobroker/eslint-config@2 expects v9 API.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
-  - package-ecosystem: 'github-actions'
-    directory: '/'
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: 'weekly'
-      day: 'wednesday'
+      interval: "weekly"
+      day: "wednesday"
     open-pull-requests-limit: 15
     assignees:
-      - 'krobipd'
+      - "krobipd"
+    ignore:
+      # Major bumps for core actions are reviewed manually — auto-bumps via
+      # dependabot tend to break workflow ergonomics across the matrix.
+      - dependency-name: "actions/checkout"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "actions/setup-node"
+        update-types: ["version-update:semver-major"]

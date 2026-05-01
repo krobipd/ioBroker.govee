@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { CloudCapability, CloudScene } from "./types.js";
+import type { CloudCapability, CloudScene } from "./types";
 
 /** Data persisted per device in the SKU cache */
 export interface CachedDeviceData {
@@ -115,9 +115,7 @@ export class SkuCache {
       }
       this.log.debug(`Cache saved for ${data.sku}`);
     } catch (e) {
-      this.log.warn(
-        `Cache write failed for ${data.sku}: ${e instanceof Error ? e.message : String(e)}`,
-      );
+      this.log.warn(`Cache write failed for ${data.sku}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -184,9 +182,7 @@ export class SkuCache {
       // cache dir doesn't exist yet
     }
     if (pruned > 0) {
-      this.log.info(
-        `Cache: pruned ${pruned} stale entries (not seen on network for ${maxAgeDays}+ days)`,
-      );
+      this.log.info(`Cache: pruned ${pruned} stale entries (not seen on network for ${maxAgeDays}+ days)`);
     }
     return pruned;
   }
@@ -204,9 +200,7 @@ export class SkuCache {
       }
       this.log.debug("Cache cleared");
     } catch (e) {
-      this.log.debug(
-        `Cache clear failed: ${e instanceof Error ? e.message : String(e)}`,
-      );
+      this.log.debug(`Cache clear failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 

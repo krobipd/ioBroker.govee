@@ -68,9 +68,7 @@ export class LocalSnapshotStore {
         return Array.isArray(data?.snapshots) ? data.snapshots : [];
       }
     } catch (e) {
-      this.log.debug(
-        `Snapshot read failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`,
-      );
+      this.log.debug(`Snapshot read failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
     }
     return [];
   }
@@ -84,7 +82,7 @@ export class LocalSnapshotStore {
    */
   saveSnapshot(sku: string, deviceId: string, snapshot: LocalSnapshot): void {
     const snapshots = this.getSnapshots(sku, deviceId);
-    const existing = snapshots.findIndex((s) => s.name === snapshot.name);
+    const existing = snapshots.findIndex(s => s.name === snapshot.name);
     if (existing >= 0) {
       snapshots[existing] = snapshot;
     } else {
@@ -103,7 +101,7 @@ export class LocalSnapshotStore {
    */
   deleteSnapshot(sku: string, deviceId: string, name: string): boolean {
     const snapshots = this.getSnapshots(sku, deviceId);
-    const idx = snapshots.findIndex((s) => s.name === name);
+    const idx = snapshots.findIndex(s => s.name === name);
     if (idx < 0) {
       return false;
     }
@@ -125,11 +123,7 @@ export class LocalSnapshotStore {
    * @param deviceId Device identifier
    * @param snapshots Snapshot array to persist
    */
-  private writeFile(
-    sku: string,
-    deviceId: string,
-    snapshots: LocalSnapshot[],
-  ): void {
+  private writeFile(sku: string, deviceId: string, snapshots: LocalSnapshot[]): void {
     const file = this.snapshotFile(sku, deviceId);
     try {
       const data: SnapshotFile = { snapshots };
@@ -141,9 +135,7 @@ export class LocalSnapshotStore {
         fs.closeSync(fd);
       }
     } catch (e) {
-      this.log.warn(
-        `Snapshot write failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`,
-      );
+      this.log.warn(`Snapshot write failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 

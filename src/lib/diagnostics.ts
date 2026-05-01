@@ -1,5 +1,5 @@
-import { getDeviceQuirks } from "./device-registry.js";
-import type { GoveeDevice } from "./types.js";
+import { getDeviceQuirks } from "./device-registry";
+import type { GoveeDevice } from "./types";
 
 /** Single log line captured for a device. */
 export interface LogEntry {
@@ -137,10 +137,7 @@ export class DiagnosticsCollector {
     let stored: unknown = body;
     try {
       const serialised = JSON.stringify(body);
-      if (
-        typeof serialised === "string" &&
-        serialised.length > MAX_BODY_BYTES
-      ) {
+      if (typeof serialised === "string" && serialised.length > MAX_BODY_BYTES) {
         stored = `<truncated ${serialised.length}b: ${serialised.slice(0, MAX_BODY_BYTES)}…>`;
       } else if (typeof serialised === "string") {
         stored = JSON.parse(serialised) as unknown;
@@ -188,10 +185,7 @@ export class DiagnosticsCollector {
    * @param device Target device
    * @param adapterVersion Adapter version string (e.g. "2.0.0")
    */
-  generate(
-    device: GoveeDevice,
-    adapterVersion: string,
-  ): Record<string, unknown> {
+  generate(device: GoveeDevice, adapterVersion: string): Record<string, unknown> {
     const quirks = getDeviceQuirks(device.sku);
     const b = this.buffers.get(device.deviceId);
     return {
@@ -210,19 +204,19 @@ export class DiagnosticsCollector {
       capabilities: device.capabilities,
       scenes: {
         count: device.scenes.length,
-        names: device.scenes.map((s) => s.name),
+        names: device.scenes.map(s => s.name),
       },
       diyScenes: {
         count: device.diyScenes.length,
-        names: device.diyScenes.map((s) => s.name),
+        names: device.diyScenes.map(s => s.name),
       },
       snapshots: {
         count: device.snapshots.length,
-        names: device.snapshots.map((s) => s.name),
+        names: device.snapshots.map(s => s.name),
       },
       sceneLibrary: {
         count: device.sceneLibrary.length,
-        entries: device.sceneLibrary.map((s) => ({
+        entries: device.sceneLibrary.map(s => ({
           name: s.name,
           sceneCode: s.sceneCode,
           hasParam: !!s.scenceParam,
@@ -231,7 +225,7 @@ export class DiagnosticsCollector {
       },
       musicLibrary: {
         count: device.musicLibrary.length,
-        entries: device.musicLibrary.map((m) => ({
+        entries: device.musicLibrary.map(m => ({
           name: m.name,
           musicCode: m.musicCode,
           mode: m.mode ?? null,
@@ -239,7 +233,7 @@ export class DiagnosticsCollector {
       },
       diyLibrary: {
         count: device.diyLibrary.length,
-        entries: device.diyLibrary.map((d) => ({
+        entries: device.diyLibrary.map(d => ({
           name: d.name,
           diyCode: d.diyCode,
         })),

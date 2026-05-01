@@ -1,10 +1,5 @@
 import * as dgram from "node:dgram";
-import type {
-  LanDevice,
-  LanMessage,
-  LanStatus,
-  TimerAdapter,
-} from "./types.js";
+import type { LanDevice, LanMessage, LanStatus, TimerAdapter } from "./types";
 
 const MULTICAST_ADDR = "239.255.255.250";
 const SCAN_PORT = 4001;
@@ -57,10 +52,7 @@ export class GoveeLanClient {
     this.onDiscovery = onDiscovery;
     this.onStatus = onStatus;
 
-    const bindAddr =
-      networkInterface && networkInterface !== "0.0.0.0"
-        ? networkInterface
-        : undefined;
+    const bindAddr = networkInterface && networkInterface !== "0.0.0.0" ? networkInterface : undefined;
     if (bindAddr) {
       this.log.info(`LAN binding to network interface ${bindAddr}`);
     }
@@ -70,7 +62,7 @@ export class GoveeLanClient {
     this.listenSocket.on("message", (msg, rinfo) => {
       this.handleMessage(msg, rinfo.address);
     });
-    this.listenSocket.on("error", (err) => {
+    this.listenSocket.on("error", err => {
       this.log.debug(`LAN listen socket error: ${err.message}`);
     });
     this.listenSocket.bind(LISTEN_PORT, bindAddr, () => {
@@ -78,7 +70,7 @@ export class GoveeLanClient {
 
       // Scan socket for multicast discovery (port 4001) — started after listen is ready
       this.scanSocket = dgram.createSocket({ type: "udp4", reuseAddr: true });
-      this.scanSocket.on("error", (err) => {
+      this.scanSocket.on("error", err => {
         this.log.debug(`LAN scan socket error: ${err.message}`);
       });
       this.scanSocket.bind(() => {
@@ -86,9 +78,7 @@ export class GoveeLanClient {
         try {
           this.scanSocket?.addMembership(MULTICAST_ADDR, bindAddr);
         } catch {
-          this.log.debug(
-            "Could not join multicast group — using broadcast fallback",
-          );
+          this.log.debug("Could not join multicast group — using broadcast fallback");
         }
         this.sendScan();
       });
@@ -131,17 +121,13 @@ export class GoveeLanClient {
    * @param cmd Command name (turn, brightness, colorwc, devStatus)
    * @param data Command data
    */
-  private sendCommand(
-    ip: string,
-    cmd: string,
-    data: Record<string, unknown>,
-  ): void {
+  private sendCommand(ip: string, cmd: string, data: Record<string, unknown>): void {
     const message: LanMessage = {
       msg: { cmd, data },
     };
     const buf = Buffer.from(JSON.stringify(message));
     const socket = dgram.createSocket("udp4");
-    socket.send(buf, 0, buf.length, COMMAND_PORT, ip, (err) => {
+    socket.send(buf, 0, buf.length, COMMAND_PORT, ip, err => {
       if (err) {
         this.log.debug(`LAN send error to ${ip}: ${err.message}`);
       }
@@ -227,7 +213,7 @@ export class GoveeLanClient {
     };
     const buf = Buffer.from(JSON.stringify(message));
     const socket = dgram.createSocket("udp4");
-    socket.send(buf, 0, buf.length, COMMAND_PORT, ip, (err) => {
+    socket.send(buf, 0, buf.length, COMMAND_PORT, ip, err => {
       if (err) {
         this.log.debug(`LAN ptReal error to ${ip}: ${err.message}`);
       }
@@ -280,13 +266,7 @@ export class GoveeLanClient {
    * @param b Blue 0-255
    * @param segments Array of 0-based segment indices
    */
-  setSegmentColor(
-    ip: string,
-    r: number,
-    g: number,
-    b: number,
-    segments: number[],
-  ): void {
+  setSegmentColor(ip: string, r: number, g: number, b: number, segments: number[]): void {
     this.sendPtReal(ip, [buildSegmentColorPacket(r, g, b, segments)]);
   }
 
@@ -297,11 +277,7 @@ export class GoveeLanClient {
    * @param brightness Brightness 0-100
    * @param segments Array of 0-based segment indices
    */
-  setSegmentBrightness(
-    ip: string,
-    brightness: number,
-    segments: number[],
-  ): void {
+  setSegmentBrightness(ip: string, brightness: number, segments: number[]): void {
     this.sendPtReal(ip, [buildSegmentBrightnessPacket(brightness, segments)]);
   }
 
@@ -331,9 +307,7 @@ export class GoveeLanClient {
       return;
     }
     const MAX_SEGMENTS = 56;
-    const others = Array.from({ length: MAX_SEGMENTS }, (_, i) => i).filter(
-      (i) => i !== idx,
-    );
+    const others = Array.from({ length: MAX_SEGMENTS }, (_, i) => i).filter(i => i !== idx);
     // Step 0: force color mode. Without this, the strip stays in whatever
     // mode it was (Scene/Gradient/Music) and silently ignores the three
     // ptReal packets below. The colorwc command resets to a known static
@@ -365,22 +339,12 @@ export class GoveeLanClient {
    * @param b Blue 0-255
    * @param brightness Brightness 0-100
    */
-  restoreAllSegments(
-    ip: string,
-    total: number,
-    r: number,
-    g: number,
-    b: number,
-    brightness: number,
-  ): void {
+  restoreAllSegments(ip: string, total: number, r: number, g: number, b: number, brightness: number): void {
     if (total <= 0) {
       return;
     }
     const all = Array.from({ length: total }, (_, i) => i);
-    this.sendPtReal(ip, [
-      buildSegmentColorPacket(r, g, b, all),
-      buildSegmentBrightnessPacket(brightness, all),
-    ]);
+    this.sendPtReal(ip, [buildSegmentColorPacket(r, g, b, all), buildSegmentBrightnessPacket(brightness, all)]);
   }
 
   /**
@@ -398,18 +362,11 @@ export class GoveeLanClient {
       msg: { cmd: "scan", data: { account_topic: "reserve" } },
     };
     const buf = Buffer.from(JSON.stringify(scanMsg));
-    this.scanSocket?.send(
-      buf,
-      0,
-      buf.length,
-      SCAN_PORT,
-      MULTICAST_ADDR,
-      (err) => {
-        if (err) {
-          this.log.debug(`LAN scan send error: ${err.message}`);
-        }
-      },
-    );
+    this.scanSocket?.send(buf, 0, buf.length, SCAN_PORT, MULTICAST_ADDR, err => {
+      if (err) {
+        this.log.debug(`LAN scan send error: ${err.message}`);
+      }
+    });
   }
 
   /**
@@ -436,9 +393,7 @@ export class GoveeLanClient {
         this.handleStatusResponse(payload, sourceIp);
       }
     } catch {
-      this.log.debug(
-        `LAN: Failed to parse message: ${msg.toString().slice(0, 200)}`,
-      );
+      this.log.debug(`LAN: Failed to parse message: ${msg.toString().slice(0, 200)}`);
     }
   }
 
@@ -478,9 +433,7 @@ export class GoveeLanClient {
         }
       }
       this.seenDeviceIps.add(key);
-      this.log.debug(
-        `LAN: Found ${lanDevice.sku} (${lanDevice.device}) at ${lanDevice.ip}`,
-      );
+      this.log.debug(`LAN: Found ${lanDevice.sku} (${lanDevice.device}) at ${lanDevice.ip}`);
     }
     this.onDiscovery?.(lanDevice);
   }
@@ -492,12 +445,8 @@ export class GoveeLanClient {
    * @param data Parsed status response payload
    * @param sourceIp Source IP address from UDP message
    */
-  private handleStatusResponse(
-    data: Record<string, unknown>,
-    sourceIp: string,
-  ): void {
-    const toNum = (v: unknown): number =>
-      typeof v === "number" && Number.isFinite(v) ? v : 0;
+  private handleStatusResponse(data: Record<string, unknown>, sourceIp: string): void {
+    const toNum = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
     const colorRaw = data.color;
     const color =
       colorRaw && typeof colorRaw === "object"
@@ -553,10 +502,7 @@ function finishPacket(data: number[]): number[] {
  * @param sceneCode Scene code from library (> 0)
  * @param scenceParam Base64-encoded scene parameter data (may be empty)
  */
-export function buildScenePackets(
-  sceneCode: number,
-  scenceParam: string,
-): string[] {
+export function buildScenePackets(sceneCode: number, scenceParam: string): string[] {
   const packets: string[] = [];
 
   // Multi-packet scene data from scenceParam (A3 header protocol)
@@ -631,9 +577,7 @@ export function buildDiyPackets(scenceParam: string): string[] {
   }
 
   // Activation: 33 05 0A
-  packets.push(
-    Buffer.from(finishPacket([0x33, 0x05, 0x0a])).toString("base64"),
-  );
+  packets.push(Buffer.from(finishPacket([0x33, 0x05, 0x0a])).toString("base64"));
   return packets;
 }
 
@@ -643,9 +587,7 @@ export function buildDiyPackets(scenceParam: string): string[] {
  * @param on Gradient on/off
  */
 export function buildGradientPacket(on: boolean): string {
-  return Buffer.from(finishPacket([0x33, 0x14, on ? 0x01 : 0x00])).toString(
-    "base64",
-  );
+  return Buffer.from(finishPacket([0x33, 0x14, on ? 0x01 : 0x00])).toString("base64");
 }
 
 /**
@@ -657,12 +599,7 @@ export function buildGradientPacket(on: boolean): string {
  * @param g Green channel 0-255
  * @param b Blue channel 0-255
  */
-export function buildMusicModePacket(
-  subMode: number,
-  r = 0,
-  g = 0,
-  b = 0,
-): string {
+export function buildMusicModePacket(subMode: number, r = 0, g = 0, b = 0): string {
   const data = [0x33, 0x05, 0x01, subMode & 0xff];
   if (subMode === 1 || subMode === 2) {
     data.push(r & 0xff, g & 0xff, b & 0xff);
@@ -677,10 +614,7 @@ export function buildMusicModePacket(
  * @param segments Array of 0-based segment indices
  * @param byteCount Number of bitmask bytes (7 for color, 14 for brightness)
  */
-export function buildSegmentBitmask(
-  segments: number[],
-  byteCount: number,
-): number[] {
+export function buildSegmentBitmask(segments: number[], byteCount: number): number[] {
   const mask = new Array<number>(byteCount).fill(0);
   for (const seg of segments) {
     const byteIdx = Math.floor(seg / 8);
@@ -701,12 +635,7 @@ export function buildSegmentBitmask(
  * @param b Blue 0-255
  * @param segments Array of 0-based segment indices
  */
-export function buildSegmentColorPacket(
-  r: number,
-  g: number,
-  b: number,
-  segments: number[],
-): string {
+export function buildSegmentColorPacket(r: number, g: number, b: number, segments: number[]): string {
   const data = [
     0x33,
     0x05,
@@ -732,18 +661,8 @@ export function buildSegmentColorPacket(
  * @param brightness Brightness 0-100
  * @param segments Array of 0-based segment indices
  */
-export function buildSegmentBrightnessPacket(
-  brightness: number,
-  segments: number[],
-): string {
-  const data = [
-    0x33,
-    0x05,
-    0x15,
-    0x02,
-    Math.max(0, Math.min(100, brightness)),
-    ...buildSegmentBitmask(segments, 14),
-  ];
+export function buildSegmentBrightnessPacket(brightness: number, segments: number[]): string {
+  const data = [0x33, 0x05, 0x15, 0x02, Math.max(0, Math.min(100, brightness)), ...buildSegmentBitmask(segments, 14)];
   return Buffer.from(finishPacket(data)).toString("base64");
 }
 
@@ -757,11 +676,7 @@ export function buildSegmentBrightnessPacket(
  * @param speedConfig JSON config string from speedInfo.config
  * @returns Modified Base64-encoded scenceParam with speed bytes replaced
  */
-export function applySceneSpeed(
-  scenceParam: string,
-  speedLevel: number,
-  speedConfig: string,
-): string {
+export function applySceneSpeed(scenceParam: string, speedLevel: number, speedConfig: string): string {
   if (!scenceParam || !speedConfig) {
     return scenceParam;
   }
@@ -788,17 +703,13 @@ export function applySceneSpeed(
   const pageCount = bytes[0];
   let offset = 1;
 
-  for (
-    let pageIdx = 0;
-    pageIdx < pageCount && offset < bytes.length;
-    pageIdx++
-  ) {
+  for (let pageIdx = 0; pageIdx < pageCount && offset < bytes.length; pageIdx++) {
     const pageLen = bytes[offset];
     if (offset + 1 + pageLen > bytes.length) {
       break;
     }
 
-    const cfg = configEntries.find((c) => c.page === pageIdx);
+    const cfg = configEntries.find(c => c.page === pageIdx);
     if (cfg?.moveIn && speedLevel >= 0 && speedLevel < cfg.moveIn.length) {
       const speedBytePos = offset + 1 + (pageLen - 5);
       if (speedBytePos > offset && speedBytePos < offset + 1 + pageLen) {

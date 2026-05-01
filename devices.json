@@ -1,233 +1,233 @@
 {
-    "_comment": "Govee device support catalog. See Wiki for the rendered list. Schema: devices.schema.json. Status: verified (multiple confirmed reports), reported (1 user with diagnostics), seed (imported from external source, untested). Quirks: only fields actually wired in code (colorTempRange, brokenPlatformApi).",
-    "devices": {
-        "H5051": {
-            "name": "Thermo-Hygrometer",
-            "type": "thermometer",
-            "status": "seed"
-        },
-        "H5100": {
-            "name": "Thermo-Hygrometer",
-            "type": "thermometer",
-            "status": "seed"
-        },
-        "H5103": {
-            "name": "Thermo-Hygrometer",
-            "type": "thermometer",
-            "status": "seed"
-        },
-        "H5179": {
-            "name": "Wifi Thermometer",
-            "type": "thermometer",
-            "status": "verified",
-            "since": "2.0.0"
-        },
-        "H6003": {
-            "name": "LED Bulb",
-            "type": "light",
-            "status": "seed",
-            "quirks": {
-                "brokenPlatformApi": true
-            }
-        },
-        "H6022": {
-            "name": "LED Bulb (RGBWW)",
-            "type": "light",
-            "status": "seed",
-            "quirks": {
-                "colorTempRange": {
-                    "min": 2700,
-                    "max": 6500
-                }
-            }
-        },
-        "H6053": {
-            "name": "LED Glide",
-            "type": "light",
-            "status": "seed",
-            "quirks": {
-                "brokenPlatformApi": true
-            }
-        },
-        "H60A1": {
-            "name": "LED Bulb",
-            "type": "light",
-            "status": "seed",
-            "quirks": {
-                "colorTempRange": {
-                    "min": 2200,
-                    "max": 6500
-                }
-            }
-        },
-        "H6102": {
-            "name": "LED Strip",
-            "type": "light",
-            "status": "seed",
-            "quirks": {
-                "brokenPlatformApi": true
-            }
-        },
-        "H6119": {
-            "name": "LED Strip",
-            "type": "light",
-            "status": "seed",
-            "quirks": {
-                "brokenPlatformApi": true
-            }
-        },
-        "H612F": {
-            "name": "RGBIC LED Strip",
-            "type": "light",
-            "status": "verified",
-            "since": "1.0.0"
-        },
-        "H6141": {
-            "name": "LED Strip",
-            "type": "light",
-            "status": "seed",
-            "quirks": {
-                "brokenPlatformApi": true
-            }
-        },
-        "H6159": {
-            "name": "LED Strip",
-            "type": "light",
-            "status": "seed",
-            "quirks": {
-                "brokenPlatformApi": true
-            }
-        },
-        "H617C": {
-            "name": "LED Strip",
-            "type": "light",
-            "status": "seed",
-            "quirks": {
-                "brokenPlatformApi": true
-            }
-        },
-        "H617E": {
-            "name": "LED Strip",
-            "type": "light",
-            "status": "seed",
-            "quirks": {
-                "brokenPlatformApi": true
-            }
-        },
-        "H617F": {
-            "name": "LED Strip",
-            "type": "light",
-            "status": "seed",
-            "quirks": {
-                "brokenPlatformApi": true
-            }
-        },
-        "H618A": {
-            "name": "RGBIC Strip Lights",
-            "type": "light",
-            "status": "verified",
-            "since": "1.0.0"
-        },
-        "H61BA": {
-            "name": "Glide Wall Light",
-            "type": "light",
-            "status": "verified",
-            "since": "1.0.0"
-        },
-        "H61BC": {
-            "name": "Glide Hexa Light Panels",
-            "type": "light",
-            "status": "verified",
-            "since": "1.0.0"
-        },
-        "H61BE": {
-            "name": "Glide Wall Light Wide",
-            "type": "light",
-            "status": "verified",
-            "since": "1.0.0"
-        },
-        "H70B3": {
-            "name": "Curtain Lights",
-            "type": "light",
-            "status": "verified",
-            "since": "1.0.0"
-        },
-        "H70C5": {
-            "name": "Christmas String Lights",
-            "type": "light",
-            "status": "verified",
-            "since": "1.0.0"
-        },
-        "H70D1": {
-            "name": "Icicle Lights",
-            "type": "light",
-            "status": "verified",
-            "since": "1.0.0"
-        },
-        "H7130": {
-            "name": "Smart Space Heater",
-            "type": "heater",
-            "status": "seed"
-        },
-        "H7131": {
-            "name": "Smart Space Heater (mit Nachtlicht)",
-            "type": "heater",
-            "status": "seed"
-        },
-        "H7132": {
-            "name": "Smart Space Heater",
-            "type": "heater",
-            "status": "seed"
-        },
-        "H7133": {
-            "name": "Smart Space Heater (mit Nachtlicht)",
-            "type": "heater",
-            "status": "seed"
-        },
-        "H7134": {
-            "name": "Smart Space Heater (mit Nachtlicht)",
-            "type": "heater",
-            "status": "seed"
-        },
-        "H7135": {
-            "name": "Smart Space Heater",
-            "type": "heater",
-            "status": "seed"
-        },
-        "H713A": {
-            "name": "Smart Space Heater",
-            "type": "heater",
-            "status": "seed"
-        },
-        "H713B": {
-            "name": "Smart Space Heater",
-            "type": "heater",
-            "status": "seed"
-        },
-        "H7160": {
-            "name": "Smart Space Heater",
-            "type": "heater",
-            "status": "seed"
-        },
-        "H7170": {
-            "name": "Smart Kettle",
-            "type": "kettle",
-            "status": "seed"
-        },
-        "H7171": {
-            "name": "Smart Kettle (M1-M4)",
-            "type": "kettle",
-            "status": "seed"
-        },
-        "H7172": {
-            "name": "Smart Ice Maker",
-            "type": "ice_maker",
-            "status": "seed"
-        },
-        "H7173": {
-            "name": "Smart Kettle (Tea/Coffee/DIY)",
-            "type": "kettle",
-            "status": "seed"
+  "_comment": "Govee device support catalog. See Wiki for the rendered list. Schema: devices.schema.json. Status: verified (multiple confirmed reports), reported (1 user with diagnostics), seed (imported from external source, untested). Quirks: only fields actually wired in code (colorTempRange, brokenPlatformApi).",
+  "devices": {
+    "H5051": {
+      "name": "Thermo-Hygrometer",
+      "type": "thermometer",
+      "status": "seed"
+    },
+    "H5100": {
+      "name": "Thermo-Hygrometer",
+      "type": "thermometer",
+      "status": "seed"
+    },
+    "H5103": {
+      "name": "Thermo-Hygrometer",
+      "type": "thermometer",
+      "status": "seed"
+    },
+    "H5179": {
+      "name": "Wifi Thermometer",
+      "type": "thermometer",
+      "status": "verified",
+      "since": "2.0.0"
+    },
+    "H6003": {
+      "name": "LED Bulb",
+      "type": "light",
+      "status": "seed",
+      "quirks": {
+        "brokenPlatformApi": true
+      }
+    },
+    "H6022": {
+      "name": "LED Bulb (RGBWW)",
+      "type": "light",
+      "status": "seed",
+      "quirks": {
+        "colorTempRange": {
+          "min": 2700,
+          "max": 6500
         }
+      }
+    },
+    "H6053": {
+      "name": "LED Glide",
+      "type": "light",
+      "status": "seed",
+      "quirks": {
+        "brokenPlatformApi": true
+      }
+    },
+    "H60A1": {
+      "name": "LED Bulb",
+      "type": "light",
+      "status": "seed",
+      "quirks": {
+        "colorTempRange": {
+          "min": 2200,
+          "max": 6500
+        }
+      }
+    },
+    "H6102": {
+      "name": "LED Strip",
+      "type": "light",
+      "status": "seed",
+      "quirks": {
+        "brokenPlatformApi": true
+      }
+    },
+    "H6119": {
+      "name": "LED Strip",
+      "type": "light",
+      "status": "seed",
+      "quirks": {
+        "brokenPlatformApi": true
+      }
+    },
+    "H612F": {
+      "name": "RGBIC LED Strip",
+      "type": "light",
+      "status": "verified",
+      "since": "1.0.0"
+    },
+    "H6141": {
+      "name": "LED Strip",
+      "type": "light",
+      "status": "seed",
+      "quirks": {
+        "brokenPlatformApi": true
+      }
+    },
+    "H6159": {
+      "name": "LED Strip",
+      "type": "light",
+      "status": "seed",
+      "quirks": {
+        "brokenPlatformApi": true
+      }
+    },
+    "H617C": {
+      "name": "LED Strip",
+      "type": "light",
+      "status": "seed",
+      "quirks": {
+        "brokenPlatformApi": true
+      }
+    },
+    "H617E": {
+      "name": "LED Strip",
+      "type": "light",
+      "status": "seed",
+      "quirks": {
+        "brokenPlatformApi": true
+      }
+    },
+    "H617F": {
+      "name": "LED Strip",
+      "type": "light",
+      "status": "seed",
+      "quirks": {
+        "brokenPlatformApi": true
+      }
+    },
+    "H618A": {
+      "name": "RGBIC Strip Lights",
+      "type": "light",
+      "status": "verified",
+      "since": "1.0.0"
+    },
+    "H61BA": {
+      "name": "Glide Wall Light",
+      "type": "light",
+      "status": "verified",
+      "since": "1.0.0"
+    },
+    "H61BC": {
+      "name": "Glide Hexa Light Panels",
+      "type": "light",
+      "status": "verified",
+      "since": "1.0.0"
+    },
+    "H61BE": {
+      "name": "Glide Wall Light Wide",
+      "type": "light",
+      "status": "verified",
+      "since": "1.0.0"
+    },
+    "H70B3": {
+      "name": "Curtain Lights",
+      "type": "light",
+      "status": "verified",
+      "since": "1.0.0"
+    },
+    "H70C5": {
+      "name": "Christmas String Lights",
+      "type": "light",
+      "status": "verified",
+      "since": "1.0.0"
+    },
+    "H70D1": {
+      "name": "Icicle Lights",
+      "type": "light",
+      "status": "verified",
+      "since": "1.0.0"
+    },
+    "H7130": {
+      "name": "Smart Space Heater",
+      "type": "heater",
+      "status": "seed"
+    },
+    "H7131": {
+      "name": "Smart Space Heater (mit Nachtlicht)",
+      "type": "heater",
+      "status": "seed"
+    },
+    "H7132": {
+      "name": "Smart Space Heater",
+      "type": "heater",
+      "status": "seed"
+    },
+    "H7133": {
+      "name": "Smart Space Heater (mit Nachtlicht)",
+      "type": "heater",
+      "status": "seed"
+    },
+    "H7134": {
+      "name": "Smart Space Heater (mit Nachtlicht)",
+      "type": "heater",
+      "status": "seed"
+    },
+    "H7135": {
+      "name": "Smart Space Heater",
+      "type": "heater",
+      "status": "seed"
+    },
+    "H713A": {
+      "name": "Smart Space Heater",
+      "type": "heater",
+      "status": "seed"
+    },
+    "H713B": {
+      "name": "Smart Space Heater",
+      "type": "heater",
+      "status": "seed"
+    },
+    "H7160": {
+      "name": "Smart Space Heater",
+      "type": "heater",
+      "status": "seed"
+    },
+    "H7170": {
+      "name": "Smart Kettle",
+      "type": "kettle",
+      "status": "seed"
+    },
+    "H7171": {
+      "name": "Smart Kettle (M1-M4)",
+      "type": "kettle",
+      "status": "seed"
+    },
+    "H7172": {
+      "name": "Smart Ice Maker",
+      "type": "ice_maker",
+      "status": "seed"
+    },
+    "H7173": {
+      "name": "Smart Kettle (Tea/Coffee/DIY)",
+      "type": "kettle",
+      "status": "seed"
     }
+  }
 }

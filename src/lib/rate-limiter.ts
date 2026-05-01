@@ -1,4 +1,4 @@
-import type { TimerAdapter } from "./types.js";
+import type { TimerAdapter } from "./types";
 
 /** A queued API call */
 interface QueuedCall {
@@ -34,12 +34,7 @@ export class RateLimiter {
    * @param perMinuteLimit Max calls per minute (default 8, safe margin from 10)
    * @param perDayLimit Max calls per day (default 9000, safe margin from 10000)
    */
-  constructor(
-    log: ioBroker.Logger,
-    timers: TimerAdapter,
-    perMinuteLimit = 8,
-    perDayLimit = 9000,
-  ) {
+  constructor(log: ioBroker.Logger, timers: TimerAdapter, perMinuteLimit = 8, perDayLimit = 9000) {
     this.log = log;
     this.timers = timers;
     this.perMinuteLimit = perMinuteLimit;
@@ -76,10 +71,7 @@ export class RateLimiter {
     const msUntilMidnight = this.millisUntilNextUtcMidnight();
     this.dayResetKickoff = this.timers.setTimeout(() => {
       this.resetDaily();
-      this.dayResetTimer = this.timers.setInterval(
-        () => this.resetDaily(),
-        86_400_000,
-      );
+      this.dayResetTimer = this.timers.setInterval(() => this.resetDaily(), 86_400_000);
     }, msUntilMidnight);
 
     // Process queue every 2s
@@ -111,26 +103,14 @@ export class RateLimiter {
 
   /** Zero the daily counter and log. Separate so kickoff + interval share it. */
   private resetDaily(): void {
-    this.log.debug(
-      `Rate limiter: daily reset (used ${this.callsToday} calls today)`,
-    );
+    this.log.debug(`Rate limiter: daily reset (used ${this.callsToday} calls today)`);
     this.callsToday = 0;
   }
 
   /** Milliseconds from now until the next UTC midnight tick. */
   private millisUntilNextUtcMidnight(): number {
     const now = new Date();
-    const next = new Date(
-      Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate() + 1,
-        0,
-        0,
-        0,
-        0,
-      ),
-    );
+    const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0));
     return next.getTime() - now.getTime();
   }
 
@@ -153,10 +133,7 @@ export class RateLimiter {
    * @param execute The API call to make
    * @param priority Call priority
    */
-  async tryExecute(
-    execute: () => Promise<void>,
-    priority = 0,
-  ): Promise<boolean> {
+  async tryExecute(execute: () => Promise<void>, priority = 0): Promise<boolean> {
     if (this.canMakeCall()) {
       this.callsThisMinute++;
       this.callsToday++;
@@ -169,10 +146,7 @@ export class RateLimiter {
 
   /** Whether a call can be made right now */
   canMakeCall(): boolean {
-    return (
-      this.callsThisMinute < this.perMinuteLimit &&
-      this.callsToday < this.perDayLimit
-    );
+    return this.callsThisMinute < this.perMinuteLimit && this.callsToday < this.perDayLimit;
   }
 
   /** Current daily usage */
@@ -187,10 +161,8 @@ export class RateLimiter {
       if (call) {
         this.callsThisMinute++;
         this.callsToday++;
-        call.execute().catch((err) => {
-          this.log.debug(
-            `Queued call failed: ${err instanceof Error ? err.message : String(err)}`,
-          );
+        call.execute().catch(err => {
+          this.log.debug(`Queued call failed: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
     }

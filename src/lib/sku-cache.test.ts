@@ -2,7 +2,7 @@ import { expect } from "chai";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { SkuCache, type CachedDeviceData } from "../src/lib/sku-cache";
+import { SkuCache, type CachedDeviceData } from "./sku-cache";
 
 const mockLog: ioBroker.Logger = {
   debug: () => {},
@@ -13,10 +13,7 @@ const mockLog: ioBroker.Logger = {
   level: "debug",
 };
 
-function createTestData(
-  sku = "H61BE",
-  deviceId = "AA:BB:CC:DD:11:22:33:44",
-): CachedDeviceData {
+function createTestData(sku = "H61BE", deviceId = "AA:BB:CC:DD:11:22:33:44"): CachedDeviceData {
   return {
     sku,
     deviceId,
@@ -107,7 +104,7 @@ describe("SkuCache", () => {
     cache.save(createTestData("H6160", "EE:FF:00:11:22:33:44:55"));
     const all = cache.loadAll();
     expect(all).to.have.length(2);
-    const skus = all.map((d) => d.sku).sort();
+    const skus = all.map(d => d.sku).sort();
     expect(skus).to.deep.equal(["H6160", "H61BE"]);
   });
 
@@ -156,9 +153,7 @@ describe("SkuCache", () => {
       { name: "Energetic", musicCode: 1, scenceParam: "AQID", mode: 0 },
       { name: "Rhythm", musicCode: 2, mode: 1 },
     ];
-    data.diyLibrary = [
-      { name: "My DIY", diyCode: 10, scenceParam: "BASE64DATA" },
-    ];
+    data.diyLibrary = [{ name: "My DIY", diyCode: 10, scenceParam: "BASE64DATA" }];
     cache.save(data);
     const loaded = cache.loadAll()[0];
     expect(loaded.musicLibrary).to.have.length(2);

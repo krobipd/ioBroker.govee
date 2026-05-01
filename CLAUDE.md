@@ -23,14 +23,14 @@
 
 Jeder Kanal hat genau eine Rolle. Kein Overlap.
 
-| Feature | LAN UDP (1.) | MQTT (Status) | Cloud REST (2.) |
-|---------|-------------|---------------|----------------|
-| Steuern (Power, Brightness, Color) | **primär** | — | Fallback |
-| Status anfragen | **primär** | — | Fallback |
-| Status Push (echtzeit) | — | **einzige Quelle** | — |
-| Geräteliste + Capabilities | — | — | **einzige Quelle** |
-| Szenen + Snapshots | **ptReal** (BLE-Pakete) | — | Fallback |
-| Segmente | **ptReal** (`33 05 15`) | — | Fallback |
+| Feature                            | LAN UDP (1.)            | MQTT (Status)      | Cloud REST (2.)    |
+| ---------------------------------- | ----------------------- | ------------------ | ------------------ |
+| Steuern (Power, Brightness, Color) | **primär**              | —                  | Fallback           |
+| Status anfragen                    | **primär**              | —                  | Fallback           |
+| Status Push (echtzeit)             | —                       | **einzige Quelle** | —                  |
+| Geräteliste + Capabilities         | —                       | —                  | **einzige Quelle** |
+| Szenen + Snapshots                 | **ptReal** (BLE-Pakete) | —                  | Fallback           |
+| Segmente                           | **ptReal** (`33 05 15`) | —                  | Fallback           |
 
 > **MQTT ist nur Status-Push.** Commands werden über LAN oder Cloud gesendet, nie über MQTT.
 
@@ -39,6 +39,7 @@ Jeder Kanal hat genau eine Rolle. Kein Overlap.
 ## Koexistenz mit govee-appliances!
 
 Gleicher API Key → gleiches 10.000/Tag Budget. **Dynamische Erkennung** via `system.adapter.govee-appliances.0.alive`:
+
 - **Allein:** 8/min, 9000/day (volle Limits)
 - **Beide aktiv:** 4/min, 4500/day je Adapter (automatisch per subscribeForeignStatesAsync)
 - MQTT nutzt unique Client-IDs → parallele Verbindungen funktionieren
@@ -47,11 +48,11 @@ Gleicher API Key → gleiches 10.000/Tag Budget. **Dynamische Erkennung** via `s
 
 ## Credential-Stufen (graceful degradation)
 
-| Eingabe | Funktionsumfang |
-|---------|----------------|
-| Nichts | LAN-only: Discovery, Power, Brightness, Color, Status |
-| + API Key | + Geräteliste mit Namen, Capabilities, Szenen, Snapshots, Segmente |
-| + Email/Passwort | + Echtzeit Status-Push via MQTT |
+| Eingabe          | Funktionsumfang                                                    |
+| ---------------- | ------------------------------------------------------------------ |
+| Nichts           | LAN-only: Discovery, Power, Brightness, Color, Status              |
+| + API Key        | + Geräteliste mit Namen, Capabilities, Szenen, Snapshots, Segmente |
+| + Email/Passwort | + Echtzeit Status-Push via MQTT                                    |
 
 ## Architektur
 
@@ -122,6 +123,7 @@ Szenen kommen vom **separaten Scenes-Endpoint** (`POST /device/scenes`), NICHT a
 - **Aktivierung:** User wählt Index → `device.scenes[idx-1].value` → direkt als `capability.value` an Control-Endpoint
 
 ### Scene Library (undokumentierte API)
+
 - **Endpoint:** `GET https://app2.govee.com/appsku/v1/light-effect-libraries?sku=<SKU>`
 - **Auth:** KEINE! Nur AppVersion + User-Agent Header nötig (public endpoint)
 - Liefert erweiterte Szenen-Daten inkl. `sceneCode` für ptReal BLE-over-LAN
@@ -134,32 +136,36 @@ Szenen kommen vom **separaten Scenes-Endpoint** (`POST /device/scenes`), NICHT a
 **Auth:** Header `Govee-API-Key: <key>`
 
 ### Rate Limits
+
 - 10/min/Gerät, 10.000/Tag (allgemein)
 - Appliances: **100/Tag** (!)
 - Rate-Limiter schützt, Cloud nur als letzter Ausweg
 
 ### Unit-Normalisierung
+
 Cloud API liefert nicht-standard Units: `unit.percent` → `%`, `unit.kelvin` → `K`, `unit.celsius` → `°C`
 
 ## AWS IoT MQTT
 
 ### Auth-Flow (v2 Headers erforderlich!)
+
 1. Login: `POST app2.govee.com/.../v1/login` → token + accountId + topic
    - Headers: User-Agent, clientId, appVersion, timezone, country, envId, iotVersion
 2. IoT Key: `GET app2.govee.com/.../iot/key` → endpoint + P12 cert
 3. Connect: Mutual TLS, Client-ID `AP/<accountId>/<uuid>`
 
 ### Topics
+
 - Subscribe: Account-Topic → Echtzeit Status aller Geräte
 - Publish: Device-Topic → Befehle (turn, brightness, colorwc)
 
 ## LAN UDP
 
-| Funktion | Adresse | Port |
-|----------|---------|------|
+| Funktion  | Adresse           | Port |
+| --------- | ----------------- | ---- |
 | Discovery | `239.255.255.250` | 4001 |
-| Antworten | Client | 4002 |
-| Commands | Geräte-IP | 4003 |
+| Antworten | Client            | 4002 |
+| Commands  | Geräte-IP         | 4003 |
 
 Nur Lights mit aktivierter LAN-Funktion in Govee Home App.
 
@@ -309,16 +315,16 @@ test/testPackageFiles.ts     → @iobroker/testing (57)
 
 ## Versionshistorie (letzte 7)
 
-| Version | Highlights |
-|---------|------------|
-| 2.0.3 | Hotfix für versehentlich falsch gesetzte Min-Versionen aus 2.0.2: js-controller war auf `>=7.0.23` gesetzt (sollte `>=6.0.11` sein, Repochecker-recommended), admin auf `>=7.6.17` gefallen (sollte `>=7.6.20` bleiben). Beide korrigiert |
-| 2.0.2 | OpenAPI MQTT stable client ID across reconnects (war `Date.now`-basiert, Govees Broker behandelte jeden Reconnect als neue Connection). `manual-review` release-script-Plugin raus, redundante `@iobroker/types` runtime-dep raus. Audit-driven Konsistenz-Cleanup gegenüber den anderen krobi-Adaptern |
-| 2.0.1 | Hotfixes aus realem v2.0.0-Install: Sensor-State-IDs route zu `sensor/`, Event-IDs zu `events/` (war beide `control/`), state-Objects lazy beim ersten Write. Snapshots/Scenes nur noch auf Lights gegated. Boot-time experimental-device-Log-Dump entfernt |
-| 2.0.0 | Major: Govee Appliances + Sensoren in govee-smart gemerged (govee-appliances ist deprecated). Thermometer/Heizgeräte/Wasserkocher/Eismaschinen via App-API (sensor-States) + OpenAPI-MQTT (appliance-Events). `experimentalQuirks`-Toggle, devices.json mit 36 SKUs als single source of truth, neuer `info.openapiMqttConnected`-State |
-| 1.11.0 | Dropdown-Dual-Write: Scene/DIY/Snapshot/Music-Mode-States jetzt `type: "mixed"`, `onStateChange` löst Index als Number/String und Klartext-Name (case-insensitive) gleichermaßen auf. Disambiguation-Pass für Cloud-Duplikate ("Movie", "Movie (2)"). js-controller-Warning "expects type string but received number" weg |
-| 1.10.1 | Refresh-Button-Fix: `info.refresh_cloud_data` re-fetcht nicht mehr die statischen SKU-Libraries (scene/music/DIY/features) — call count pro Klick fällt von ~7 auf 2 pro Light. Endpoints lieferten 403 für viele Accounts, produzierten nur Rate-Limiter-Backlog |
-| 1.10.0 | Szenen mit `scenceParam` (multi-packet A3-BLE) auf Geräten ohne Segmente via Cloud-Fallback statt ptReal — Bulbs/Curtain Lights verwerfen A3 stumm. Plus: Power-off resettet alle Mode-Dropdowns auf "---" |
-| 1.9.1 | Hotfix — per-list Guard in `loadDeviceScenes`. Govee's `/device/scenes` liefert inkonsistent (z.B. 149 scenes + 0 snapshots obwohl Snapshot existiert). Alter kombinierter Guard löschte Snapshots in dem Fall |
+| Version | Highlights                                                                                                                                                                                                                                                                                                                              |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2.0.3   | Hotfix für versehentlich falsch gesetzte Min-Versionen aus 2.0.2: js-controller war auf `>=7.0.23` gesetzt (sollte `>=6.0.11` sein, Repochecker-recommended), admin auf `>=7.6.17` gefallen (sollte `>=7.6.20` bleiben). Beide korrigiert                                                                                               |
+| 2.0.2   | OpenAPI MQTT stable client ID across reconnects (war `Date.now`-basiert, Govees Broker behandelte jeden Reconnect als neue Connection). `manual-review` release-script-Plugin raus, redundante `@iobroker/types` runtime-dep raus. Audit-driven Konsistenz-Cleanup gegenüber den anderen krobi-Adaptern                                 |
+| 2.0.1   | Hotfixes aus realem v2.0.0-Install: Sensor-State-IDs route zu `sensor/`, Event-IDs zu `events/` (war beide `control/`), state-Objects lazy beim ersten Write. Snapshots/Scenes nur noch auf Lights gegated. Boot-time experimental-device-Log-Dump entfernt                                                                             |
+| 2.0.0   | Major: Govee Appliances + Sensoren in govee-smart gemerged (govee-appliances ist deprecated). Thermometer/Heizgeräte/Wasserkocher/Eismaschinen via App-API (sensor-States) + OpenAPI-MQTT (appliance-Events). `experimentalQuirks`-Toggle, devices.json mit 36 SKUs als single source of truth, neuer `info.openapiMqttConnected`-State |
+| 1.11.0  | Dropdown-Dual-Write: Scene/DIY/Snapshot/Music-Mode-States jetzt `type: "mixed"`, `onStateChange` löst Index als Number/String und Klartext-Name (case-insensitive) gleichermaßen auf. Disambiguation-Pass für Cloud-Duplikate ("Movie", "Movie (2)"). js-controller-Warning "expects type string but received number" weg               |
+| 1.10.1  | Refresh-Button-Fix: `info.refresh_cloud_data` re-fetcht nicht mehr die statischen SKU-Libraries (scene/music/DIY/features) — call count pro Klick fällt von ~7 auf 2 pro Light. Endpoints lieferten 403 für viele Accounts, produzierten nur Rate-Limiter-Backlog                                                                       |
+| 1.10.0  | Szenen mit `scenceParam` (multi-packet A3-BLE) auf Geräten ohne Segmente via Cloud-Fallback statt ptReal — Bulbs/Curtain Lights verwerfen A3 stumm. Plus: Power-off resettet alle Mode-Dropdowns auf "---"                                                                                                                              |
+| 1.9.1   | Hotfix — per-list Guard in `loadDeviceScenes`. Govee's `/device/scenes` liefert inkonsistent (z.B. 149 scenes + 0 snapshots obwohl Snapshot existiert). Alter kombinierter Guard löschte Snapshots in dem Fall                                                                                                                          |
 
 ## Befehle
 

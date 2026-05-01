@@ -229,9 +229,7 @@ function renderTable(entries: Array<[string, DeviceEntry]>, t: Texts): string {
   rows.push(`| --- | --- | --- | --- |`);
   for (const [sku, e] of entries) {
     const since = e.since ? `v${e.since}` : "—";
-    rows.push(
-      `| \`${sku}\` | ${escapePipe(e.name)} | ${STATUS_ICON[e.status]} | ${since} |`,
-    );
+    rows.push(`| \`${sku}\` | ${escapePipe(e.name)} | ${STATUS_ICON[e.status]} | ${since} |`);
   }
   return rows.join("\n");
 }

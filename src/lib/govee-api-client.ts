@@ -1,11 +1,11 @@
-import { httpsRequest } from "./http-client.js";
+import { httpsRequest } from "./http-client";
 import {
   GOVEE_APP_BASE_URL,
   GOVEE_APP_VERSION,
   GOVEE_CLIENT_ID,
   GOVEE_CLIENT_TYPE,
   GOVEE_USER_AGENT,
-} from "./govee-constants.js";
+} from "./govee-constants";
 
 /**
  * Parsed `lastDeviceData` field from the undocumented device-list response.
@@ -176,10 +176,8 @@ export class GoveeApiClient {
         device: d.device,
         deviceName: typeof d.deviceName === "string" ? d.deviceName : d.sku,
         deviceId: typeof d.deviceId === "number" ? d.deviceId : undefined,
-        versionHard:
-          typeof d.versionHard === "string" ? d.versionHard : undefined,
-        versionSoft:
-          typeof d.versionSoft === "string" ? d.versionSoft : undefined,
+        versionHard: typeof d.versionHard === "string" ? d.versionHard : undefined,
+        versionSoft: typeof d.versionSoft === "string" ? d.versionSoft : undefined,
       };
       const ext = d.deviceExt;
       if (ext && typeof ext === "object") {
@@ -244,9 +242,7 @@ export class GoveeApiClient {
       scenceParam?: string;
       speedInfo?: { supSpeed: boolean; speedIndex: number; config: string };
     }[] = [];
-    const categories = Array.isArray(resp?.data?.categories)
-      ? resp.data.categories
-      : [];
+    const categories = Array.isArray(resp?.data?.categories) ? resp.data.categories : [];
     for (const cat of categories) {
       const catScenes = Array.isArray(cat?.scenes) ? cat.scenes : [];
       for (const s of catScenes) {
@@ -268,10 +264,7 @@ export class GoveeApiClient {
           if (code <= 0) {
             continue;
           }
-          const name =
-            multiVariant && effect.scenceName
-              ? `${s.sceneName}-${effect.scenceName}`
-              : s.sceneName;
+          const name = multiVariant && effect.scenceName ? `${s.sceneName}-${effect.scenceName}` : s.sceneName;
           const si = effect.speedInfo;
           scenes.push({
             name,
@@ -300,9 +293,7 @@ export class GoveeApiClient {
    */
   async fetchMusicLibrary(
     sku: string,
-  ): Promise<
-    { name: string; musicCode: number; scenceParam?: string; mode?: number }[]
-  > {
+  ): Promise<{ name: string; musicCode: number; scenceParam?: string; mode?: number }[]> {
     if (!this.bearerToken) {
       return [];
     }
@@ -330,9 +321,7 @@ export class GoveeApiClient {
       mode?: number;
     }[] = [];
     let modeIdx = 0;
-    const musicCats = Array.isArray(resp?.data?.categories)
-      ? resp.data.categories
-      : [];
+    const musicCats = Array.isArray(resp?.data?.categories) ? resp.data.categories : [];
     for (const cat of musicCats) {
       const catScenes = Array.isArray(cat?.scenes) ? cat.scenes : [];
       for (const s of catScenes) {
@@ -362,9 +351,7 @@ export class GoveeApiClient {
    *
    * @param sku Product model (e.g. "H61BE")
    */
-  async fetchDiyLibrary(
-    sku: string,
-  ): Promise<{ name: string; diyCode: number; scenceParam?: string }[]> {
+  async fetchDiyLibrary(sku: string): Promise<{ name: string; diyCode: number; scenceParam?: string }[]> {
     if (!this.bearerToken) {
       return [];
     }
@@ -385,9 +372,7 @@ export class GoveeApiClient {
     }>({ method: "GET", url, headers: this.authHeaders() });
 
     const diys: { name: string; diyCode: number; scenceParam?: string }[] = [];
-    const diyCats = Array.isArray(resp?.data?.categories)
-      ? resp.data.categories
-      : [];
+    const diyCats = Array.isArray(resp?.data?.categories) ? resp.data.categories : [];
     for (const cat of diyCats) {
       const catScenes = Array.isArray(cat?.scenes) ? cat.scenes : [];
       for (const s of catScenes) {
@@ -433,10 +418,7 @@ export class GoveeApiClient {
    * @param sku Product model
    * @param deviceId Device identifier (colon-separated)
    */
-  async fetchSnapshots(
-    sku: string,
-    deviceId: string,
-  ): Promise<{ name: string; bleCmds: string[][] }[]> {
+  async fetchSnapshots(sku: string, deviceId: string): Promise<{ name: string; bleCmds: string[][] }[]> {
     if (!this.bearerToken) {
       return [];
     }
@@ -453,9 +435,7 @@ export class GoveeApiClient {
     }>({ method: "GET", url, headers: this.authHeaders() });
 
     const results: { name: string; bleCmds: string[][] }[] = [];
-    const snaps = Array.isArray(resp?.data?.snapshots)
-      ? resp.data.snapshots
-      : [];
+    const snaps = Array.isArray(resp?.data?.snapshots) ? resp.data.snapshots : [];
     for (const snap of snaps) {
       if (!snap || typeof snap.name !== "string" || !snap.name) {
         continue;
@@ -517,9 +497,7 @@ export class GoveeApiClient {
       name: string;
       devices: { sku: string; deviceId: string }[];
     }[] = [];
-    const components = Array.isArray(resp?.data?.components)
-      ? resp.data.components
-      : [];
+    const components = Array.isArray(resp?.data?.components) ? resp.data.components : [];
     for (const comp of components) {
       const compGroups = Array.isArray(comp?.groups) ? comp.groups : [];
       for (const g of compGroups) {
@@ -529,13 +507,7 @@ export class GoveeApiClient {
         const devices: { sku: string; deviceId: string }[] = [];
         const gDevices = Array.isArray(g.devices) ? g.devices : [];
         for (const d of gDevices) {
-          if (
-            d &&
-            typeof d.sku === "string" &&
-            typeof d.device === "string" &&
-            d.sku &&
-            d.device
-          ) {
+          if (d && typeof d.sku === "string" && typeof d.device === "string" && d.sku && d.device) {
             devices.push({ sku: d.sku, deviceId: d.device });
           }
         }
@@ -559,9 +531,7 @@ export class GoveeApiClient {
  *
  * @param raw Stringified JSON payload from `deviceExt.lastDeviceData`
  */
-export function parseLastData(
-  raw: string | undefined,
-): AppDeviceLastData | undefined {
+export function parseLastData(raw: string | undefined): AppDeviceLastData | undefined {
   if (typeof raw !== "string" || !raw) {
     return undefined;
   }
@@ -598,9 +568,7 @@ export function parseLastData(
  *
  * @param raw Stringified JSON payload from `deviceExt.deviceSettings`
  */
-export function parseSettings(
-  raw: string | undefined,
-): AppDeviceSettings | undefined {
+export function parseSettings(raw: string | undefined): AppDeviceSettings | undefined {
   if (typeof raw !== "string" || !raw) {
     return undefined;
   }

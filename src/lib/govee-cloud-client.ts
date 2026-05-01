@@ -1,4 +1,4 @@
-import { httpsRequest, HttpError } from "./http-client.js";
+import { httpsRequest, HttpError } from "./http-client";
 import type {
   CloudDevice,
   CloudDeviceListResponse,
@@ -6,7 +6,7 @@ import type {
   CloudScene,
   CloudScenesResponse,
   CloudStateCapability,
-} from "./types.js";
+} from "./types";
 
 const BASE_URL = "https://openapi.api.govee.com";
 
@@ -22,9 +22,7 @@ export class GoveeCloudClient {
    * response. Optional; the adapter wires it to a DiagnosticsCollector
    * for `info.diagnostics_export`.
    */
-  private onResponse:
-    | ((deviceId: string, endpoint: string, body: unknown) => void)
-    | null = null;
+  private onResponse: ((deviceId: string, endpoint: string, body: unknown) => void) | null = null;
 
   /**
    * @param apiKey Govee API key
@@ -41,18 +39,13 @@ export class GoveeCloudClient {
    *
    * @param cb Callback receiving (deviceId, endpoint, body)
    */
-  setResponseHook(
-    cb: ((deviceId: string, endpoint: string, body: unknown) => void) | null,
-  ): void {
+  setResponseHook(cb: ((deviceId: string, endpoint: string, body: unknown) => void) | null): void {
     this.onResponse = cb;
   }
 
   /** Fetch all devices with their capabilities */
   async getDevices(): Promise<CloudDevice[]> {
-    const resp = await this.request<CloudDeviceListResponse>(
-      "GET",
-      "/router/api/v1/user/devices",
-    );
+    const resp = await this.request<CloudDeviceListResponse>("GET", "/router/api/v1/user/devices");
     // Defensive — API can drift. Guard for non-array to protect downstream iteration.
     return Array.isArray(resp?.data) ? resp.data : [];
   }
@@ -63,18 +56,11 @@ export class GoveeCloudClient {
    * @param sku Product model
    * @param device Device identifier
    */
-  async getDeviceState(
-    sku: string,
-    device: string,
-  ): Promise<CloudStateCapability[]> {
-    const resp = await this.request<CloudDeviceStateResponse>(
-      "POST",
-      "/router/api/v1/device/state",
-      {
-        requestId: `state_${Date.now()}`,
-        payload: { sku, device },
-      },
-    );
+  async getDeviceState(sku: string, device: string): Promise<CloudStateCapability[]> {
+    const resp = await this.request<CloudDeviceStateResponse>("POST", "/router/api/v1/device/state", {
+      requestId: `state_${Date.now()}`,
+      payload: { sku, device },
+    });
     this.onResponse?.(device, "/router/api/v1/device/state", resp);
     const caps = resp?.data?.capabilities;
     return Array.isArray(caps) ? caps : [];
@@ -125,38 +111,28 @@ export class GoveeCloudClient {
     diyScenes: CloudScene[];
     snapshots: CloudScene[];
   }> {
-    const resp = await this.request<CloudScenesResponse>(
-      "POST",
-      "/router/api/v1/device/scenes",
-      {
-        requestId: "scenes",
-        payload: { sku, device },
-      },
-    );
+    const resp = await this.request<CloudScenesResponse>("POST", "/router/api/v1/device/scenes", {
+      requestId: "scenes",
+      payload: { sku, device },
+    });
 
     const lightScenes: CloudScene[] = [];
     const diyScenes: CloudScene[] = [];
     const snapshots: CloudScene[] = [];
 
-    const caps = Array.isArray(resp?.payload?.capabilities)
-      ? resp.payload.capabilities
-      : [];
+    const caps = Array.isArray(resp?.payload?.capabilities) ? resp.payload.capabilities : [];
     for (const cap of caps) {
       if (!cap || typeof cap.instance !== "string") {
         continue;
       }
-      const opts = Array.isArray(cap.parameters?.options)
-        ? cap.parameters.options
-        : [];
-      this.log.debug(
-        `Scenes endpoint: instance=${cap.instance}, options=${opts.length}`,
-      );
+      const opts = Array.isArray(cap.parameters?.options) ? cap.parameters.options : [];
+      this.log.debug(`Scenes endpoint: instance=${cap.instance}, options=${opts.length}`);
       const mapped: CloudScene[] = opts
         .filter(
           (o): o is { name: string; value: Record<string, unknown> } =>
             !!o && typeof o.name === "string" && typeof o.value === "object",
         )
-        .map((o) => ({
+        .map(o => ({
           name: o.name,
           value: o.value,
         }));
@@ -180,36 +156,26 @@ export class GoveeCloudClient {
    * @param device Device identifier
    */
   async getDiyScenes(sku: string, device: string): Promise<CloudScene[]> {
-    const resp = await this.request<CloudScenesResponse>(
-      "POST",
-      "/router/api/v1/device/diy-scenes",
-      {
-        requestId: "diy-scenes",
-        payload: { sku, device },
-      },
-    );
+    const resp = await this.request<CloudScenesResponse>("POST", "/router/api/v1/device/diy-scenes", {
+      requestId: "diy-scenes",
+      payload: { sku, device },
+    });
 
     const scenes: CloudScene[] = [];
-    const caps = Array.isArray(resp?.payload?.capabilities)
-      ? resp.payload.capabilities
-      : [];
+    const caps = Array.isArray(resp?.payload?.capabilities) ? resp.payload.capabilities : [];
     for (const cap of caps) {
       if (!cap || typeof cap.instance !== "string") {
         continue;
       }
-      const opts = Array.isArray(cap.parameters?.options)
-        ? cap.parameters.options
-        : [];
-      this.log.debug(
-        `DIY-Scenes endpoint: instance=${cap.instance}, options=${opts.length}`,
-      );
+      const opts = Array.isArray(cap.parameters?.options) ? cap.parameters.options : [];
+      this.log.debug(`DIY-Scenes endpoint: instance=${cap.instance}, options=${opts.length}`);
       scenes.push(
         ...opts
           .filter(
             (o): o is { name: string; value: Record<string, unknown> } =>
               !!o && typeof o.name === "string" && typeof o.value === "object",
           )
-          .map((o) => ({ name: o.name, value: o.value })),
+          .map(o => ({ name: o.name, value: o.value })),
       );
     }
 
@@ -223,11 +189,7 @@ export class GoveeCloudClient {
    * @param path API endpoint path
    * @param body Optional request body
    */
-  private async request<T>(
-    method: string,
-    path: string,
-    body?: unknown,
-  ): Promise<T> {
+  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     this.log.debug(`Cloud API: ${method} ${path}`);
     try {
       return await httpsRequest<T>({
@@ -240,11 +202,7 @@ export class GoveeCloudClient {
       // Enhance 429 errors with retry-after info
       if (err instanceof HttpError && err.statusCode === 429) {
         const retryAfter = String(err.headers["retry-after"] ?? "unknown");
-        throw new HttpError(
-          `Rate limited — retry after ${retryAfter}s`,
-          429,
-          err.headers,
-        );
+        throw new HttpError(`Rate limited — retry after ${retryAfter}s`, 429, err.headers);
       }
       throw err;
     }

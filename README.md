@@ -14,6 +14,7 @@
 Control all [Govee](https://www.govee.com/) WiFi products from ioBroker — lights, sensors and appliances. Bluetooth-only devices are not supported.
 
 The adapter uses every channel Govee offers and picks whichever delivers the fastest, most reliable answer:
+
 - **LAN** (UDP) — primary for lights with LAN mode enabled
 - **AWS IoT MQTT** — real-time status push when you supply your Govee account
 - **OpenAPI MQTT** — push events for sensors and appliances (lackWater, iceFull etc.)
@@ -21,6 +22,7 @@ The adapter uses every channel Govee offers and picks whichever delivers the fas
 - **App API** — sensor readings (Govee's OpenAPI v2 returns empty for thermometers, the App API doesn't)
 
 The Wiki lists every supported model and its test status:
+
 - [Devices (English)](https://github.com/krobipd/ioBroker.govee-smart/wiki/Devices)
 - [Geräte (Deutsch)](https://github.com/krobipd/ioBroker.govee-smart/wiki/Geraete)
 
@@ -30,16 +32,16 @@ The Wiki lists every supported model and its test status:
 
 Full user documentation lives in the **[Wiki](https://github.com/krobipd/ioBroker.govee-smart/wiki)**.
 
-| Topic | English | Deutsch |
-|---|---|---|
-| Landing page | [Home](https://github.com/krobipd/ioBroker.govee-smart/wiki/Home) | [Startseite](https://github.com/krobipd/ioBroker.govee-smart/wiki/Startseite) |
-| Channels, credentials, API key, experimental devices | [Setup](https://github.com/krobipd/ioBroker.govee-smart/wiki/Setup) | [Einrichtung](https://github.com/krobipd/ioBroker.govee-smart/wiki/Einrichtung) |
-| Supported models, status meanings, contributing yours | [Devices](https://github.com/krobipd/ioBroker.govee-smart/wiki/Devices) | [Geräte](https://github.com/krobipd/ioBroker.govee-smart/wiki/Geraete) |
+| Topic                                                                       | English                                                                                               | Deutsch                                                                                                 |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Landing page                                                                | [Home](https://github.com/krobipd/ioBroker.govee-smart/wiki/Home)                                     | [Startseite](https://github.com/krobipd/ioBroker.govee-smart/wiki/Startseite)                           |
+| Channels, credentials, API key, experimental devices                        | [Setup](https://github.com/krobipd/ioBroker.govee-smart/wiki/Setup)                                   | [Einrichtung](https://github.com/krobipd/ioBroker.govee-smart/wiki/Einrichtung)                         |
+| Supported models, status meanings, contributing yours                       | [Devices](https://github.com/krobipd/ioBroker.govee-smart/wiki/Devices)                               | [Geräte](https://github.com/krobipd/ioBroker.govee-smart/wiki/Geraete)                                  |
 | Thermometers, heaters, kettles, etc. — state tree, updates, troubleshooting | [Sensors and Appliances](https://github.com/krobipd/ioBroker.govee-smart/wiki/Sensors-and-Appliances) | [Sensoren und Appliances](https://github.com/krobipd/ioBroker.govee-smart/wiki/Sensoren-und-Appliances) |
-| Lights — segment count, wizard, cut strips, batch commands | [Segments](https://github.com/krobipd/ioBroker.govee-smart/wiki/Segments) | [Segmente](https://github.com/krobipd/ioBroker.govee-smart/wiki/Segmente) |
-| Lights — scene library, speed slider, Cloud vs local snapshots | [Scenes and Snapshots](https://github.com/krobipd/ioBroker.govee-smart/wiki/Scenes-and-Snapshots) | [Szenen und Snapshots](https://github.com/krobipd/ioBroker.govee-smart/wiki/Szenen-und-Snapshots) |
-| Lights — group fan-out, capability intersection | [Groups](https://github.com/krobipd/ioBroker.govee-smart/wiki/Groups) | [Gruppen](https://github.com/krobipd/ioBroker.govee-smart/wiki/Gruppen) |
-| Folder naming, startup, diagnostics, troubleshooting | [Behavior](https://github.com/krobipd/ioBroker.govee-smart/wiki/Behavior) | [Verhalten](https://github.com/krobipd/ioBroker.govee-smart/wiki/Verhalten) |
+| Lights — segment count, wizard, cut strips, batch commands                  | [Segments](https://github.com/krobipd/ioBroker.govee-smart/wiki/Segments)                             | [Segmente](https://github.com/krobipd/ioBroker.govee-smart/wiki/Segmente)                               |
+| Lights — scene library, speed slider, Cloud vs local snapshots              | [Scenes and Snapshots](https://github.com/krobipd/ioBroker.govee-smart/wiki/Scenes-and-Snapshots)     | [Szenen und Snapshots](https://github.com/krobipd/ioBroker.govee-smart/wiki/Szenen-und-Snapshots)       |
+| Lights — group fan-out, capability intersection                             | [Groups](https://github.com/krobipd/ioBroker.govee-smart/wiki/Groups)                                 | [Gruppen](https://github.com/krobipd/ioBroker.govee-smart/wiki/Gruppen)                                 |
+| Folder naming, startup, diagnostics, troubleshooting                        | [Behavior](https://github.com/krobipd/ioBroker.govee-smart/wiki/Behavior)                             | [Verhalten](https://github.com/krobipd/ioBroker.govee-smart/wiki/Verhalten)                             |
 
 ---
 
@@ -69,11 +71,11 @@ Full user documentation lives in the **[Wiki](https://github.com/krobipd/ioBroke
 
 ## Credential levels
 
-| Level | Credentials | What works |
-|-------|-------------|------------|
-| **LAN only** | none | Lights with LAN mode: power, brightness, color, color temperature, local snapshots |
-| **+ Cloud API key** | API key | + device names, capabilities, scenes, segments, Cloud snapshots, basic groups, sensor and appliance readings, push events for sensors/appliances |
-| **+ Govee account** | email + password | + real-time status push for lights via AWS IoT MQTT, full group control |
+| Level               | Credentials      | What works                                                                                                                                       |
+| ------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **LAN only**        | none             | Lights with LAN mode: power, brightness, color, color temperature, local snapshots                                                               |
+| **+ Cloud API key** | API key          | + device names, capabilities, scenes, segments, Cloud snapshots, basic groups, sensor and appliance readings, push events for sensors/appliances |
+| **+ Govee account** | email + password | + real-time status push for lights via AWS IoT MQTT, full group control                                                                          |
 
 Sensors and appliances always need at least the API key — they have no LAN protocol. See the [Setup page](https://github.com/krobipd/ioBroker.govee-smart/wiki/Setup) for how to get one.
 
@@ -81,11 +83,11 @@ Sensors and appliances always need at least the API key — they have no LAN pro
 
 ## Ports
 
-| Port | Protocol | Direction | Purpose |
-|------|----------|-----------|---------|
-| 4001 | UDP | Outbound (multicast 239.255.255.250) | LAN device discovery |
-| 4002 | UDP | Inbound | LAN device responses |
-| 4003 | UDP | Outbound | LAN device commands |
+| Port | Protocol | Direction                            | Purpose              |
+| ---- | -------- | ------------------------------------ | -------------------- |
+| 4001 | UDP      | Outbound (multicast 239.255.255.250) | LAN device discovery |
+| 4002 | UDP      | Inbound                              | LAN device responses |
+| 4003 | UDP      | Outbound                             | LAN device commands  |
 
 All ports are fixed by the Govee LAN protocol and cannot be changed.
 
@@ -106,10 +108,13 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+
 ### 2.0.3 (2026-04-26)
+
 - Min js-controller correction: was incorrectly bumped to `>=7.0.23` in 2.0.2 (and admin downgraded from `>=7.6.20` to `>=7.6.17`). The repochecker-recommended values are `>=6.0.11` / `>=7.6.20` — restored.
 
 ### 2.0.2 (2026-04-26)
+
 - OpenAPI MQTT now keeps a stable client ID across reconnects (was `Date.now`-based, which Govee's broker treats as new connections).
 - Stop shipping the `manual-review` release-script plugin and the redundant `@iobroker/types` runtime dep — adapter-only consequences.
 - Bump min js-controller to `>=7.0.23` (matches latest-repo recommendation).
@@ -117,12 +122,14 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - Repo hygiene: ignore `package/` (npm-pack artefact).
 
 ### 2.0.1 (2026-04-26)
+
 - Sensor states route to `sensor/`, event states to `events/` (was `control/` for both); state objects are created lazily on first write to avoid `no existing object` warnings.
 - Snapshots and scenes only attach to lights now; thermometers, heaters and kettles no longer get `snapshot_local` / `snapshot_save` / `snapshot_delete`.
 - No more boot-time `N experimental device(s) detected` log dump — only triggers when an experimental SKU actually shows up, once per lifetime per SKU.
 - Routine `OpenAPI MQTT connected for sensor events` info line removed; reconnect-recovery log kept.
 
 ### 2.0.0 (2026-04-26)
+
 - Major release — Govee appliances and sensors (thermometers like H5179, heaters, kettles, ice makers) are now handled here alongside lights, via the App API and OpenAPI-MQTT push channel.
 - The standalone `iobroker.govee-appliances` adapter is deprecated and rolls into here. Install govee-smart 2.0.0+ and uninstall govee-appliances when convenient.
 - New **"Enable experimental device support"** checkbox in the adapter config. The Wiki [Devices](https://github.com/krobipd/ioBroker.govee-smart/wiki/Devices) page lists every SKU and its status.
@@ -130,6 +137,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - New state `info.openapiMqttConnected` for the OpenAPI-MQTT channel; `info.mqttConnected` keeps tracking AWS IoT MQTT for lights.
 
 ### 1.11.0 (2026-04-25)
+
 - Scene / DIY-scene / snapshot / music-mode dropdowns now accept index-as-number, index-as-string and the entry name (case-insensitive). The state type is `mixed` — no more `expects type string but received number` warning when scripts write a numeric index.
 - Duplicate scene names from the cloud are auto-disambiguated with `" (2)"`, `" (3)"` suffixes; reverse-lookup is deterministic.
 - The adapter acks back the canonical key after activation, so the dropdown stays in sync regardless of how the value was written.
@@ -175,4 +183,4 @@ SOFTWARE.
 
 ---
 
-*Developed with assistance from Claude.ai*
+_Developed with assistance from Claude.ai_

@@ -1,13 +1,8 @@
 import * as crypto from "node:crypto";
 import * as forge from "node-forge";
 import * as mqtt from "mqtt";
-import { httpsRequest } from "./http-client.js";
-import {
-  GOVEE_APP_VERSION,
-  GOVEE_CLIENT_ID,
-  GOVEE_CLIENT_TYPE,
-  GOVEE_USER_AGENT,
-} from "./govee-constants.js";
+import { httpsRequest } from "./http-client";
+import { GOVEE_APP_VERSION, GOVEE_CLIENT_ID, GOVEE_CLIENT_TYPE, GOVEE_USER_AGENT } from "./govee-constants";
 import {
   classifyError,
   type ErrorCategory,
@@ -15,7 +10,7 @@ import {
   type GoveeLoginResponse,
   type MqttStatusUpdate,
   type TimerAdapter,
-} from "./types.js";
+} from "./types";
 
 /** Max consecutive auth failures before giving up */
 const MAX_AUTH_FAILURES = 3;
@@ -86,9 +81,7 @@ export class GoveeMqttClient {
    * source topic and any op.command hex strings. The hook is responsible
    * for forwarding to a DiagnosticsCollector if one is set up.
    */
-  private onPacket:
-    | ((deviceId: string, topic: string, hex: string) => void)
-    | null = null;
+  private onPacket: ((deviceId: string, topic: string, hex: string) => void) | null = null;
 
   /**
    * @param email Govee account email
@@ -96,12 +89,7 @@ export class GoveeMqttClient {
    * @param log ioBroker logger
    * @param timers Timer adapter
    */
-  constructor(
-    email: string,
-    password: string,
-    log: ioBroker.Logger,
-    timers: TimerAdapter,
-  ) {
+  constructor(email: string, password: string, log: ioBroker.Logger, timers: TimerAdapter) {
     this.email = email;
     this.password = password;
     this.log = log;
@@ -140,23 +128,15 @@ export class GoveeMqttClient {
         const apiMsg = loginResp.message ?? "unknown error";
         const statusStr = `(status ${apiStatus || "?"})`;
         // Classify the Govee response to avoid misleading error messages
-        if (
-          apiStatus === 429 ||
-          /too many|rate.?limit|frequent|throttl/i.test(apiMsg)
-        ) {
+        if (apiStatus === 429 || /too many|rate.?limit|frequent|throttl/i.test(apiMsg)) {
           throw new Error(`Rate limited by Govee: ${apiMsg} ${statusStr}`);
         }
-        if (
-          apiStatus === 401 ||
-          /password|credential|unauthorized/i.test(apiMsg)
-        ) {
+        if (apiStatus === 401 || /password|credential|unauthorized/i.test(apiMsg)) {
           throw new Error(`Login failed: ${apiMsg} ${statusStr}`);
         }
         // Account temporarily locked — NOT a credential error, keep reconnecting
         if (/abnormal|blocked|suspended|disabled/i.test(apiMsg)) {
-          throw new Error(
-            `Account temporarily locked by Govee: ${apiMsg} ${statusStr}`,
-          );
+          throw new Error(`Account temporarily locked by Govee: ${apiMsg} ${statusStr}`);
         }
         // Other account issues, maintenance, etc.
         throw new Error(`Govee login rejected: ${apiMsg} ${statusStr}`);
@@ -202,7 +182,7 @@ export class GoveeMqttClient {
         }
 
         // Subscribe to account topic for status updates
-        this.client?.subscribe(this.accountTopic, { qos: 0 }, (err) => {
+        this.client?.subscribe(this.accountTopic, { qos: 0 }, err => {
           if (err) {
             this.log.warn(`MQTT subscribe failed: ${err.message}`);
           } else {
@@ -216,7 +196,7 @@ export class GoveeMqttClient {
         this.handleMessage(payload, topic);
       });
 
-      this.client.on("error", (err) => {
+      this.client.on("error", err => {
         this.log.debug(`MQTT error: ${err.message}`);
       });
 
@@ -240,9 +220,7 @@ export class GoveeMqttClient {
       if (category === "AUTH") {
         this.authFailCount++;
         if (this.authFailCount >= MAX_AUTH_FAILURES) {
-          this.log.warn(
-            `MQTT login failed ${this.authFailCount} times — check email/password in adapter settings`,
-          );
+          this.log.warn(`MQTT login failed ${this.authFailCount} times — check email/password in adapter settings`);
           return;
         }
       } else {
@@ -296,14 +274,8 @@ export class GoveeMqttClient {
       // unexpected types. Validate each field before constructing the update.
       const sku = typeof raw.sku === "string" ? raw.sku : "";
       const device = typeof raw.device === "string" ? raw.device : "";
-      const state =
-        raw.state && typeof raw.state === "object"
-          ? (raw.state as MqttStatusUpdate["state"])
-          : undefined;
-      const op =
-        raw.op && typeof raw.op === "object"
-          ? (raw.op as MqttStatusUpdate["op"])
-          : undefined;
+      const state = raw.state && typeof raw.state === "object" ? (raw.state as MqttStatusUpdate["state"]) : undefined;
+      const op = raw.op && typeof raw.op === "object" ? (raw.op as MqttStatusUpdate["op"]) : undefined;
 
       if (sku || device) {
         this.onStatus?.({ sku, device, state, op });
@@ -316,9 +288,7 @@ export class GoveeMqttClient {
         }
       }
     } catch {
-      this.log.debug(
-        `MQTT: Failed to parse message: ${payload.toString().slice(0, 200)}`,
-      );
+      this.log.debug(`MQTT: Failed to parse message: ${payload.toString().slice(0, 200)}`);
     }
   }
 
@@ -329,9 +299,7 @@ export class GoveeMqttClient {
    *
    * @param cb Callback receiving (deviceId, topic, hex)
    */
-  setPacketHook(
-    cb: ((deviceId: string, topic: string, hex: string) => void) | null,
-  ): void {
+  setPacketHook(cb: ((deviceId: string, topic: string, hex: string) => void) | null): void {
     this.onPacket = cb;
   }
 
@@ -345,13 +313,8 @@ export class GoveeMqttClient {
     }
 
     this.reconnectAttempts++;
-    const delay = Math.min(
-      5_000 * Math.pow(2, this.reconnectAttempts - 1),
-      300_000,
-    );
-    this.log.debug(
-      `MQTT: Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts})`,
-    );
+    const delay = Math.min(5_000 * Math.pow(2, this.reconnectAttempts - 1), 300_000);
+    this.log.debug(`MQTT: Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts})`);
 
     this.reconnectTimer = this.timers.setTimeout(() => {
       this.reconnectTimer = undefined;
@@ -405,10 +368,7 @@ export class GoveeMqttClient {
    * @param p12Base64 Base64-encoded PKCS12 data
    * @param password PKCS12 password
    */
-  private extractCertsFromP12(
-    p12Base64: string,
-    password: string,
-  ): { key: string; cert: string; ca: string } {
+  private extractCertsFromP12(p12Base64: string, password: string): { key: string; cert: string; ca: string } {
     const p12Der = forge.util.decode64(p12Base64);
     const p12Asn1 = forge.asn1.fromDer(p12Der);
     const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, password);

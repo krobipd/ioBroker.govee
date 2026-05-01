@@ -126,11 +126,7 @@ export class DeviceRegistry {
     try {
       raw = fs.readFileSync(filePath, "utf-8");
     } catch (err) {
-      this.log?.warn(
-        `device-registry: cannot read ${filePath}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
+      this.log?.warn(`device-registry: cannot read ${filePath}: ${err instanceof Error ? err.message : String(err)}`);
       return;
     }
 
@@ -139,9 +135,7 @@ export class DeviceRegistry {
       parsed = JSON.parse(raw) as DevicesFile;
     } catch (err) {
       this.log?.warn(
-        `device-registry: invalid JSON in ${filePath}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `device-registry: invalid JSON in ${filePath}: ${err instanceof Error ? err.message : String(err)}`,
       );
       return;
     }
@@ -171,9 +165,7 @@ export class DeviceRegistry {
       this.entries.set(upper, entry);
 
       const eligible =
-        entry.status === "verified" ||
-        entry.status === "reported" ||
-        (entry.status === "seed" && this.experimental);
+        entry.status === "verified" || entry.status === "reported" || (entry.status === "seed" && this.experimental);
 
       if (eligible && entry.quirks) {
         this.activeQuirks.set(upper, entry.quirks);
@@ -271,11 +263,7 @@ export class DeviceRegistry {
    * @param min API-reported minimum
    * @param max API-reported maximum
    */
-  applyColorTempQuirk(
-    sku: string,
-    min: number,
-    max: number,
-  ): { min: number; max: number } {
+  applyColorTempQuirk(sku: string, min: number, max: number): { min: number; max: number } {
     const q = this.getQuirks(sku);
     if (q?.colorTempRange) {
       return q.colorTempRange;
@@ -298,9 +286,7 @@ let singleton: DeviceRegistry | undefined;
  *
  * @param config Loader options
  */
-export function initDeviceRegistry(
-  config: RegistryConfig = {},
-): DeviceRegistry {
+export function initDeviceRegistry(config: RegistryConfig = {}): DeviceRegistry {
   singleton = new DeviceRegistry(config);
   return singleton;
 }
@@ -333,11 +319,7 @@ export function getDeviceQuirks(sku: string): DeviceQuirks | undefined {
  * @param min API-reported minimum
  * @param max API-reported maximum
  */
-export function applyColorTempQuirk(
-  sku: string,
-  min: number,
-  max: number,
-): { min: number; max: number } {
+export function applyColorTempQuirk(sku: string, min: number, max: number): { min: number; max: number } {
   return singleton?.applyColorTempQuirk(sku, min, max) ?? { min, max };
 }
 

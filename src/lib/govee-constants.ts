@@ -7,7 +7,6 @@
 export const GOVEE_APP_VERSION = "7.3.30";
 export const GOVEE_CLIENT_ID = "d39f7b0732a24e58acf771103ebefc04";
 export const GOVEE_CLIENT_TYPE = "1";
-export const GOVEE_USER_AGENT =
-  "GoveeHome/7.3.30 (com.ihoment.GoVeeSensor; build:3; iOS 26.3.1) Alamofire/5.11.1";
+export const GOVEE_USER_AGENT = "GoveeHome/7.3.30 (com.ihoment.GoVeeSensor; build:3; iOS 26.3.1) Alamofire/5.11.1";
 /** Base URL for the undocumented Govee app API (devices/v1/list, scene library, etc.). */
 export const GOVEE_APP_BASE_URL = "https://app2.govee.com";

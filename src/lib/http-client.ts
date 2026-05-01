@@ -40,7 +40,7 @@ export function httpsRequest<T>(options: HttpRequestOptions): Promise<T> {
       timeout: options.timeout ?? 15_000,
     };
 
-    const req = https.request(reqOptions, (res) => {
+    const req = https.request(reqOptions, res => {
       const chunks: Buffer[] = [];
       res.on("data", (chunk: Buffer) => chunks.push(chunk));
       res.on("end", () => {
@@ -48,13 +48,7 @@ export function httpsRequest<T>(options: HttpRequestOptions): Promise<T> {
         const statusCode = res.statusCode ?? 0;
 
         if (statusCode < 200 || statusCode >= 400) {
-          reject(
-            new HttpError(
-              `HTTP ${statusCode}: ${raw.slice(0, 200)}`,
-              statusCode,
-              res.headers,
-            ),
-          );
+          reject(new HttpError(`HTTP ${statusCode}: ${raw.slice(0, 200)}`, statusCode, res.headers));
           return;
         }
 
@@ -88,11 +82,7 @@ export class HttpError extends Error {
    * @param statusCode HTTP status code
    * @param headers Response headers
    */
-  constructor(
-    message: string,
-    statusCode: number,
-    headers: Record<string, string | string[] | undefined> = {},
-  ) {
+  constructor(message: string, statusCode: number, headers: Record<string, string | string[] | undefined> = {}) {
     super(message);
     this.name = "HttpError";
     this.statusCode = statusCode;

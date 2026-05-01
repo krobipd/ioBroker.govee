@@ -1,5 +1,5 @@
-import { SEGMENT_HARD_MAX } from "./device-manager.js";
-import type { GoveeDevice } from "./types.js";
+import { SEGMENT_HARD_MAX } from "./device-manager";
+import type { GoveeDevice } from "./types";
 
 /**
  * Wizard UI text, keyed by message id and language. The handful of admin
@@ -20,8 +20,7 @@ const WIZARD_STRINGS: Record<WizardLang, Record<string, string>> = {
     canYouSeeStrip: "Can you see the light on the strip?",
     canYouSeeShort: "Can you see the light?",
     seenSoFar: "Marked visible so far: [{list}]",
-    yesNoDoneLine:
-      "→ Yes, visible   or   → No, dark   or   → Done – end of strip",
+    yesNoDoneLine: "→ Yes, visible   or   → No, dark   or   → Done – end of strip",
     wizardStartedFor: "Wizard started for {name}.",
     markedVisible: "✓ Segment {idx} marked as visible.",
     markedDark: "✗ Segment {idx} marked as dark (gap).",
@@ -33,8 +32,7 @@ const WIZARD_STRINGS: Record<WizardLang, Record<string, string>> = {
     errNoSegments: "{name} has no segments — wizard not applicable.",
     errDeviceGone: "Device disappeared during the wizard",
     errDeviceGoneShort: "Device disappeared",
-    errAnswerFirst:
-      "Please answer at least once first (Yes visible or No dark).",
+    errAnswerFirst: "Please answer at least once first (Yes visible or No dark).",
     abortTitle: "Wizard aborted.",
     abortRestored: "The strip has been restored to its previous state.",
     abortRestart: "You can restart the wizard at any time.",
@@ -61,22 +59,19 @@ const WIZARD_STRINGS: Record<WizardLang, Record<string, string>> = {
     canYouSeeStrip: "Siehst du das Licht auf dem Strip?",
     canYouSeeShort: "Siehst du das Licht?",
     seenSoFar: "Bisher als sichtbar markiert: [{list}]",
-    yesNoDoneLine:
-      "→ Ja, sichtbar   oder   → Nein, dunkel   oder   → Fertig – Strip zu Ende",
+    yesNoDoneLine: "→ Ja, sichtbar   oder   → Nein, dunkel   oder   → Fertig – Strip zu Ende",
     wizardStartedFor: "Assistent gestartet für {name}.",
     markedVisible: "✓ Segment {idx} als sichtbar markiert.",
     markedDark: "✗ Segment {idx} als dunkel markiert (Lücke).",
     errNoWizard: "Kein Assistent aktiv. Bitte zuerst 'Start' klicken.",
     errNoWizardShort: "Kein Assistent aktiv",
     errUnknownAction: "Unbekannte Aktion: {action}",
-    errAlreadyActive:
-      "Assistent bereits aktiv für {name}. Bitte zuerst abbrechen.",
+    errAlreadyActive: "Assistent bereits aktiv für {name}. Bitte zuerst abbrechen.",
     errDeviceNotFound: "Gerät nicht gefunden: {key}",
     errNoSegments: "{name} hat keine Segmente — Assistent nicht anwendbar.",
     errDeviceGone: "Gerät während des Assistenten verschwunden",
     errDeviceGoneShort: "Gerät verschwunden",
-    errAnswerFirst:
-      "Bitte zuerst mindestens eine Antwort geben (Ja sichtbar oder Nein dunkel).",
+    errAnswerFirst: "Bitte zuerst mindestens eine Antwort geben (Ja sichtbar oder Nein dunkel).",
     abortTitle: "Assistent abgebrochen.",
     abortRestored: "Der Strip wurde auf den vorherigen Zustand zurückgesetzt.",
     abortRestart: "Du kannst den Assistenten jederzeit neu starten.",
@@ -87,10 +82,8 @@ const WIZARD_STRINGS: Record<WizardLang, Record<string, string>> = {
     finishTreeRebuilt: "State-Tree wurde neu gebaut.",
     progressSegment: "Segment {idx}",
     progressCount: "{count} Segmente",
-    logIdleTimeout:
-      "Segment-Assistent für {name}: Idle-Timeout (5 Min), abgebrochen",
-    logAbortFailed:
-      "Abbruch des Assistenten nach Timeout fehlgeschlagen: {msg}",
+    logIdleTimeout: "Segment-Assistent für {name}: Idle-Timeout (5 Min), abgebrochen",
+    logAbortFailed: "Abbruch des Assistenten nach Timeout fehlgeschlagen: {msg}",
     logDetected: "Segment-Assistent für {name}: {count} Segmente erkannt{gaps}",
     logGapsSuffix: ', Lücken erkannt (manual_list="{list}")',
     logNoGapsSuffix: ", keine Lücken",
@@ -103,16 +96,11 @@ const WIZARD_STRINGS: Record<WizardLang, Record<string, string>> = {
  * @param template Message template with `{placeholder}` slots
  * @param params Values to substitute — keys must match the placeholder names
  */
-function format(
-  template: string,
-  params?: Record<string, string | number>,
-): string {
+function format(template: string, params?: Record<string, string | number>): string {
   if (!params) {
     return template;
   }
-  return template.replace(/\{(\w+)\}/g, (m, key: string) =>
-    key in params ? String(params[key]) : m,
-  );
+  return template.replace(/\{(\w+)\}/g, (m, key: string) => (key in params ? String(params[key]) : m));
 }
 
 /** Session state for the interactive segment-detection wizard */
@@ -169,11 +157,7 @@ export interface WizardHost {
   /** Read a state value by full ID. */
   getState(id: string): Promise<{ val: unknown } | null | undefined>;
   /** Dispatch a command to a device (normally DeviceManager.sendCommand). */
-  sendCommand(
-    device: GoveeDevice,
-    command: string,
-    value: unknown,
-  ): Promise<void>;
+  sendCommand(device: GoveeDevice, command: string, value: unknown): Promise<void>;
   /**
    * Flash one segment bright white and dim all others — atomically, in a
    * single ptReal datagram. Required because separate UDP sends get dropped
@@ -186,12 +170,7 @@ export interface WizardHost {
    * Restore the whole strip to a uniform color + brightness atomically.
    * Returns `true` if LAN atomic path was used.
    */
-  restoreStripAtomic(
-    device: GoveeDevice,
-    total: number,
-    color: number,
-    brightness: number,
-  ): Promise<boolean>;
+  restoreStripAtomic(device: GoveeDevice, total: number, color: number, brightness: number): Promise<boolean>;
   /** Look up a device by its wizard-session key. */
   findDevice(key: string): GoveeDevice | undefined;
   /** Adapter namespace (e.g. "govee-smart.0"). */
@@ -238,12 +217,7 @@ export function wizardIdleText(lang: string): string {
  */
 function hasSegmentCapability(device: GoveeDevice): boolean {
   const caps = Array.isArray(device.capabilities) ? device.capabilities : [];
-  return caps.some(
-    (c) =>
-      c &&
-      typeof c.type === "string" &&
-      c.type.includes("segment_color_setting"),
-  );
+  return caps.some(c => c && typeof c.type === "string" && c.type.includes("segment_color_setting"));
 }
 
 /**
@@ -316,10 +290,7 @@ export class SegmentWizard {
    * @param action "start" | "yes" | "no" | "done" | "abort"
    * @param deviceKey Target device — only consulted on action="start"
    */
-  public async runStep(
-    action: string,
-    deviceKey: string,
-  ): Promise<WizardResponse> {
+  public async runStep(action: string, deviceKey: string): Promise<WizardResponse> {
     if (action === "start") {
       return this.start(deviceKey);
     }
@@ -462,10 +433,7 @@ export class SegmentWizard {
     this.session = null;
     this.clearIdleTimer();
     return {
-      message:
-        `${this.t("abortTitle")}\n` +
-        `${this.t("abortRestored")}\n` +
-        `${this.t("abortRestart")}`,
+      message: `${this.t("abortTitle")}\n` + `${this.t("abortRestored")}\n` + `${this.t("abortRestart")}`,
       done: true,
       aborted: true,
     };
@@ -489,8 +457,7 @@ export class SegmentWizard {
 
     const segmentCount = session.current;
     const visible = session.visible.slice().sort((a, b) => a - b);
-    const allContiguous =
-      visible.length === segmentCount && visible.every((v, i) => v === i);
+    const allContiguous = visible.length === segmentCount && visible.every((v, i) => v === i);
     const manualList = allContiguous ? "" : compactIndices(visible);
     const result: WizardResult = {
       segmentCount,
@@ -501,9 +468,7 @@ export class SegmentWizard {
     await this.host.applyWizardResult(device, result);
     await this.restoreBaseline(device, session.baseline);
 
-    const gapsSuffix = result.hasGaps
-      ? this.t("logGapsSuffix", { list: manualList })
-      : this.t("logNoGapsSuffix");
+    const gapsSuffix = result.hasGaps ? this.t("logGapsSuffix", { list: manualList }) : this.t("logNoGapsSuffix");
     this.host.log.info(
       this.t("logDetected", {
         name: device.name,
@@ -515,9 +480,7 @@ export class SegmentWizard {
     this.session = null;
     this.clearIdleTimer();
 
-    const summary = result.hasGaps
-      ? this.t("finishGaps", { list: manualList })
-      : this.t("finishNoGaps");
+    const summary = result.hasGaps ? this.t("finishGaps", { list: manualList }) : this.t("finishNoGaps");
     return {
       message:
         `${this.t("finishDone")}\n\n` +
@@ -540,7 +503,7 @@ export class SegmentWizard {
         return;
       }
       this.host.log.warn(this.t("logIdleTimeout", { name: this.session.name }));
-      this.abort().catch((e) => {
+      this.abort().catch(e => {
         this.host.log.warn(
           this.t("logAbortFailed", {
             msg: e instanceof Error ? e.message : String(e),
@@ -565,28 +528,17 @@ export class SegmentWizard {
    *
    * @param device Target device
    */
-  private async captureBaseline(
-    device: GoveeDevice,
-  ): Promise<SegmentWizardSession["baseline"]> {
+  private async captureBaseline(device: GoveeDevice): Promise<SegmentWizardSession["baseline"]> {
     const prefix = this.host.devicePrefix(device);
     const ns = this.host.namespace;
-    const power = (await this.host.getState(`${ns}.${prefix}.control.power`))
-      ?.val;
-    const brightness = (
-      await this.host.getState(`${ns}.${prefix}.control.brightness`)
-    )?.val;
-    const colorRgb = (
-      await this.host.getState(`${ns}.${prefix}.control.colorRgb`)
-    )?.val;
+    const power = (await this.host.getState(`${ns}.${prefix}.control.power`))?.val;
+    const brightness = (await this.host.getState(`${ns}.${prefix}.control.brightness`))?.val;
+    const colorRgb = (await this.host.getState(`${ns}.${prefix}.control.colorRgb`))?.val;
     const segmentColors: SegmentWizardSession["baseline"]["segmentColors"] = [];
     const currentCount = device.segmentCount ?? 0;
     for (let i = 0; i < currentCount; i++) {
-      const c = (
-        await this.host.getState(`${ns}.${prefix}.segments.${i}.color`)
-      )?.val;
-      const b = (
-        await this.host.getState(`${ns}.${prefix}.segments.${i}.brightness`)
-      )?.val;
+      const c = (await this.host.getState(`${ns}.${prefix}.segments.${i}.color`))?.val;
+      const b = (await this.host.getState(`${ns}.${prefix}.segments.${i}.brightness`))?.val;
       segmentColors.push({
         idx: i,
         color: typeof c === "string" ? c : "#ffffff",
@@ -617,9 +569,7 @@ export class SegmentWizard {
     // Fallback drives the full protocol range — we can't know the real count
     // yet. The device silently drops indices it doesn't physically have.
     const total = SEGMENT_HARD_MAX + 1;
-    const others = Array.from({ length: total }, (_, i) => i).filter(
-      (i) => i !== idx,
-    );
+    const others = Array.from({ length: total }, (_, i) => i).filter(i => i !== idx);
     if (others.length > 0) {
       await this.host.sendCommand(device, "segmentBatch", {
         segments: others,
@@ -641,10 +591,7 @@ export class SegmentWizard {
    * @param device Target device
    * @param baseline Previously captured baseline values
    */
-  private async restoreBaseline(
-    device: GoveeDevice,
-    baseline: SegmentWizardSession["baseline"],
-  ): Promise<void> {
+  private async restoreBaseline(device: GoveeDevice, baseline: SegmentWizardSession["baseline"]): Promise<void> {
     if (!baseline.colorRgb || !/^#[0-9a-fA-F]{6}$/.test(baseline.colorRgb)) {
       return;
     }
@@ -654,12 +601,7 @@ export class SegmentWizard {
     }
     const color = parseInt(baseline.colorRgb.slice(1), 16);
     const brightness = baseline.brightness ?? 100;
-    const atomic = await this.host.restoreStripAtomic(
-      device,
-      total,
-      color,
-      brightness,
-    );
+    const atomic = await this.host.restoreStripAtomic(device, total, color, brightness);
     if (atomic) {
       return;
     }

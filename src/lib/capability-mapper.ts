@@ -4,8 +4,8 @@ import {
   type CloudCapability,
   type CloudStateCapability,
   type GoveeDevice,
-} from "./types.js";
-import { applyColorTempQuirk } from "./device-registry.js";
+} from "./types";
+import { applyColorTempQuirk } from "./device-registry";
 
 /** ioBroker state definition derived from a Govee capability */
 export interface StateDefinition {
@@ -76,9 +76,7 @@ function coerceNum(v: unknown): number | null {
  *
  * @param capabilities Device capabilities from Cloud API
  */
-export function mapCapabilities(
-  capabilities: CloudCapability[],
-): StateDefinition[] {
+export function mapCapabilities(capabilities: CloudCapability[]): StateDefinition[] {
   const states: StateDefinition[] = [];
 
   if (!Array.isArray(capabilities)) {
@@ -156,11 +154,7 @@ export function getDefaultLanStates(): StateDefinition[] {
  * @param cap Cloud capability to map
  */
 function mapSingleCapability(cap: CloudCapability): StateDefinition[] | null {
-  if (
-    !cap ||
-    typeof cap.type !== "string" ||
-    typeof cap.instance !== "string"
-  ) {
+  if (!cap || typeof cap.type !== "string" || typeof cap.instance !== "string") {
     return null;
   }
   const shortType = cap.type.replace("devices.capabilities.", "");
@@ -228,11 +222,7 @@ function mapSingleCapability(cap: CloudCapability): StateDefinition[] | null {
       // lightScene / diyScene / snapshot get real dropdowns built later in
       // buildDeviceStateDefs from the scenes/snapshots arrays — skip the
       // generic stub here so we don't create and immediately delete it.
-      if (
-        cap.instance === "lightScene" ||
-        cap.instance === "diyScene" ||
-        cap.instance === "snapshot"
-      ) {
+      if (cap.instance === "lightScene" || cap.instance === "diyScene" || cap.instance === "snapshot") {
         return null;
       }
       return [
@@ -312,10 +302,7 @@ function mapColorSetting(cap: CloudCapability): StateDefinition[] {
     ];
   }
 
-  if (
-    cap.instance === "colorTemperatureK" ||
-    cap.instance.includes("colorTem")
-  ) {
+  if (cap.instance === "colorTemperatureK" || cap.instance.includes("colorTem")) {
     const range = cap.parameters?.range;
     return [
       {
@@ -343,10 +330,7 @@ function mapColorSetting(cap: CloudCapability): StateDefinition[] {
  * @param cap Cloud mode capability
  */
 function mapMode(cap: CloudCapability): StateDefinition[] {
-  if (
-    cap.instance !== "presetScene" ||
-    !Array.isArray(cap.parameters?.options)
-  ) {
+  if (cap.instance !== "presetScene" || !Array.isArray(cap.parameters?.options)) {
     return [];
   }
 
@@ -355,10 +339,7 @@ function mapMode(cap: CloudCapability): StateDefinition[] {
     if (!opt || typeof opt.name !== "string") {
       continue;
     }
-    const val =
-      typeof opt.value === "object"
-        ? JSON.stringify(opt.value)
-        : String(opt.value);
+    const val = typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value);
     states[val] = opt.name;
   }
 
@@ -447,15 +428,13 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
   }
 
   const states: StateDefinition[] = [];
-  const modeField = fields.find((f) => f && f.fieldName === "workMode");
+  const modeField = fields.find(f => f && f.fieldName === "workMode");
   if (modeField?.options && modeField.options.length > 0) {
     const modeStates: Record<string, string> = {};
     for (const opt of modeField.options) {
       if (opt && typeof opt.name === "string") {
         modeStates[
-          typeof opt.value === "object"
-            ? JSON.stringify(opt.value)
-            : String(opt.value as string | number | boolean)
+          typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value as string | number | boolean)
         ] = opt.name;
       }
     }
@@ -466,24 +445,20 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
       role: "level.mode",
       write: true,
       states: modeStates,
-      def: modeField.options[0]
-        ? String(modeField.options[0].value as string | number)
-        : "",
+      def: modeField.options[0] ? String(modeField.options[0].value as string | number) : "",
       capabilityType: cap.type,
       capabilityInstance: cap.instance,
     });
   }
 
-  const valueField = fields.find((f) => f && f.fieldName === "modeValue");
+  const valueField = fields.find(f => f && f.fieldName === "modeValue");
   if (valueField) {
     if (valueField.options && valueField.options.length > 0) {
       const valStates: Record<string, string> = {};
       for (const opt of valueField.options) {
         if (opt && typeof opt.name === "string") {
           valStates[
-            typeof opt.value === "object"
-              ? JSON.stringify(opt.value)
-              : String(opt.value as string | number | boolean)
+            typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value as string | number | boolean)
           ] = opt.name;
         }
       }
@@ -494,9 +469,7 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
         role: "level",
         write: true,
         states: valStates,
-        def: valueField.options[0]
-          ? String(valueField.options[0].value as string | number)
-          : "",
+        def: valueField.options[0] ? String(valueField.options[0].value as string | number) : "",
         capabilityType: cap.type,
         capabilityInstance: cap.instance,
       });
@@ -529,7 +502,7 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
 function mapTemperatureSetting(cap: CloudCapability): StateDefinition[] {
   const fields = cap.parameters?.fields;
   if (Array.isArray(fields) && fields.length > 0) {
-    const tempField = fields.find((f) => {
+    const tempField = fields.find(f => {
       if (!f || typeof f.fieldName !== "string") {
         return false;
       }
@@ -634,23 +607,15 @@ function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
   const states: StateDefinition[] = [];
 
   // Mode dropdown — only if API provides actual mode options
-  const modeField = fields.find(
-    (f) => f && typeof f.fieldName === "string" && f.fieldName === "musicMode",
-  );
-  if (
-    modeField?.options &&
-    Array.isArray(modeField.options) &&
-    modeField.options.length > 0
-  ) {
+  const modeField = fields.find(f => f && typeof f.fieldName === "string" && f.fieldName === "musicMode");
+  if (modeField?.options && Array.isArray(modeField.options) && modeField.options.length > 0) {
     const modeStates: Record<string, string> = { 0: "---" };
     for (const opt of modeField.options) {
       if (!opt || typeof opt.name !== "string") {
         continue;
       }
       modeStates[
-        typeof opt.value === "object"
-          ? JSON.stringify(opt.value)
-          : String(opt.value as string | number | boolean)
+        typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value as string | number | boolean)
       ] = opt.name;
     }
     states.push({
@@ -667,10 +632,7 @@ function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
   }
 
   // Sensitivity slider
-  const sensField = fields.find(
-    (f) =>
-      f && typeof f.fieldName === "string" && f.fieldName === "sensitivity",
-  );
+  const sensField = fields.find(f => f && typeof f.fieldName === "string" && f.fieldName === "sensitivity");
   if (sensField?.range) {
     states.push({
       id: "music_sensitivity",
@@ -688,9 +650,7 @@ function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
   }
 
   // Auto color toggle
-  const autoColorField = fields.find(
-    (f) => f && typeof f.fieldName === "string" && f.fieldName === "autoColor",
-  );
+  const autoColorField = fields.find(f => f && typeof f.fieldName === "string" && f.fieldName === "autoColor");
   if (autoColorField) {
     states.push({
       id: "music_auto_color",
@@ -718,16 +678,9 @@ function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
  * @param sku Device model (e.g. "H60A1")
  * @param states State definitions to adjust
  */
-export function applyQuirksToStates(
-  sku: string,
-  states: StateDefinition[],
-): StateDefinition[] {
+export function applyQuirksToStates(sku: string, states: StateDefinition[]): StateDefinition[] {
   for (const state of states) {
-    if (
-      state.id === "colorTemperature" &&
-      state.min != null &&
-      state.max != null
-    ) {
+    if (state.id === "colorTemperature" && state.min != null && state.max != null) {
       const corrected = applyColorTempQuirk(sku, state.min, state.max);
       state.min = corrected.min;
       state.max = corrected.max;
@@ -778,7 +731,7 @@ function humanize(str: string): string {
   return str
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/_/g, " ")
-    .replace(/^\w/, (c) => c.toUpperCase());
+    .replace(/^\w/, c => c.toUpperCase());
 }
 
 /** Mapped Cloud state value: state ID + converted value */
@@ -795,14 +748,8 @@ export interface CloudStateValue {
  *
  * @param cap Cloud state capability with current value
  */
-export function mapCloudStateValue(
-  cap: CloudStateCapability,
-): CloudStateValue | null {
-  if (
-    !cap ||
-    typeof cap.type !== "string" ||
-    typeof cap.instance !== "string"
-  ) {
+export function mapCloudStateValue(cap: CloudStateCapability): CloudStateValue | null {
+  if (!cap || typeof cap.type !== "string" || typeof cap.instance !== "string") {
     return null;
   }
   const shortType = cap.type.replace("devices.capabilities.", "");
@@ -893,8 +840,7 @@ export function mapCloudStateValue(
       }
       if (typeof raw === "object" && raw !== null) {
         const struct = raw as Record<string, unknown>;
-        const temp =
-          struct.targetTemperature ?? struct.temperature ?? struct.temp;
+        const temp = struct.targetTemperature ?? struct.temperature ?? struct.temp;
         const n = coerceNum(temp);
         if (n !== null) {
           return { stateId: "target_temperature", value: n };
@@ -996,7 +942,7 @@ export function buildDeviceStateDefs(
   if (device.lanIp) {
     stateDefs = getDefaultLanStates();
     if (device.capabilities.length > 0) {
-      const lanIds = new Set(stateDefs.map((d) => d.id));
+      const lanIds = new Set(stateDefs.map(d => d.id));
       const cloudDefs = mapCapabilities(device.capabilities);
       for (const cd of cloudDefs) {
         if (!lanIds.has(cd.id)) {
@@ -1183,12 +1129,10 @@ function memberHasControlState(member: GoveeDevice, stateId: string): boolean {
   const caps = Array.isArray(member.capabilities) ? member.capabilities : [];
   switch (stateId) {
     case "power":
-      return caps.some(
-        (c) => c && typeof c.type === "string" && c.type.endsWith("on_off"),
-      );
+      return caps.some(c => c && typeof c.type === "string" && c.type.endsWith("on_off"));
     case "brightness":
       return caps.some(
-        (c) =>
+        c =>
           c &&
           typeof c.type === "string" &&
           typeof c.instance === "string" &&
@@ -1197,7 +1141,7 @@ function memberHasControlState(member: GoveeDevice, stateId: string): boolean {
       );
     case "colorRgb":
       return caps.some(
-        (c) =>
+        c =>
           c &&
           typeof c.type === "string" &&
           typeof c.instance === "string" &&
@@ -1206,7 +1150,7 @@ function memberHasControlState(member: GoveeDevice, stateId: string): boolean {
       );
     case "colorTemperature":
       return caps.some(
-        (c) =>
+        c =>
           c &&
           typeof c.type === "string" &&
           typeof c.instance === "string" &&
@@ -1226,7 +1170,7 @@ function memberHasControlState(member: GoveeDevice, stateId: string): boolean {
  * @param members Resolved member devices
  */
 function buildGroupStateDefs(members: GoveeDevice[]): StateDefinition[] {
-  const controllable = members.filter((m) => m.lanIp || m.channels.cloud);
+  const controllable = members.filter(m => m.lanIp || m.channels.cloud);
   if (controllable.length === 0) {
     return [];
   }
@@ -1235,17 +1179,15 @@ function buildGroupStateDefs(members: GoveeDevice[]): StateDefinition[] {
 
   // Control states: intersection of member capabilities
   for (const ld of getDefaultLanStates()) {
-    if (controllable.every((m) => memberHasControlState(m, ld.id))) {
+    if (controllable.every(m => memberHasControlState(m, ld.id))) {
       stateDefs.push(ld);
     }
   }
 
   // Scenes: intersection of member scene names
-  if (controllable.every((m) => m.scenes.length > 0)) {
-    const firstNames = controllable[0].scenes.map((s) => s.name);
-    const commonNames = firstNames.filter((name) =>
-      controllable.every((m) => m.scenes.some((s) => s.name === name)),
-    );
+  if (controllable.every(m => m.scenes.length > 0)) {
+    const firstNames = controllable[0].scenes.map(s => s.name);
+    const commonNames = firstNames.filter(name => controllable.every(m => m.scenes.some(s => s.name === name)));
     if (commonNames.length > 0) {
       stateDefs.push({
         id: "light_scene",
@@ -1253,7 +1195,7 @@ function buildGroupStateDefs(members: GoveeDevice[]): StateDefinition[] {
         type: "mixed",
         role: "text",
         write: true,
-        states: buildUniqueLabelMap(commonNames.map((name) => ({ name }))),
+        states: buildUniqueLabelMap(commonNames.map(name => ({ name }))),
         def: "0",
         capabilityType: "devices.capabilities.dynamic_scene",
         capabilityInstance: "lightScene",
@@ -1263,11 +1205,9 @@ function buildGroupStateDefs(members: GoveeDevice[]): StateDefinition[] {
   }
 
   // Music: intersection of member music libraries
-  if (controllable.every((m) => m.musicLibrary.length > 0)) {
-    const firstNames = controllable[0].musicLibrary.map((m) => m.name);
-    const commonNames = firstNames.filter((name) =>
-      controllable.every((m) => m.musicLibrary.some((ml) => ml.name === name)),
-    );
+  if (controllable.every(m => m.musicLibrary.length > 0)) {
+    const firstNames = controllable[0].musicLibrary.map(m => m.name);
+    const commonNames = firstNames.filter(name => controllable.every(m => m.musicLibrary.some(ml => ml.name === name)));
     if (commonNames.length > 0) {
       stateDefs.push({
         id: "music_mode",
@@ -1275,7 +1215,7 @@ function buildGroupStateDefs(members: GoveeDevice[]): StateDefinition[] {
         type: "mixed",
         role: "text",
         write: true,
-        states: buildUniqueLabelMap(commonNames.map((name) => ({ name }))),
+        states: buildUniqueLabelMap(commonNames.map(name => ({ name }))),
         def: "0",
         capabilityType: "devices.capabilities.music_setting",
         capabilityInstance: "musicMode",

@@ -381,12 +381,7 @@ export function normalizeDeviceId(id: string): string {
 }
 
 /** Error categories for dedup logging */
-export type ErrorCategory =
-  | "NETWORK"
-  | "TIMEOUT"
-  | "AUTH"
-  | "RATE_LIMIT"
-  | "UNKNOWN";
+export type ErrorCategory = "NETWORK" | "TIMEOUT" | "AUTH" | "RATE_LIMIT" | "UNKNOWN";
 
 /**
  * Classify an error into a category for dedup logging.
@@ -423,19 +418,10 @@ export function classifyError(err: unknown): ErrorCategory {
   if (msg.includes("Timeout")) {
     return "TIMEOUT";
   }
-  if (
-    msg.includes("429") ||
-    msg.includes("Rate limit") ||
-    msg.includes("Rate limited")
-  ) {
+  if (msg.includes("429") || msg.includes("Rate limit") || msg.includes("Rate limited")) {
     return "RATE_LIMIT";
   }
-  if (
-    msg.includes("401") ||
-    msg.includes("403") ||
-    msg.includes("Login failed") ||
-    msg.includes("auth")
-  ) {
+  if (msg.includes("401") || msg.includes("403") || msg.includes("Login failed") || msg.includes("auth")) {
     return "AUTH";
   }
   return "UNKNOWN";
@@ -513,10 +499,7 @@ export interface SegmentListParseResult {
  * @param maxIndex Per-device upper bound (e.g. device.segmentCount - 1). Indices > maxIndex are rejected.
  * @returns SegmentListParseResult with indices + optional error
  */
-export function parseSegmentList(
-  input: string,
-  maxIndex: number,
-): SegmentListParseResult {
+export function parseSegmentList(input: string, maxIndex: number): SegmentListParseResult {
   const HARD_MAX = 99; // backstop, covers every realistic Govee device
   if (typeof input !== "string") {
     return { indices: [], error: "input must be a string" };
@@ -525,12 +508,7 @@ export function parseSegmentList(
   if (trimmed === "") {
     return { indices: [], error: "list is empty" };
   }
-  const effectiveMax = Math.min(
-    Number.isFinite(maxIndex) && maxIndex >= 0
-      ? Math.floor(maxIndex)
-      : HARD_MAX,
-    HARD_MAX,
-  );
+  const effectiveMax = Math.min(Number.isFinite(maxIndex) && maxIndex >= 0 ? Math.floor(maxIndex) : HARD_MAX, HARD_MAX);
   const set = new Set<number>();
   const parts = trimmed.split(",");
   for (const raw of parts) {
@@ -596,7 +574,7 @@ export function parseSegmentList(
  */
 export function disambiguateLabels(names: string[]): string[] {
   const counts = new Map<string, number>();
-  return names.map((name) => {
+  return names.map(name => {
     const seen = counts.get(name) ?? 0;
     counts.set(name, seen + 1);
     return seen === 0 ? name : `${name} (${seen + 1})`;
@@ -614,11 +592,8 @@ export function disambiguateLabels(names: string[]): string[] {
  * @param items Source list — each item must have a `name` field
  * @param zeroLabel Label for index 0 (default "---" = no selection)
  */
-export function buildUniqueLabelMap<T extends { name: string }>(
-  items: T[],
-  zeroLabel = "---",
-): Record<string, string> {
-  const labels = disambiguateLabels(items.map((item) => item.name));
+export function buildUniqueLabelMap<T extends { name: string }>(items: T[], zeroLabel = "---"): Record<string, string> {
+  const labels = disambiguateLabels(items.map(item => item.name));
   const result: Record<string, string> = { 0: zeroLabel };
   labels.forEach((label, i) => {
     result[String(i + 1)] = label;
@@ -654,10 +629,7 @@ export interface ResolvedStatesValue {
  * @param input User-supplied state value (number, string, or other)
  * @param statesMap The state's `common.states` map (key → label)
  */
-export function resolveStatesValue(
-  input: unknown,
-  statesMap: Record<string, string>,
-): ResolvedStatesValue | null {
+export function resolveStatesValue(input: unknown, statesMap: Record<string, string>): ResolvedStatesValue | null {
   if (typeof input === "number" && Number.isFinite(input)) {
     const key = String(input);
     const canonical = statesMap[key];

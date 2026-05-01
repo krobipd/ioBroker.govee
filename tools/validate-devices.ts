@@ -29,10 +29,7 @@ const ALLOWED_TYPES = new Set([
 
 const ALLOWED_STATUS = new Set(["verified", "reported", "seed"]);
 
-const KNOWN_QUIRK_FIELDS = new Set([
-  "colorTempRange",
-  "brokenPlatformApi",
-]);
+const KNOWN_QUIRK_FIELDS = new Set(["colorTempRange", "brokenPlatformApi"]);
 
 const SKU_RE = /^H[0-9A-Z]{4}$/;
 const SEMVER_RE = /^[0-9]+\.[0-9]+\.[0-9]+$/;
@@ -125,22 +122,13 @@ function validate(devicesJsonPath: string): Issue[] {
             }
           }
         }
-        if (
-          q.brokenPlatformApi !== undefined &&
-          typeof q.brokenPlatformApi !== "boolean"
-        ) {
+        if (q.brokenPlatformApi !== undefined && typeof q.brokenPlatformApi !== "boolean") {
           issues.push({ sku, msg: "'brokenPlatformApi' must be boolean" });
         }
       }
     }
 
-    const allowed = new Set([
-      "name",
-      "type",
-      "status",
-      "since",
-      "quirks",
-    ]);
+    const allowed = new Set(["name", "type", "status", "since", "quirks"]);
     for (const key of Object.keys(e)) {
       if (!allowed.has(key)) {
         issues.push({ sku, msg: `unknown field '${key}'` });

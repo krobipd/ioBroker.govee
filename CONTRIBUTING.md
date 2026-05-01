@@ -59,10 +59,10 @@ Promotion-Pfad: ⚪ → 🟢 → ✅. Linear, jede neue Bestätigung kann hochpr
 
 Aktuelle Quirk-Felder sind die einzigen die im Code etwas bewirken:
 
-| Feld | Wann verwenden |
-|---|---|
-| `colorTempRange: { min, max }` | API meldet einen Range, real ist enger (z.B. H6022, H60A1) |
-| `brokenPlatformApi: true` | Cloud-Capabilities sind unzuverlässig, Adapter fällt auf LAN-Defaults zurück |
+| Feld                           | Wann verwenden                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------- |
+| `colorTempRange: { min, max }` | API meldet einen Range, real ist enger (z.B. H6022, H60A1)                   |
+| `brokenPlatformApi: true`      | Cloud-Capabilities sind unzuverlässig, Adapter fällt auf LAN-Defaults zurück |
 
 Wenn dein Gerät einen Quirk braucht der hier fehlt: erst Issue mit Diagnostics-JSON aufmachen — wir entscheiden gemeinsam ob es ein neues Feld im Schema rechtfertigt oder im bestehenden Vokabular abgebildet werden kann. Schema-Erweiterungen kommen mit dem Code-Pfad der sie auswertet zusammen rein.
 
@@ -73,6 +73,7 @@ If your device needs a quirk that's missing here: open an issue with the diagnos
 ## Bug reports
 
 Issue mit:
+
 - Adapter-Version (`govee-smart` instance config zeigt sie an)
 - ioBroker-Version (`iobroker info` auf dem Server)
 - Was du erwartet hast vs. was passiert ist
@@ -80,6 +81,7 @@ Issue mit:
 - Wenn ein bestimmtes Gerät betroffen ist: Diagnostics-Export wie oben
 
 Issue with:
+
 - Adapter version
 - ioBroker version
 - Expected vs actual behavior

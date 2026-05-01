@@ -6,7 +6,7 @@ import {
   type OpenApiMqttEvent,
   type CloudStateCapability,
   type TimerAdapter,
-} from "./types.js";
+} from "./types";
 
 /** Max consecutive connection failures before giving up */
 const MAX_CONNECT_FAILURES = 5;
@@ -69,11 +69,7 @@ export class GoveeOpenapiMqttClient {
    * @param onConnection Called on connection state changes
    * @param onRaw Called with raw JSON for diagnostics
    */
-  connect(
-    onEvent: OpenApiEventCallback,
-    onConnection: OpenApiConnectionCallback,
-    onRaw?: OpenApiRawCallback,
-  ): void {
+  connect(onEvent: OpenApiEventCallback, onConnection: OpenApiConnectionCallback, onRaw?: OpenApiRawCallback): void {
     this.onEvent = onEvent;
     this.onConnection = onConnection;
     this.onRaw = onRaw ?? null;
@@ -101,7 +97,7 @@ export class GoveeOpenapiMqttClient {
           this.lastErrorCategory = null;
         }
 
-        this.client?.subscribe(this.topic, { qos: 0 }, (err) => {
+        this.client?.subscribe(this.topic, { qos: 0 }, err => {
           if (err) {
             this.log.warn(`OpenAPI MQTT subscribe failed: ${err.message}`);
           } else {
@@ -115,14 +111,12 @@ export class GoveeOpenapiMqttClient {
         this.handleMessage(payload);
       });
 
-      this.client.on("error", (err) => {
+      this.client.on("error", err => {
         const category = classifyError(err);
         if (category === "AUTH") {
           this.connectFailCount++;
           if (this.connectFailCount >= MAX_CONNECT_FAILURES) {
-            this.log.warn(
-              "OpenAPI MQTT auth failed repeatedly — check API key",
-            );
+            this.log.warn("OpenAPI MQTT auth failed repeatedly — check API key");
             this.onConnection?.(false);
             this.disconnect();
             return;
@@ -194,27 +188,21 @@ export class GoveeOpenapiMqttClient {
       const device = (raw.device as string) ?? "";
 
       if (!sku && !device) {
-        this.log.debug(
-          `OpenAPI MQTT: message without device info: ${payload.toString().slice(0, 200)}`,
-        );
+        this.log.debug(`OpenAPI MQTT: message without device info: ${payload.toString().slice(0, 200)}`);
         return;
       }
 
       // Extract capabilities array
       const caps = raw.capabilities as CloudStateCapability[] | undefined;
       if (!caps || !Array.isArray(caps) || caps.length === 0) {
-        this.log.debug(
-          `OpenAPI MQTT: message without capabilities from ${sku}: ${payload.toString().slice(0, 300)}`,
-        );
+        this.log.debug(`OpenAPI MQTT: message without capabilities from ${sku}: ${payload.toString().slice(0, 300)}`);
         return;
       }
 
       const event: OpenApiMqttEvent = { sku, device, capabilities: caps };
       this.onEvent?.(event);
     } catch {
-      this.log.debug(
-        `OpenAPI MQTT: failed to parse message: ${payload.toString().slice(0, 200)}`,
-      );
+      this.log.debug(`OpenAPI MQTT: failed to parse message: ${payload.toString().slice(0, 200)}`);
     }
   }
 
@@ -228,13 +216,8 @@ export class GoveeOpenapiMqttClient {
     }
 
     this.reconnectAttempts++;
-    const delay = Math.min(
-      5_000 * Math.pow(2, this.reconnectAttempts - 1),
-      300_000,
-    );
-    this.log.debug(
-      `OpenAPI MQTT: reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts})`,
-    );
+    const delay = Math.min(5_000 * Math.pow(2, this.reconnectAttempts - 1), 300_000);
+    this.log.debug(`OpenAPI MQTT: reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts})`);
 
     this.reconnectTimer = this.timers.setTimeout(() => {
       this.reconnectTimer = undefined;
