@@ -31,5 +31,11 @@
   "wizardHeader": "Segmentdetectiewizard",
   "wizardHelp": "Hoe het werkt: het huidige segment knippert WIT, alle andere blijven donker. Klik op 'Ja, zichtbaar' of 'Nee, donker'. Wanneer u het fysieke einde van de strip heeft bereikt, klikt u op 'Gereed – einde strip'. De wizard bepaalt het werkelijke aantal segmenten en slaat, als er gaten worden gevonden, automatisch een handmatige_lijst op. Sessie wordt automatisch afgebroken na 5 minuten inactiviteit.",
   "wizardInfo": "Meet de werkelijke lengte van uw LED-strip en detecteert gaten (op gesneden strips). Kies de strip, klik op Start en antwoord voor elk knipperend segment: zichtbaar, donker of 'Klaar – einde van strip'.",
-  "wizardStatusLabel": "Status"
+  "wizardStatusLabel": "Status",
+  "authBtnTest": "Login testen",
+  "twoFaHeader": "2-Factor-verificatie (alleen als Govee erom vraagt)",
+  "twoFaInfo": "Als de adapterlog 'Verification required' toont, klik 'Code aanvragen', voer de code uit de Govee-mail hieronder in en sla op.",
+  "twoFaBtnRequest": "Code aanvragen",
+  "twoFaCodeLabel": "Verificatiecode",
+  "twoFaCodeTooltip": "Eenmalige code uit de Govee-mail. Wordt automatisch gewist na succesvolle login."
 }

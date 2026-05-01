@@ -31,5 +31,11 @@
   "wizardHeader": "Assistant de détection de segments",
   "wizardHelp": "Comment ça marche : le segment actuel clignote en BLANC, tous les autres restent sombres. Cliquez sur « Oui, visible » ou « Non, sombre ». Lorsque vous avez atteint la fin physique de la bande, cliquez sur « Terminé – fin de la bande ». L'assistant détermine le nombre réel de segments et, si des lacunes sont détectées, enregistre automatiquement une liste_manuelle. La session s'arrête automatiquement après 5 minutes d'inactivité.",
   "wizardInfo": "Mesure la longueur réelle de votre bande LED et détecte les écarts (sur les bandes coupées). Choisissez la bande, cliquez sur Démarrer et pour chaque segment clignotant, répondez : visible, sombre ou « Terminé – fin de la bande ».",
-  "wizardStatusLabel": "Statut"
+  "wizardStatusLabel": "Statut",
+  "authBtnTest": "Tester la connexion",
+  "twoFaHeader": "Vérification à 2 facteurs (uniquement si Govee la demande)",
+  "twoFaInfo": "Si le log de l'adaptateur affiche 'Verification required', cliquez sur 'Demander un code', saisissez le code de l'e-mail Govee ci-dessous et enregistrez.",
+  "twoFaBtnRequest": "Demander un code",
+  "twoFaCodeLabel": "Code de vérification",
+  "twoFaCodeTooltip": "Code à usage unique de l'e-mail Govee. Effacé automatiquement après une connexion réussie."
 }

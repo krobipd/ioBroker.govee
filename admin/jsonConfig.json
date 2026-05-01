@@ -122,6 +122,60 @@
           "lg": 4,
           "xl": 4
         },
+        "_authTest": {
+          "newLine": true,
+          "type": "sendTo",
+          "command": "mqttAuth",
+          "jsonData": "{ \"action\": \"test\" }",
+          "label": "authBtnTest",
+          "variant": "outlined",
+          "color": "primary",
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 3,
+          "xl": 3,
+          "style": { "marginTop": 8 }
+        },
+        "_2faHeader": {
+          "newLine": true,
+          "type": "header",
+          "text": "twoFaHeader",
+          "size": 5
+        },
+        "_2faInfo": {
+          "type": "staticText",
+          "text": "twoFaInfo",
+          "xs": 12,
+          "sm": 12,
+          "md": 12,
+          "lg": 12,
+          "xl": 12,
+          "style": { "fontSize": 14, "marginBottom": 8 }
+        },
+        "_2faRequest": {
+          "type": "sendTo",
+          "command": "mqttAuth",
+          "jsonData": "{ \"action\": \"requestCode\" }",
+          "label": "twoFaBtnRequest",
+          "variant": "contained",
+          "color": "primary",
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 3,
+          "xl": 3
+        },
+        "mqttVerificationCode": {
+          "type": "text",
+          "label": "twoFaCodeLabel",
+          "tooltip": "twoFaCodeTooltip",
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 3,
+          "xl": 3
+        },
 
         "_advancedHeader": {
           "newLine": true,

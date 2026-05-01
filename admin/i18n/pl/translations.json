@@ -31,5 +31,11 @@
   "wizardHeader": "Kreator wykrywania segmentów",
   "wizardHelp": "Jak to działa: bieżący segment miga na BIAŁO, wszystkie pozostałe pozostają ciemne. Kliknij „Tak, widoczny” lub „Nie, ciemny”. Kiedy dotrzesz do fizycznego końca paska, kliknij „Gotowe – koniec paska”. Kreator określa rzeczywistą liczbę segmentów i w przypadku znalezienia luk automatycznie zapisuje listę_ręczną. Sesja zostaje automatycznie przerwana po 5 minutach bezczynności.",
   "wizardInfo": "Mierzy rzeczywistą długość paska LED i wykrywa przerwy (na przyciętych paskach). Wybierz pasek, kliknij Start i dla każdego migającego segmentu odpowiedz: widoczny, ciemny lub „Gotowe – koniec paska”.",
-  "wizardStatusLabel": "Status"
+  "wizardStatusLabel": "Status",
+  "authBtnTest": "Testuj logowanie",
+  "twoFaHeader": "Weryfikacja dwuskładnikowa (tylko jeśli Govee o to poprosi)",
+  "twoFaInfo": "Jeśli log adaptera pokazuje 'Verification required', kliknij 'Poproś o kod', wprowadź kod z maila Govee poniżej i zapisz.",
+  "twoFaBtnRequest": "Poproś o kod",
+  "twoFaCodeLabel": "Kod weryfikacyjny",
+  "twoFaCodeTooltip": "Jednorazowy kod z maila Govee. Czyszczony automatycznie po udanym logowaniu."
 }

@@ -86,6 +86,15 @@ export class GoveeMqttClient {
   /** Account-derived client ID (UUIDv5(email)) — stable per account, distinct per user. */
   private readonly clientId: string;
 
+  /** Optional 2FA code — set once after a 454, sent in the next login body, then cleared. */
+  private verificationCode: string = "";
+
+  /** Fired after a successful login that consumed a verification code, so the adapter can blank the settings field. */
+  private onVerificationConsumed: (() => void) | null = null;
+
+  /** Fired on 454 (pending) or 455 (failed) so the adapter can surface the actionable warning + auto-clear the code on failed. */
+  private onVerificationFailed: ((reason: "pending" | "failed") => void) | null = null;
+
   /**
    * @param email Govee account email
    * @param password Govee account password
@@ -98,6 +107,36 @@ export class GoveeMqttClient {
     this.log = log;
     this.timers = timers;
     this.clientId = deriveGoveeClientId(email);
+  }
+
+  /**
+   * Set the optional 2FA verification code. Empty string clears it.
+   *
+   * @param code Code from the Govee verification email
+   */
+  setVerificationCode(code: string): void {
+    this.verificationCode = (code ?? "").trim();
+  }
+
+  /**
+   * Hook called when a login successfully consumed a verification code.
+   * Adapter wires this to clear the settings field.
+   *
+   * @param cb Callback
+   */
+  setOnVerificationConsumed(cb: (() => void) | null): void {
+    this.onVerificationConsumed = cb;
+  }
+
+  /**
+   * Hook called when Govee returned 454 (pending) or 455 (failed). Reason
+   * lets the adapter clear the settings field on `failed` and prompt the
+   * user to request a code on `pending`.
+   *
+   * @param cb Callback
+   */
+  setOnVerificationFailed(cb: ((reason: "pending" | "failed") => void) | null): void {
+    this.onVerificationFailed = cb;
   }
 
   /** Bearer token from login — available after connect, used for undocumented API */
@@ -126,14 +165,26 @@ export class GoveeMqttClient {
 
     try {
       // Step 1: Login
+      const codeWasSent = (this.verificationCode ?? "").trim().length > 0;
       const loginResp = await this.login();
       if (!loginResp.client) {
         const apiStatus = loginResp.status ?? 0;
         const apiMsg = loginResp.message ?? "unknown error";
         const statusStr = `(status ${apiStatus || "?"})`;
-        // Classify the Govee response to avoid misleading error messages
+        // Classify the Govee response to avoid misleading error messages.
+        // 454/455 (2FA) MUST come before generic AUTH so the user gets the
+        // correct "request a code" hint instead of "check email/password".
+        if (apiStatus === 455 || (apiStatus === 454 && codeWasSent)) {
+          throw new Error(`Verification code invalid or expired ${statusStr}`);
+        }
+        if (apiStatus === 454) {
+          throw new Error(`Verification required by Govee — request a code via Adapter settings ${statusStr}`);
+        }
         if (apiStatus === 429 || /too many|rate.?limit|frequent|throttl/i.test(apiMsg)) {
           throw new Error(`Rate limited by Govee: ${apiMsg} ${statusStr}`);
+        }
+        if (apiStatus === 451 || /not.*registered/i.test(apiMsg)) {
+          throw new Error(`Login failed: email not registered ${statusStr}`);
         }
         if (apiStatus === 401 || /password|credential|unauthorized/i.test(apiMsg)) {
           throw new Error(`Login failed: ${apiMsg} ${statusStr}`);
@@ -144,6 +195,10 @@ export class GoveeMqttClient {
         }
         // Other account issues, maintenance, etc.
         throw new Error(`Govee login rejected: ${apiMsg} ${statusStr}`);
+      }
+      // Login OK — if a verification code was used, signal the adapter to clear it
+      if (codeWasSent) {
+        this.onVerificationConsumed?.();
       }
       this._bearerToken = loginResp.client.token;
       this.accountId = String(loginResp.client.accountId);
@@ -219,6 +274,30 @@ export class GoveeMqttClient {
 
       // State-Sync: connect() throw = not connected, unabhängig von Fehlertyp
       this.onConnection?.(false);
+
+      // 2FA pending/failed: pause reconnect until the user submits a code
+      // via Settings (which triggers an adapter restart). Don't increment
+      // auth-failure counter — these are not credential errors.
+      if (category === "VERIFICATION_PENDING") {
+        this.lastErrorCategory = category;
+        this.log.warn(
+          "Govee requires 2-Factor verification — request a code via the adapter settings, paste it into 'mqttVerificationCode' and save",
+        );
+        if (this.onVerificationFailed) {
+          this.onVerificationFailed("pending");
+        }
+        return;
+      }
+      if (category === "VERIFICATION_FAILED") {
+        this.lastErrorCategory = category;
+        this.log.warn(
+          "Govee 2-Factor verification code is invalid or expired — request a fresh code via the adapter settings",
+        );
+        if (this.onVerificationFailed) {
+          this.onVerificationFailed("failed");
+        }
+        return;
+      }
 
       // Auth backoff — stop reconnecting after repeated auth failures
       if (category === "AUTH") {
@@ -330,6 +409,15 @@ export class GoveeMqttClient {
 
   /** Login to Govee account */
   private login(): Promise<GoveeLoginResponse> {
+    const body: Record<string, string> = {
+      email: this.email,
+      password: this.password,
+      client: this.clientId,
+    };
+    const code = (this.verificationCode ?? "").trim();
+    if (code) {
+      body.code = code;
+    }
     return httpsRequest<GoveeLoginResponse>({
       method: "POST",
       url: LOGIN_URL,
@@ -341,10 +429,36 @@ export class GoveeMqttClient {
         timestamp: String(Date.now()),
         "User-Agent": GOVEE_USER_AGENT,
       },
+      body,
+    });
+  }
+
+  /**
+   * Trigger Govee's verification-code email. Govee sends a one-time code
+   * to the account email; the user pastes it into Settings.
+   *
+   * Status 200 → email queued. The response body is irrelevant for the
+   * adapter — Govee may include a tracking token but we don't use it.
+   *
+   * Throws on non-200 or network failure so the caller (onMessage handler)
+   * can surface the error to the admin UI.
+   */
+  async requestVerificationCode(): Promise<void> {
+    const url = "https://app2.govee.com/account/rest/account/v1/verification";
+    await httpsRequest<unknown>({
+      method: "POST",
+      url,
+      headers: {
+        appVersion: GOVEE_APP_VERSION,
+        clientId: this.clientId,
+        clientType: GOVEE_CLIENT_TYPE,
+        iotVersion: "0",
+        timestamp: String(Date.now()),
+        "User-Agent": GOVEE_USER_AGENT,
+      },
       body: {
+        type: 8,
         email: this.email,
-        password: this.password,
-        client: this.clientId,
       },
     });
   }

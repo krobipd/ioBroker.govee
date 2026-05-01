@@ -31,5 +31,11 @@
   "wizardHeader": "段检测向导",
   "wizardHelp": "工作原理：当前部分闪烁白色，所有其他部分保持黑暗。单击“是，可见”或“否，黑暗”。当您到达条带的物理末端时，单击“完成 - 条带末端”。该向导确定实际段计数，如果发现间隙，则自动保存手动列表。 5 分钟不活动后，会话将自动中止。",
   "wizardInfo": "测量 LED 灯条的实际长度并检测间隙（在切割灯条上）。选取条带，单击“开始”，然后为每个闪烁的片段回答：可见、黑色或“完成 - 条带结束”。",
-  "wizardStatusLabel": "状态"
+  "wizardStatusLabel": "状态",
+  "authBtnTest": "测试登录",
+  "twoFaHeader": "双因素验证（仅当 Govee 要求时）",
+  "twoFaInfo": "如果适配器日志显示 'Verification required'，请点击 '请求验证码'，将 Govee 邮件中的验证码填入下方并保存。",
+  "twoFaBtnRequest": "请求验证码",
+  "twoFaCodeLabel": "验证码",
+  "twoFaCodeTooltip": "Govee 邮件中的一次性验证码。登录成功后自动清空。"
 }

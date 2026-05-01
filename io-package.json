@@ -306,6 +306,7 @@
     "goveeEmail": "",
     "goveePassword": "",
     "networkInterface": "0.0.0.0",
-    "experimentalQuirks": false
+    "experimentalQuirks": false,
+    "mqttVerificationCode": ""
   }
 }

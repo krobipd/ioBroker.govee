@@ -39,6 +39,14 @@ import {
 const FULL_LIMITS = { perMinute: 8, perDay: 9000 };
 
 /**
+ * Minimum gap between two `mqttAuth: requestCode` calls. Govee returns 200
+ * for every request and queues another email — without a throttle, double-clicking
+ * the button in admin would spam the user's inbox. 30 s is short enough that a
+ * legitimate retry after a failed delivery still feels responsive.
+ */
+const VERIFICATION_REQUEST_THROTTLE_MS = 30_000;
+
+/**
  * State-suffix → command-name lookup for writable states. Segment indices
  * are dynamic and handled by regex in stateToCommand — everything else is
  * a straight string mapping.
@@ -89,6 +97,8 @@ class GoveeAdapter extends utils.Adapter {
   private diagnosticsLastRun = new Map<string, number>();
   /** Cached admin language from system.config — used for wizard UI text */
   private adminLanguage = "en";
+  /** Last time `requestCode` was triggered via onMessage — guards against double-click email spam. */
+  private lastVerificationRequestMs = 0;
 
   /** @param options Adapter options */
   public constructor(options: Partial<utils.AdapterOptions> = {}) {
@@ -284,6 +294,23 @@ class GoveeAdapter extends utils.Adapter {
       // so info.diagnostics_export contains the recent packets per device.
       this.mqttClient.setPacketHook((deviceId, topic, hex) => {
         this.deviceManager?.getDiagnostics().addMqttPacket(deviceId, topic, hex);
+      });
+
+      // 2FA: forward optional code from settings into the next login attempt;
+      // clear the field automatically once Govee has accepted it.
+      this.mqttClient.setVerificationCode(config.mqttVerificationCode ?? "");
+      this.mqttClient.setOnVerificationConsumed(() => {
+        this.clearVerificationCodeSetting().catch(e => {
+          this.log.warn(`Could not clear mqttVerificationCode: ${e instanceof Error ? e.message : String(e)}`);
+        });
+      });
+      this.mqttClient.setOnVerificationFailed(reason => {
+        // On 'failed' (455 / 454+code-was-sent) blank the code so the user
+        // doesn't keep retrying with a stale value. On 'pending' (454 + no
+        // code) we leave the field as-is — the user is about to fill it.
+        if (reason === "failed") {
+          this.clearVerificationCodeSetting().catch(() => {});
+        }
       });
 
       await this.mqttClient.connect(
@@ -1454,12 +1481,114 @@ class GoveeAdapter extends utils.Adapter {
         this.sendMessageResponse(obj, response);
         return;
       }
+      if (obj.command === "mqttAuth") {
+        const payload = (obj.message ?? {}) as { action?: string };
+        const response = await this.runMqttAuthAction(payload.action ?? "");
+        this.sendMessageResponse(obj, response);
+        return;
+      }
     } catch (e) {
       this.log.warn(`onMessage failed for ${obj.command}: ${e instanceof Error ? e.message : String(e)}`);
       this.sendMessageResponse(obj, {
         error: e instanceof Error ? e.message : String(e),
       });
     }
+  }
+
+  /**
+   * Handle the `mqttAuth` onMessage commands triggered by the admin UI.
+   *
+   * Two actions:
+   *   - `test`        — try a one-shot login with the current settings (incl. any code) and
+   *                     report a single-line plaintext result the admin can show as a toast.
+   *   - `requestCode` — POST to /account/rest/account/v1/verification so Govee emails a fresh
+   *                     code. 30-second in-memory throttle prevents double-click email spam.
+   *
+   * @param action Action name from the jsonConfig sendTo button
+   */
+  private async runMqttAuthAction(action: string): Promise<{ result: string }> {
+    const config = this.config as unknown as AdapterConfig;
+    if (!config.goveeEmail || !config.goveePassword) {
+      return { result: "Email + Passwort in den Adapter-Einstellungen nötig." };
+    }
+
+    if (action === "test") {
+      // One-shot client: don't reuse this.mqttClient — we don't want this
+      // probe to take over its reconnect timer or auth-failure counter.
+      const probe = new GoveeMqttClient(config.goveeEmail, config.goveePassword, this.log, this);
+      probe.setVerificationCode(config.mqttVerificationCode ?? "");
+      try {
+        let connected = false;
+        await probe.connect(
+          () => {},
+          isConnected => {
+            connected = isConnected;
+          },
+        );
+        probe.disconnect();
+        return {
+          result: connected
+            ? "Login erfolgreich — Echtzeit-Status-Updates aktiv."
+            : "Login angenommen, MQTT-Verbindung steht aber noch nicht — Adapter neu starten.",
+        };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (/Verification required/i.test(msg)) {
+          return {
+            result:
+              "Govee verlangt 2-Faktor-Bestätigung. Bitte 'Verifizierungs-Code anfordern' klicken, Code aus der E-Mail eintragen und Speichern.",
+          };
+        }
+        if (/Verification code invalid/i.test(msg)) {
+          return {
+            result: "2-Faktor-Code ungültig oder abgelaufen — bitte einen neuen Code anfordern.",
+          };
+        }
+        if (/email not registered/i.test(msg)) {
+          return { result: "Diese E-Mail ist bei Govee nicht registriert." };
+        }
+        if (/Login failed/i.test(msg)) {
+          return { result: "Passwort wurde von Govee abgelehnt." };
+        }
+        if (/Rate limited/i.test(msg)) {
+          return { result: "Govee meldet Rate-Limit — bitte später erneut versuchen." };
+        }
+        if (/Account temporarily locked/i.test(msg)) {
+          return { result: "Govee-Account vorübergehend gesperrt — Govee Home App öffnen und Status prüfen." };
+        }
+        return { result: `Login fehlgeschlagen: ${msg}` };
+      }
+    }
+
+    if (action === "requestCode") {
+      const now = Date.now();
+      if (now - this.lastVerificationRequestMs < VERIFICATION_REQUEST_THROTTLE_MS) {
+        const wait = Math.ceil((VERIFICATION_REQUEST_THROTTLE_MS - (now - this.lastVerificationRequestMs)) / 1000);
+        return { result: `Bitte ${wait}s warten — gerade wurde schon ein Code angefordert.` };
+      }
+      this.lastVerificationRequestMs = now;
+      const probe = new GoveeMqttClient(config.goveeEmail, config.goveePassword, this.log, this);
+      try {
+        await probe.requestVerificationCode();
+        return { result: "Code wurde an deine Govee-E-Mail-Adresse gesendet (Spam-Ordner prüfen)." };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { result: `Govee hat den Code-Versand abgelehnt: ${msg}` };
+      }
+    }
+
+    return { result: `Unbekannte Aktion '${action}'.` };
+  }
+
+  /**
+   * Helper: clear `mqttVerificationCode` in adapter native after a successful
+   * login or a 455-fail. Triggers a settings-reload by the admin UI but the
+   * adapter restart is gentle (only the field changed, not the connection).
+   */
+  private async clearVerificationCodeSetting(): Promise<void> {
+    await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
+      native: { mqttVerificationCode: "" },
+    });
   }
 
   private sendMessageResponse(obj: ioBroker.Message, data: unknown): void {

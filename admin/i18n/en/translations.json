@@ -31,5 +31,11 @@
   "advancedHeader": "Advanced options",
   "experimentalQuirksLabel": "Enable experimental device support",
   "experimentalQuirksTooltip": "Activates devices with status ⚪ Experimental from devices.json. They may work, return wrong values, or do nothing. The Wiki page Devices lists every entry and its status.",
-  "experimentalQuirksInfo": "Govee keeps releasing new models. Some are already prepared in the adapter code but not confirmed by any tester yet. This switch enables them. Which devices these are and whether yours is among them is documented in the Wiki."
+  "experimentalQuirksInfo": "Govee keeps releasing new models. Some are already prepared in the adapter code but not confirmed by any tester yet. This switch enables them. Which devices these are and whether yours is among them is documented in the Wiki.",
+  "authBtnTest": "Test login",
+  "twoFaHeader": "2-Factor verification (only if Govee asks for it)",
+  "twoFaInfo": "If the adapter log shows 'Verification required', click 'Request code', enter the code from the Govee email below, and save.",
+  "twoFaBtnRequest": "Request code",
+  "twoFaCodeLabel": "Verification code",
+  "twoFaCodeTooltip": "One-time code from the Govee email. Cleared automatically after a successful login."
 }

@@ -31,5 +31,11 @@
   "wizardHeader": "Segment-Erkennungs-Assistent",
   "wizardHelp": "So läufts ab: Das aktuelle Segment leuchtet WEISS, alle anderen bleiben dunkel. Klicke 'Ja, sichtbar' oder 'Nein, dunkel'. Wenn der Strip physisch zu Ende ist, klicke 'Fertig – Strip zu Ende'. Der Wizard ermittelt die echte Segmentanzahl und speichert bei Lücken automatisch eine manual_list. Session bricht nach 5 Minuten Inaktivität ab.",
   "wizardInfo": "Misst die echte Länge deines LED-Strips und erkennt Lücken (bei gekürzten Strips). Wähle den Strip, klicke Start und beantworte für jedes blinkende Segment: sichtbar, dunkel oder 'Fertig – Strip zu Ende'.",
-  "wizardStatusLabel": "Status"
+  "wizardStatusLabel": "Status",
+  "authBtnTest": "Login testen",
+  "twoFaHeader": "2-Faktor-Bestätigung (nur wenn Govee danach fragt)",
+  "twoFaInfo": "Wenn das Adapter-Log 'Verification required' zeigt, 'Code anfordern' klicken, den Code aus der Govee-E-Mail unten eintragen und Speichern.",
+  "twoFaBtnRequest": "Code anfordern",
+  "twoFaCodeLabel": "Bestätigungs-Code",
+  "twoFaCodeTooltip": "Einmal-Code aus der Govee-E-Mail. Wird nach erfolgreichem Login automatisch geleert."
 }

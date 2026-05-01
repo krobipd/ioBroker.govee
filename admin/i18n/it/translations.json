@@ -31,5 +31,11 @@
   "wizardHeader": "Procedura guidata per il rilevamento dei segmenti",
   "wizardHelp": "Come funziona: il segmento attuale lampeggia in BIANCO, tutti gli altri restano spenti. Fare clic su \"Sì, visibile\" o \"No, scuro\". Quando hai raggiunto la fine fisica della striscia, fai clic su \"Fine - fine striscia\". La procedura guidata determina il conteggio reale dei segmenti e, se vengono rilevati degli spazi vuoti, salva automaticamente un manual_list. La sessione si interrompe automaticamente dopo 5 minuti di inattività.",
   "wizardInfo": "Misura la lunghezza reale della tua striscia LED e rileva gli spazi vuoti (sulle strisce tagliate). Scegli la striscia, fai clic su Avvia e per ogni segmento lampeggiante rispondi: visibile, scuro o \"Fine - fine striscia\".",
-  "wizardStatusLabel": "Stato"
+  "wizardStatusLabel": "Stato",
+  "authBtnTest": "Test login",
+  "twoFaHeader": "Verifica a 2 fattori (solo se Govee la richiede)",
+  "twoFaInfo": "Se il log dell'adattatore mostra 'Verification required', clicca 'Richiedi codice', inserisci il codice dall'email Govee qui sotto e salva.",
+  "twoFaBtnRequest": "Richiedi codice",
+  "twoFaCodeLabel": "Codice di verifica",
+  "twoFaCodeTooltip": "Codice monouso dall'email Govee. Cancellato automaticamente dopo un login riuscito."
 }

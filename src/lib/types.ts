@@ -14,6 +14,13 @@ export interface AdapterConfig {
    * tester. The Wiki lists every device and its status.
    */
   experimentalQuirks: boolean;
+  /**
+   * Govee 2FA verification code. Empty unless Govee has demanded 2FA on the
+   * account (status 454). User pastes the code from the Govee email here,
+   * adapter consumes it on the next login and clears the field automatically
+   * on success. Cleared automatically on 454/455 fail too.
+   */
+  mqttVerificationCode: string;
 }
 
 /**
@@ -381,7 +388,16 @@ export function normalizeDeviceId(id: string): string {
 }
 
 /** Error categories for dedup logging */
-export type ErrorCategory = "NETWORK" | "TIMEOUT" | "AUTH" | "RATE_LIMIT" | "UNKNOWN";
+export type ErrorCategory =
+  | "NETWORK"
+  | "TIMEOUT"
+  | "AUTH"
+  | "RATE_LIMIT"
+  /** Govee returned 454 with no code in the request body — user must request a verification code via Settings. */
+  | "VERIFICATION_PENDING"
+  /** Govee returned 454 with code already sent, or 455 — code is wrong or expired, user must request a fresh one. */
+  | "VERIFICATION_FAILED"
+  | "UNKNOWN";
 
 /**
  * Classify an error into a category for dedup logging.
@@ -420,6 +436,17 @@ export function classifyError(err: unknown): ErrorCategory {
   }
   if (msg.includes("429") || msg.includes("Rate limit") || msg.includes("Rate limited")) {
     return "RATE_LIMIT";
+  }
+  // 2FA-pending classification must come before AUTH — Govee returns 454 with
+  // a leading "454" or "Verification" marker that would otherwise fall into AUTH
+  // and trip the auth-failure backoff. Two distinct categories so the adapter
+  // can pause reconnect on PENDING (waiting for user-entered code) but reset
+  // on FAILED (code was sent but rejected, user retries via Settings button).
+  if (msg.includes("Verification required") || (msg.includes("status 454") && !msg.includes("invalid"))) {
+    return "VERIFICATION_PENDING";
+  }
+  if (msg.includes("Verification code invalid") || msg.includes("status 455")) {
+    return "VERIFICATION_FAILED";
   }
   if (msg.includes("401") || msg.includes("403") || msg.includes("Login failed") || msg.includes("auth")) {
     return "AUTH";
