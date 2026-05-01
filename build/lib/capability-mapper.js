@@ -32,6 +32,12 @@ var import_device_registry = require("./device-registry");
 function coerceBool(v) {
   return v === true || v === 1 || v === "1" || v === "true";
 }
+function safeStringify(v) {
+  if (typeof v === "object" || typeof v === "function") {
+    return JSON.stringify(v);
+  }
+  return String(v);
+}
 function coerceNum(v) {
   if (typeof v === "number" && Number.isFinite(v)) {
     return v;
@@ -345,7 +351,7 @@ function mapWorkMode(cap) {
       role: "level.mode",
       write: true,
       states: modeStates,
-      def: modeField.options[0] ? String(modeField.options[0].value) : "",
+      def: modeField.options[0] ? safeStringify(modeField.options[0].value) : "",
       capabilityType: cap.type,
       capabilityInstance: cap.instance
     });
@@ -366,7 +372,7 @@ function mapWorkMode(cap) {
         role: "level",
         write: true,
         states: valStates,
-        def: valueField.options[0] ? String(valueField.options[0].value) : "",
+        def: valueField.options[0] ? safeStringify(valueField.options[0].value) : "",
         capabilityType: cap.type,
         capabilityInstance: cap.instance
       });
@@ -600,14 +606,14 @@ function mapCloudStateValue(cap) {
       if (cap.instance === "presetScene") {
         return {
           stateId: "scene",
-          value: typeof raw === "object" || typeof raw === "function" ? JSON.stringify(raw) : String(raw)
+          value: safeStringify(raw)
         };
       }
       return null;
     case "dynamic_scene":
       return {
         stateId: sanitizeId(cap.instance),
-        value: typeof raw === "object" || typeof raw === "function" ? JSON.stringify(raw) : String(raw)
+        value: safeStringify(raw)
       };
     case "work_mode": {
       if (typeof raw === "object" && raw !== null) {

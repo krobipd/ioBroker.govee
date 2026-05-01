@@ -53,6 +53,32 @@ function coerceBool(v: unknown): boolean {
 }
 
 /**
+ * Stringify an unknown raw API value for an ioBroker state. Objects /
+ * functions go through JSON.stringify (so we don't get `[object Object]`);
+ * everything else takes the primitive `String()` path. Centralised to keep
+ * the no-base-to-string lint rule happy at the call sites without
+ * sprinkling type assertions all over.
+ *
+ * @param v Raw value from API
+ */
+function safeStringify(v: unknown): string {
+  switch (typeof v) {
+    case "string":
+      return v;
+    case "number":
+    case "bigint":
+    case "boolean":
+    case "symbol":
+      return v.toString();
+    case "undefined":
+      return "undefined";
+    default:
+      // object, function, null
+      return JSON.stringify(v);
+  }
+}
+
+/**
  * Coerce arbitrary value to finite number, or null if not parseable.
  *
  * @param v Raw value from API
@@ -459,9 +485,7 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
     const modeStates: Record<string, string> = {};
     for (const opt of modeField.options) {
       if (opt && typeof opt.name === "string") {
-        modeStates[
-          typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value as string | number | boolean)
-        ] = opt.name;
+        modeStates[typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value)] = opt.name;
       }
     }
     states.push({
@@ -471,7 +495,7 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
       role: "level.mode",
       write: true,
       states: modeStates,
-      def: modeField.options[0] ? String(modeField.options[0].value as string | number) : "",
+      def: modeField.options[0] ? safeStringify(modeField.options[0].value) : "",
       capabilityType: cap.type,
       capabilityInstance: cap.instance,
     });
@@ -483,9 +507,7 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
       const valStates: Record<string, string> = {};
       for (const opt of valueField.options) {
         if (opt && typeof opt.name === "string") {
-          valStates[
-            typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value as string | number | boolean)
-          ] = opt.name;
+          valStates[typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value)] = opt.name;
         }
       }
       states.push({
@@ -495,7 +517,7 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
         role: "level",
         write: true,
         states: valStates,
-        def: valueField.options[0] ? String(valueField.options[0].value as string | number) : "",
+        def: valueField.options[0] ? safeStringify(valueField.options[0].value) : "",
         capabilityType: cap.type,
         capabilityInstance: cap.instance,
       });
@@ -640,9 +662,7 @@ function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
       if (!opt || typeof opt.name !== "string") {
         continue;
       }
-      modeStates[
-        typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value as string | number | boolean)
-      ] = opt.name;
+      modeStates[typeof opt.value === "object" ? JSON.stringify(opt.value) : String(opt.value)] = opt.name;
     }
     states.push({
       id: "music_mode",
@@ -820,10 +840,7 @@ export function mapCloudStateValue(cap: CloudStateCapability): CloudStateValue |
       if (cap.instance === "presetScene") {
         return {
           stateId: "scene",
-          value:
-            typeof raw === "object" || typeof raw === "function"
-              ? JSON.stringify(raw)
-              : String(raw as string | number | boolean | bigint),
+          value: safeStringify(raw),
         };
       }
       return null;
@@ -831,10 +848,7 @@ export function mapCloudStateValue(cap: CloudStateCapability): CloudStateValue |
     case "dynamic_scene":
       return {
         stateId: sanitizeId(cap.instance),
-        value:
-          typeof raw === "object" || typeof raw === "function"
-            ? JSON.stringify(raw)
-            : String(raw as string | number | boolean | bigint),
+        value: safeStringify(raw),
       };
 
     case "work_mode": {

@@ -3,6 +3,19 @@
     "name": "govee-smart",
     "version": "2.0.3",
     "news": {
+      "NEXT": {
+        "en": "2FA login + persisted MQTT credentials. info.online fixed for App-API sensors (H5179). New info.diagnostics_tier per device. Capability-driven scene/snapshot dropdowns.",
+        "de": "2FA-Login + persistierte MQTT-Credentials. info.online fuer App-API-Sensoren behoben (H5179). Neuer info.diagnostics_tier pro Geraet. Capability-getriebene Szenen-/Snapshot-Dropdowns.",
+        "ru": "2FA-логин + сохраняемые MQTT-credentials. info.online исправлен для App-API сенсоров (H5179). Новый info.diagnostics_tier на устройство. Сцены/снапшоты по capabilities.",
+        "pt": "Login 2FA + credenciais MQTT persistidas. info.online corrigido para sensores App-API (H5179). Novo info.diagnostics_tier por dispositivo. Dropdowns de cenas/snapshots por capabilities.",
+        "nl": "2FA-login + persistente MQTT-credentials. info.online opgelost voor App-API-sensoren (H5179). Nieuwe info.diagnostics_tier per apparaat. Scene-/snapshot-dropdowns op basis van capabilities.",
+        "fr": "Connexion 2FA + identifiants MQTT persistes. info.online corrige pour les capteurs App-API (H5179). Nouveau info.diagnostics_tier par appareil. Listes scenes/snapshots basees sur les capabilities.",
+        "it": "Login 2FA + credenziali MQTT persistite. info.online corretto per sensori App-API (H5179). Nuovo info.diagnostics_tier per dispositivo. Dropdown scene/snapshot dalle capabilities.",
+        "es": "Login 2FA + credenciales MQTT persistentes. info.online arreglado para sensores App-API (H5179). Nuevo info.diagnostics_tier por dispositivo. Desplegables de escenas/snapshots desde capabilities.",
+        "pl": "Logowanie 2FA + trwale poswiadczenia MQTT. info.online naprawiony dla czujnikow App-API (H5179). Nowy info.diagnostics_tier na urzadzenie. Dropdowny scen/snapshotow z capabilities.",
+        "uk": "2FA-вхід + збережені MQTT-облікові дані. info.online виправлено для App-API-сенсорів (H5179). Новий info.diagnostics_tier на пристрій. Сцени/снапшоти з capabilities.",
+        "zh-cn": "2FA 登录 + MQTT 凭据持久化。修复 App-API 传感器的 info.online（H5179）。每设备新增 info.diagnostics_tier。场景/快照下拉菜单按 capabilities 创建。"
+      },
       "2.0.3": {
         "en": "Min js-controller correction: was incorrectly bumped to `>=7.0.23` in 2.0.2 (and admin downgraded from `>=7.6.20` to `>=7.6.17`). The repochecker-recommended values are `>=6.0.11` / `>=7.6.20` — restored.",
         "de": "Min js-Controller-Korrektur: wurde falsch auf `>=7.0.23` in 2.0.2 (und admin downgraded von `>=7.6.20` auf `>=7.6.17 `) gesprungen. Die repochecker-recommended Werte sind `>=6.0.11 ` / `>=7.6.20 ` - restauriert.",
@@ -80,19 +93,6 @@
         "pl": "Przycisk Refresh nie pobiera już statycznych bibliotek SKU (scene/music/DIY/features) — liczba wywołań spada z ~7 do 2 na urządzenie na kliknięcie. Te endpointy zwracały 403 dla wielu kont i powodowały tylko minutowy backlog rate-limitera.",
         "uk": "Кнопка Refresh більше не перезавантажує статичні SKU-бібліотеки (scene/music/DIY/features) — кількість викликів знижується з ~7 до 2 на пристрій за клік. Ці endpoint'и повертали 403 для багатьох акаунтів і лише накопичували rate-limiter-backlog на хвилини.",
         "zh-cn": "刷新按钮不再重新获取静态 SKU 库（scene/music/DIY/features）—— 每次点击每设备的调用数从约 7 个降至 2 个。这些端点对许多账户返回 403，只会产生数分钟的 rate-limiter 积压。"
-      },
-      "1.10.0": {
-        "en": "Multi-packet A3 BLE scenes (scenceParam) are now activated via Cloud on devices without segments; bulbs and Curtain Lights silently dropped those packets before, so complex scenes never played. Powering a device off resets every mode dropdown to '---' — both ioBroker and Govee-app initiated off events.",
-        "de": "Multi-Packet-A3-BLE-Szenen (scenceParam) werden jetzt auf Geräten ohne Segmente über die Cloud aktiviert; Bulbs und Curtain Lights haben diese Pakete bisher still verworfen, sodass komplexe Szenen nie liefen. Beim Ausschalten eines Geräts werden alle Modus-Dropdowns auf '---' zurückgesetzt — sowohl bei ioBroker- als auch bei Govee-App-Off-Events.",
-        "ru": "Multi-packet A3 BLE-сцени (scenceParam) тепер активуються через Cloud на пристроях без сегментів; лампи і Curtain Lights раніше тихо ігнорували ці пакети, через що складні сцени не запускалися. При вимкненні пристрою всі моди-випадайки скидаються на '---' — як для ioBroker, так і для Govee-app off-event.",
-        "pt": "Cenas multi-packet A3 BLE (scenceParam) agora são ativadas via Cloud em dispositivos sem segmentos; lâmpadas e Curtain Lights descartavam silenciosamente esses pacotes, então cenas complexas nunca eram reproduzidas. Desligar um dispositivo reseta todos os dropdowns de modo para '---' — tanto eventos ioBroker quanto Govee-app.",
-        "nl": "Multi-packet A3 BLE-scènes (scenceParam) worden nu via Cloud geactiveerd op apparaten zonder segmenten; bulbs en Curtain Lights gooiden die pakketten stilzwijgend weg, dus complexe scènes speelden nooit. Een apparaat uitzetten reset alle mode-dropdowns naar '---' — zowel ioBroker- als Govee-app off-events.",
-        "fr": "Les scènes A3 BLE multi-paquets (scenceParam) sont maintenant activées via le Cloud sur les appareils sans segments; les ampoules et Curtain Lights ignoraient silencieusement ces paquets, donc les scènes complexes ne jouaient jamais. Éteindre un appareil réinitialise tous les dropdowns de mode à '---' — événements ioBroker et Govee-app.",
-        "it": "Le scene A3 BLE multi-pacchetto (scenceParam) ora vengono attivate via Cloud sui dispositivi senza segmenti; lampadine e Curtain Lights scartavano silenziosamente quei pacchetti, quindi le scene complesse non venivano mai riprodotte. Spegnere un dispositivo resetta tutti i dropdown di modalità a '---' — eventi ioBroker e Govee-app.",
-        "es": "Las escenas A3 BLE multi-paquete (scenceParam) ahora se activan vía Cloud en dispositivos sin segmentos; las bombillas y Curtain Lights descartaban silenciosamente esos paquetes, por lo que las escenas complejas nunca se reproducían. Apagar un dispositivo resetea todos los dropdowns de modo a '---' — tanto eventos de ioBroker como de la Govee-app.",
-        "pl": "Sceny A3 BLE z wielu pakietów (scenceParam) są teraz aktywowane przez Cloud na urządzeniach bez segmentów; żarówki i Curtain Lights po cichu odrzucały te pakiety, więc złożone sceny nigdy się nie odtwarzały. Wyłączenie urządzenia resetuje wszystkie listy modów do '---' — zdarzenia z ioBrokera i z aplikacji Govee.",
-        "uk": "Multi-packet A3 BLE сцени (scenceParam) тепер активуються через Cloud на пристроях без сегментів; bulbs і Curtain Lights раніше мовчки відкидали ці пакети, тож складні сцени не запускалися. Вимкнення пристрою скидає всі моди-випадайки на '---' — як для ioBroker, так і для Govee-app off-події.",
-        "zh-cn": "多包 A3 BLE 场景（scenceParam）现在在没有 segments 的设备上通过 Cloud 激活；灯泡和 Curtain Lights 之前会静默丢弃这些包，导致复杂场景从未播放。关闭设备时所有模式下拉菜单重置为 '---' —— ioBroker 和 Govee-app 触发的关机事件都生效。"
       }
     },
     "titleLang": {
@@ -157,12 +157,12 @@
     },
     "dependencies": [
       {
-        "js-controller": ">=6.0.11"
+        "js-controller": ">=7.0.7"
       }
     ],
     "globalDependencies": [
       {
-        "admin": ">=7.6.20"
+        "admin": ">=7.7.22"
       }
     ],
     "encryptedNative": [

@@ -63,8 +63,8 @@ Full user documentation lives in the **[Wiki](https://github.com/krobipd/ioBroke
 ## Requirements
 
 - Node.js >= 20
-- ioBroker js-controller >= 6.0.11
-- ioBroker Admin >= 7.6.20
+- ioBroker js-controller >= 7.0.7
+- ioBroker Admin >= 7.7.22
 - A Govee account and at least one Govee WiFi device. LAN control needs a light with LAN mode enabled in the Govee Home app — see Govee's [LAN-supported device list](https://app-h5.govee.com/user-manual/wlan-guide).
 
 ---
@@ -123,6 +123,17 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+
+### **WORK IN PROGRESS**
+
+- 2FA login flow for Govee accounts that require email verification — adapter settings expose a verification-code button + field; the code is consumed on the next login and cleared automatically.
+- MQTT credentials are persisted across restarts so the verification email is not re-sent on every reboot, with a proactive refresh shortly before the token expires.
+- Stable AWS-IoT MQTT client ID across restarts — reconnects keep the same identity instead of looking like a fresh session each time.
+- `info.online` is now updated for App-API sensors and OpenAPI-MQTT appliances. Fixes the H5179 thermometer staying at `info.online=false` while readings kept updating.
+- New `info.diagnostics_tier` state per device — exposes the trust tier (verified / reported / seed / unknown). Unknown SKUs and seed-without-toggle now log a one-time warn nudge.
+- Scene, DIY scene, and snapshot dropdowns are created from device capabilities — visible from the first start, even before the first `/device/scenes` call returns.
+- `info.refresh_cloud_data` button refetches the scene/music/DIY libraries again (was skipped since v1.10.1).
+- Min js-controller `>=7.0.7`, min admin `>=7.7.22`.
 
 ### 2.0.3 (2026-04-26)
 
