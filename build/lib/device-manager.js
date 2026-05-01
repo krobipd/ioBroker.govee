@@ -334,17 +334,19 @@ class DeviceManager {
     }
   }
   /**
-   * Re-fetch scenes and snapshots for all known light devices without
-   * re-running the full Cloud bootstrap. Skips `loadDeviceLibraries` — the
-   * undocumented library/sku-features endpoints are static (libraries never
-   * change for a given SKU) and some return 403 for many accounts, so
-   * running them again on every user-triggered refresh only produces a
-   * multi-minute rate-limiter backlog without adding data.
+   * Re-fetch scenes, snapshots AND libraries for all known light devices
+   * without re-running the full Cloud bootstrap. Used by the
+   * `info.refresh_cloud_data` button: "new snapshot/scene was saved in
+   * the Govee Home app, show it here".
    *
-   * Used by the `info.refresh_cloud_data` button for "new snapshot/scene
-   * was saved in the Govee Home app, show it here".
+   * v1.10.1 had skipped libraries to keep the per-click call count low —
+   * but for users on accounts where a library actually grew (new
+   * scene-set rolled out by Govee, new sceneCode minted) the only way
+   * back to fresh data was a full adapter restart. v2.1.0 reinstates the
+   * library refresh on the same button and forces past the
+   * `length === 0` guards inside `loadDeviceLibraries`.
    *
-   * @returns true when any device's scene/snapshot data changed
+   * @returns true when any device's scene/snapshot/library data changed
    */
   async refreshSceneData() {
     var _a;
@@ -362,6 +364,14 @@ class DeviceManager {
         capabilities: Array.isArray(device.capabilities) ? device.capabilities : []
       };
       if (await this.loadDeviceScenes(device, cd)) {
+        anyChanged = true;
+      }
+      if (await this.loadDeviceLibraries(
+        device,
+        cd.sku,
+        /* force */
+        true
+      )) {
         anyChanged = true;
       }
     }
@@ -477,9 +487,12 @@ class DeviceManager {
    *
    * @param device Target device to populate
    * @param sku Product model
+   * @param force When true, refetch every endpoint regardless of cache —
+   *   used by the user-triggered refresh button so a stale library
+   *   actually gets replaced
    * @returns true if any library data changed
    */
-  async loadDeviceLibraries(device, sku) {
+  async loadDeviceLibraries(device, sku, force = false) {
     if (!this.apiClient) {
       return false;
     }
@@ -487,7 +500,7 @@ class DeviceManager {
     const runLimited = async (fn) => {
       await this.commandRouter.executeRateLimited(fn, 2);
     };
-    if (device.sceneLibrary.length === 0) {
+    if (force || device.sceneLibrary.length === 0) {
       await runLimited(async () => {
         try {
           const lib = await this.apiClient.fetchSceneLibrary(sku);
@@ -501,7 +514,7 @@ class DeviceManager {
         }
       });
     }
-    if (device.musicLibrary.length === 0) {
+    if (force || device.musicLibrary.length === 0) {
       await runLimited(async () => {
         try {
           const lib = await this.apiClient.fetchMusicLibrary(sku);
@@ -515,7 +528,7 @@ class DeviceManager {
         }
       });
     }
-    if (device.diyLibrary.length === 0) {
+    if (force || device.diyLibrary.length === 0) {
       await runLimited(async () => {
         try {
           const lib = await this.apiClient.fetchDiyLibrary(sku);
@@ -529,7 +542,7 @@ class DeviceManager {
         }
       });
     }
-    if (!device.skuFeatures) {
+    if (force || !device.skuFeatures) {
       await runLimited(async () => {
         try {
           const features = await this.apiClient.fetchSkuFeatures(sku);

@@ -4,6 +4,7 @@
     "before_commit": [
       "python3 ../scripts/audit-krobi-consistency.py --release-mode",
       "python3 ../scripts/fix-changelog-footer.py",
+      "python3 scripts/sync-govee-app-version.py",
       "npm update",
       "npm test",
       "npm run build",
