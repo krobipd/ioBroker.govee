@@ -1,6 +1,6 @@
 import { hasDynamicSceneCapability } from "./capability-mapper";
 import { CommandRouter } from "./command-router";
-import { getDeviceQuirks, isSeedAndDormant } from "./device-registry";
+import { getDeviceQuirks, getDeviceTier, isSeedAndDormant } from "./device-registry";
 import { DiagnosticsCollector } from "./diagnostics";
 import type { AppDeviceEntry, GoveeApiClient } from "./govee-api-client";
 import type { GoveeCloudClient } from "./govee-cloud-client";
@@ -889,10 +889,16 @@ export class DeviceManager {
   }
 
   /**
-   * If the SKU is recognised as `seed` in `devices.json` and the user
-   * hasn't enabled the experimental toggle, log an info-level nudge
-   * pointing at the adapter config — but only once per adapter lifetime
-   * per SKU, so it doesn't spam the log when the device reconnects.
+   * Log the device's trust tier — once per SKU per adapter lifetime, so
+   * device reconnects don't spam the log. Behaviour by tier:
+   *   - verified / reported: silent (the catalog backs the device, no
+   *     action needed). The tier is still surfaced via the
+   *     `info.diagnostics_tier` state for any user who wants to check.
+   *   - seed (toggle off): warn — points the user at the experimental
+   *     toggle that gates the per-SKU corrections we'd otherwise apply.
+   *   - seed (toggle on): info — confirms quirks are active.
+   *   - unknown: warn — asks for a diagnostics export so we can add the
+   *     SKU to the catalogue.
    *
    * @param sku Govee SKU
    * @param displayName Device name as shown in Govee Home
@@ -902,14 +908,28 @@ export class DeviceManager {
     if (!upper || this.nudgedSeedSkus.has(upper)) {
       return;
     }
-    if (!isSeedAndDormant(upper)) {
-      return;
-    }
     this.nudgedSeedSkus.add(upper);
+    const tier = getDeviceTier(upper);
     const label = displayName ? `${displayName} (${upper})` : upper;
-    this.log.info(
-      `Device ${label} is marked experimental and not yet confirmed by a tester. The adapter handles it generically; per-SKU corrections are gated behind the adapter-config switch "Experimentelle Geräte-Unterstützung aktivieren".`,
-    );
+    switch (tier) {
+      case "verified":
+      case "reported":
+        return;
+      case "seed":
+        if (isSeedAndDormant(upper)) {
+          this.log.warn(
+            `Device ${label} is in beta and needs the "Experimentelle Geräte-Unterstützung aktivieren" toggle in adapter settings to apply known per-SKU corrections.`,
+          );
+        } else {
+          this.log.info(`Device ${label} is in beta — experimental quirks are active.`);
+        }
+        return;
+      case "unknown":
+        this.log.warn(
+          `Device ${label} is not in the supported device list. Please trigger info.diagnostics_export and post the resulting JSON in a GitHub issue so the SKU can be added.`,
+        );
+        return;
+    }
   }
 
   /**

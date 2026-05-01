@@ -93,6 +93,21 @@ All ports are fixed by the Govee LAN protocol and cannot be changed.
 
 ---
 
+## Device tiers
+
+Each device exposes its trust tier in `info.diagnostics_tier`:
+
+| Tier         | Meaning                                                                                                                            |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **verified** | Confirmed on real hardware — full per-SKU corrections active.                                                                      |
+| **reported** | Community-reported, treated as verified.                                                                                           |
+| **seed**     | Beta. Per-SKU corrections only apply when **Experimentelle Geräte-Unterstützung aktivieren** is on in adapter settings.            |
+| **unknown**  | The SKU isn't in the catalogue yet. Press `info.diagnostics_export` and post the resulting JSON in a GitHub issue so it can be added. |
+
+The adapter logs one nudge per SKU per startup for `seed` (without the toggle) and `unknown`, so reconnects don't spam the log.
+
+---
+
 ## Troubleshooting
 
 Common issues (no devices discovered, empty scenes dropdown, segment colors not changing, limited group commands, delayed status updates) are covered on the Wiki [Behavior](https://github.com/krobipd/ioBroker.govee-smart/wiki/Behavior) / [Verhalten](https://github.com/krobipd/ioBroker.govee-smart/wiki/Verhalten) page.

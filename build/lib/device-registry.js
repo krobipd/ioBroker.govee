@@ -32,6 +32,7 @@ __export(device_registry_exports, {
   _resetDeviceRegistry: () => _resetDeviceRegistry,
   applyColorTempQuirk: () => applyColorTempQuirk,
   getDeviceQuirks: () => getDeviceQuirks,
+  getDeviceTier: () => getDeviceTier,
   initDeviceRegistry: () => initDeviceRegistry,
   isSeedAndDormant: () => isSeedAndDormant
 });
@@ -225,12 +226,17 @@ function isSeedAndDormant(sku) {
   var _a;
   return (_a = singleton == null ? void 0 : singleton.isSeedAndDormant(sku)) != null ? _a : false;
 }
+function getDeviceTier(sku) {
+  var _a;
+  return (_a = singleton == null ? void 0 : singleton.getStatus(sku)) != null ? _a : "unknown";
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   DeviceRegistry,
   _resetDeviceRegistry,
   applyColorTempQuirk,
   getDeviceQuirks,
+  getDeviceTier,
   initDeviceRegistry,
   isSeedAndDormant
 });

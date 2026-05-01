@@ -18,6 +18,13 @@ import type { CloudCapability, GoveeDevice, LanDevice, MqttStatusUpdate } from "
 const QUIRK_TEST_REGISTRY = {
   devices: {
     H6141: { name: "LED Strip", type: "light", status: "seed", quirks: { brokenPlatformApi: true } },
+    // Verified entries for the SKUs that show up in DeviceManager tests so
+    // the v2.1.0 tier-based unknown-SKU warning doesn't fire and pollute
+    // the warn-counter assertions in the pollAppApi test suite.
+    H5179: { name: "Thermometer", type: "sensor", status: "verified" },
+    H61BE: { name: "LED Strip", type: "light", status: "verified" },
+    H6056: { name: "LED Strip", type: "light", status: "verified" },
+    H70D1: { name: "LED Strip", type: "light", status: "verified" },
   },
 };
 
@@ -1856,6 +1863,15 @@ describe("resolveSegmentCount", () => {
 });
 
 describe("DeviceManager — loadFromCache merge", () => {
+  // Same registry setup as the outer DeviceManager block — without it,
+  // getDeviceTier() returns "unknown" for every SKU and the v2.1.0
+  // tier-based unknown-SKU warning fires on every LAN-discovered device,
+  // breaking the warn-counter assertions in the pollAppApi suite.
+  beforeEach(() => {
+    initDeviceRegistry({ data: QUIRK_TEST_REGISTRY as never, experimental: true });
+  });
+  afterEach(() => _resetDeviceRegistry());
+
   /**
    * Regression test for v1.7.6 bug: when a device is already present in
    * the device-map via LAN discovery (the normal case on every adapter

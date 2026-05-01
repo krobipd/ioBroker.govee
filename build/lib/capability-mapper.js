@@ -842,6 +842,23 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
     capabilityInstance: "diagnosticsResult",
     channel: "info"
   });
+  stateDefs.push({
+    id: "diagnostics_tier",
+    name: "Device Tier",
+    type: "string",
+    role: "text",
+    write: false,
+    def: "unknown",
+    states: {
+      verified: "Verified \u2014 confirmed by a tester",
+      reported: "Reported \u2014 community-reported, treated as verified",
+      seed: "Seed \u2014 beta, needs experimental toggle in adapter settings",
+      unknown: "Unknown SKU \u2014 please run diagnostics_export and post in a GitHub issue"
+    },
+    capabilityType: "local",
+    capabilityInstance: "diagnosticsTier",
+    channel: "info"
+  });
   return stateDefs;
 }
 function memberHasControlState(member, stateId) {

@@ -333,3 +333,15 @@ export function applyColorTempQuirk(sku: string, min: number, max: number): { mi
 export function isSeedAndDormant(sku: string): boolean {
   return singleton?.isSeedAndDormant(sku) ?? false;
 }
+
+/**
+ * Single canonical trust tier for a SKU as exposed to users via the
+ * `info.diagnostics_tier` state. Unlike `getStatus`, this collapses the
+ * `undefined`-from-registry case into the explicit string `"unknown"` so
+ * the value is always one of four well-known labels.
+ *
+ * @param sku Govee SKU (case-insensitive)
+ */
+export function getDeviceTier(sku: string): "verified" | "reported" | "seed" | "unknown" {
+  return singleton?.getStatus(sku) ?? "unknown";
+}

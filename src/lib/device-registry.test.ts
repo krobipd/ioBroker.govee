@@ -7,6 +7,7 @@ import {
   _resetDeviceRegistry,
   applyColorTempQuirk,
   getDeviceQuirks,
+  getDeviceTier,
   initDeviceRegistry,
 } from "./device-registry";
 
@@ -259,6 +260,24 @@ describe("DeviceRegistry", () => {
       initDeviceRegistry({ data: SAMPLE as never });
       _resetDeviceRegistry();
       expect(getDeviceQuirks("H5179")).to.be.undefined;
+    });
+
+    it("getDeviceTier returns 'unknown' before init", () => {
+      expect(getDeviceTier("H5179")).to.equal("unknown");
+    });
+
+    it("getDeviceTier maps registry status to tier label after init", () => {
+      initDeviceRegistry({ data: SAMPLE as never, experimental: true });
+      // SAMPLE has H60A1=seed, H7160=verified or similar — verify the mapping
+      expect(getDeviceTier("H60A1")).to.equal("seed");
+      // Unknown SKU → "unknown" sentinel, not undefined
+      expect(getDeviceTier("HZZZZ")).to.equal("unknown");
+    });
+
+    it("getDeviceTier is case-insensitive on the SKU", () => {
+      initDeviceRegistry({ data: SAMPLE as never });
+      expect(getDeviceTier("h60a1")).to.equal("seed");
+      expect(getDeviceTier("H60A1")).to.equal("seed");
     });
   });
 });

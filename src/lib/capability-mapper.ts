@@ -1142,6 +1142,27 @@ export function buildDeviceStateDefs(
     capabilityInstance: "diagnosticsResult",
     channel: "info",
   });
+  // Trust tier for the user — verified/reported/seed/unknown. Tells
+  // power users whether the experimental toggle would buy them anything,
+  // and lets unknown-SKU users see at a glance that their device isn't
+  // in the catalogue yet.
+  stateDefs.push({
+    id: "diagnostics_tier",
+    name: "Device Tier",
+    type: "string",
+    role: "text",
+    write: false,
+    def: "unknown",
+    states: {
+      verified: "Verified — confirmed by a tester",
+      reported: "Reported — community-reported, treated as verified",
+      seed: "Seed — beta, needs experimental toggle in adapter settings",
+      unknown: "Unknown SKU — please run diagnostics_export and post in a GitHub issue",
+    },
+    capabilityType: "local",
+    capabilityInstance: "diagnosticsTier",
+    channel: "info",
+  });
 
   return stateDefs;
 }

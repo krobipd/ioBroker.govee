@@ -109,6 +109,23 @@ class StateManager {
     this.adapter = adapter;
   }
   /**
+   * Push the device's trust tier (verified/reported/seed/unknown) into
+   * the user-visible `info.diagnostics_tier` state. Called after every
+   * device-state refresh so the value tracks any registry change between
+   * adapter restarts (e.g. seed → verified once a tester confirms).
+   * No-op for groups (BaseGroup has no per-device tier).
+   *
+   * @param device Govee device
+   * @param tier Canonical tier label
+   */
+  async updateDeviceTier(device, tier) {
+    if (device.sku === "BaseGroup") {
+      return;
+    }
+    const prefix = this.devicePrefix(device);
+    await this.adapter.setStateAsync(`${prefix}.info.diagnostics_tier`, { val: tier, ack: true }).catch(() => void 0);
+  }
+  /**
    * Resolve full state path for a given device prefix and state ID.
    * Routes the state to the correct channel (control, scenes, music, snapshots).
    *
@@ -245,7 +262,15 @@ class StateManager {
         val: memberIds,
         ack: true
       });
-      for (const staleId of ["online", "model", "serial", "ip", "diagnostics_export", "diagnostics_result"]) {
+      for (const staleId of [
+        "online",
+        "model",
+        "serial",
+        "ip",
+        "diagnostics_export",
+        "diagnostics_result",
+        "diagnostics_tier"
+      ]) {
         await this.adapter.delObjectAsync(`${prefix}.info.${staleId}`).catch(() => {
         });
         await this.adapter.delStateAsync(`${prefix}.info.${staleId}`).catch(() => {

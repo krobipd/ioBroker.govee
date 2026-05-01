@@ -5,7 +5,7 @@ import {
   mapCloudStateValue,
   planCloudCapabilityWrites,
 } from "./lib/capability-mapper";
-import { initDeviceRegistry } from "./lib/device-registry";
+import { getDeviceTier, initDeviceRegistry } from "./lib/device-registry";
 import { DeviceManager, resolveSegmentCount, SEGMENT_HARD_MAX } from "./lib/device-manager";
 import { GoveeApiClient } from "./lib/govee-api-client";
 import { GoveeCloudClient } from "./lib/govee-cloud-client";
@@ -1085,9 +1085,14 @@ class GoveeAdapter extends utils.Adapter {
       memberDevices = this.resolveGroupMembers(device, allDevices);
     }
     const stateDefs = buildDeviceStateDefs(device, localSnaps, memberDevices);
-    const p = this.stateManager.createDeviceStates(device, stateDefs).catch(e => {
-      this.log.error(`createDeviceStates failed for ${device.name}: ${e instanceof Error ? e.message : String(e)}`);
-    });
+    const p = this.stateManager
+      .createDeviceStates(device, stateDefs)
+      .then(async () => {
+        await this.stateManager?.updateDeviceTier(device, getDeviceTier(device.sku));
+      })
+      .catch(e => {
+        this.log.error(`createDeviceStates failed for ${device.name}: ${e instanceof Error ? e.message : String(e)}`);
+      });
     // Until ready, collect so onReady can await the whole initial batch.
     // After ready, fire-and-forget — the queue would otherwise keep growing
     // with resolved promises for the lifetime of the adapter.

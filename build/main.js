@@ -889,7 +889,10 @@ class GoveeAdapter extends utils.Adapter {
       memberDevices = this.resolveGroupMembers(device, allDevices);
     }
     const stateDefs = (0, import_capability_mapper.buildDeviceStateDefs)(device, localSnaps, memberDevices);
-    const p = this.stateManager.createDeviceStates(device, stateDefs).catch((e) => {
+    const p = this.stateManager.createDeviceStates(device, stateDefs).then(async () => {
+      var _a2;
+      await ((_a2 = this.stateManager) == null ? void 0 : _a2.updateDeviceTier(device, (0, import_device_registry.getDeviceTier)(device.sku)));
+    }).catch((e) => {
       this.log.error(`createDeviceStates failed for ${device.name}: ${e instanceof Error ? e.message : String(e)}`);
     });
     if (!this.statesReady) {
