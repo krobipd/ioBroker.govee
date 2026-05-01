@@ -176,6 +176,7 @@ class GoveeAdapter extends utils.Adapter {
 
     // API client for undocumented scene/music/DIY libraries (always available)
     const apiClient = new GoveeApiClient();
+    apiClient.setEmail(config.goveeEmail);
     this.deviceManager.setApiClient(apiClient);
 
     this.deviceManager.setCallbacks(

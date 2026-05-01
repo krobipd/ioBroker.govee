@@ -2,7 +2,7 @@ import * as crypto from "node:crypto";
 import * as forge from "node-forge";
 import * as mqtt from "mqtt";
 import { httpsRequest } from "./http-client";
-import { GOVEE_APP_VERSION, GOVEE_CLIENT_ID, GOVEE_CLIENT_TYPE, GOVEE_USER_AGENT } from "./govee-constants";
+import { GOVEE_APP_VERSION, GOVEE_CLIENT_TYPE, GOVEE_USER_AGENT, deriveGoveeClientId } from "./govee-constants";
 import {
   classifyError,
   type ErrorCategory,
@@ -83,6 +83,9 @@ export class GoveeMqttClient {
    */
   private onPacket: ((deviceId: string, topic: string, hex: string) => void) | null = null;
 
+  /** Account-derived client ID (UUIDv5(email)) — stable per account, distinct per user. */
+  private readonly clientId: string;
+
   /**
    * @param email Govee account email
    * @param password Govee account password
@@ -94,6 +97,7 @@ export class GoveeMqttClient {
     this.password = password;
     this.log = log;
     this.timers = timers;
+    this.clientId = deriveGoveeClientId(email);
   }
 
   /** Bearer token from login — available after connect, used for undocumented API */
@@ -331,18 +335,16 @@ export class GoveeMqttClient {
       url: LOGIN_URL,
       headers: {
         appVersion: GOVEE_APP_VERSION,
-        clientId: GOVEE_CLIENT_ID,
+        clientId: this.clientId,
         clientType: GOVEE_CLIENT_TYPE,
+        iotVersion: "0",
+        timestamp: String(Date.now()),
         "User-Agent": GOVEE_USER_AGENT,
-        timezone: "Europe/Berlin",
-        country: "DE",
-        envid: "0",
-        iotversion: "0",
       },
       body: {
         email: this.email,
         password: this.password,
-        client: GOVEE_CLIENT_ID,
+        client: this.clientId,
       },
     });
   }
@@ -355,7 +357,7 @@ export class GoveeMqttClient {
       headers: {
         Authorization: `Bearer ${this._bearerToken}`,
         appVersion: GOVEE_APP_VERSION,
-        clientId: GOVEE_CLIENT_ID,
+        clientId: this.clientId,
         clientType: GOVEE_CLIENT_TYPE,
         "User-Agent": GOVEE_USER_AGENT,
       },
