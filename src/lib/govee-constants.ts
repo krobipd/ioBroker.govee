@@ -6,7 +6,7 @@
 
 import { v5 as uuidv5, NIL as UUID_NIL } from "uuid";
 
-export const GOVEE_APP_VERSION = "7.4.21";
+export const GOVEE_APP_VERSION = "7.4.22";
 export const GOVEE_CLIENT_TYPE = "1";
 export const GOVEE_USER_AGENT = `GoveeHome/${GOVEE_APP_VERSION} (com.ihoment.GoVeeSensor; build:8; iOS 26.5.0) Alamofire/5.11.0`;
 

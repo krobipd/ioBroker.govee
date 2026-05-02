@@ -1,4 +1,11 @@
 # Older Changes
+## 2.0.0 (2026-04-26)
+
+- Major release — Govee appliances and sensors (thermometers like H5179, heaters, kettles, ice makers) are now handled here alongside lights.
+- The standalone `iobroker.govee-appliances` adapter is deprecated and rolls into here. Install govee-smart 2.0.0+ and uninstall govee-appliances when convenient.
+- New **"Enable experimental device support"** checkbox in the adapter config — applies known per-model corrections to devices that are catalogued but not yet confirmed by a tester.
+- New state `info.openapiMqttConnected` showing whether the push channel for sensor / appliance events is up; `info.mqttConnected` keeps tracking the channel used for lights.
+
 ## 1.11.0 (2026-04-25)
 
 - Scene / DIY-scene / snapshot / music-mode dropdowns now accept the entry name (case-insensitive) as well as the numeric index. No more type-mismatch warning when scripts write a number.

@@ -1,9 +1,9 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "news": {
-      "NEXT": {
+      "2.1.1": {
         "en": "Security fix: in v2.1.0 your MQTT login was stored unencrypted by mistake — now encrypted. Diagnostics renamed to diag.export/result/tier. 2FA warning no longer repeats on every reconnect.",
         "de": "Sicherheitsfix: in v2.1.0 wurde dein MQTT-Login versehentlich unverschluesselt gespeichert — jetzt verschluesselt. Diagnose-Datenpunkte heissen jetzt diag.*. 2FA-Warnung wiederholt sich nicht mehr.",
         "ru": "Фикс безопасности: в v2.1.0 MQTT-логин ошибочно сохранялся незашифрованным — теперь шифруется. Диагностика переименована в diag.export/result/tier. 2FA-warn не повторяется при каждом реконнекте.",
@@ -93,19 +93,6 @@
         "pl": "Listy rozwijane scene/DIY/snapshot/music-mode akceptują teraz indeks jako number, jako string oraz nazwę (case-insensitive). Typ state to mixed — ostrzeżenie 'expects type string but received number' znika. Zduplikowane nazwy scen z chmury są automatycznie różnicowane sufiksami ' (2)', ' (3)'.",
         "uk": "Випадайки для scene/DIY/snapshot/music-mode тепер приймають індекс як number, як string і назву елемента (case-insensitive). Тип state — mixed — попередження 'expects type string but received number' зникло. Дубльовані назви сцен з cloud автоматично отримують суфікси ' (2)', ' (3)'.",
         "zh-cn": "场景/DIY/snapshot/音乐模式下拉菜单现在接受索引为数字、索引为字符串或条目名称（不区分大小写）。state 类型为 mixed —— 'expects type string but received number' 警告消失。云端重复场景名称自动添加 ' (2)'、' (3)' 后缀。"
-      },
-      "1.10.1": {
-        "en": "Refresh button no longer re-fetches static SKU libraries (scene/music/DIY/features) — call count drops from ~7 to 2 per device per click. Those endpoints returned 403 for many accounts and just produced minute-long rate-limiter backlogs.",
-        "de": "Refresh-Button holt nicht mehr die statischen SKU-Libraries (Scene/Music/DIY/Features) — Call-Anzahl pro Gerät pro Klick fällt von ~7 auf 2. Diese Endpunkte lieferten 403 für viele Accounts und produzierten nur minutenlange Rate-Limiter-Backlogs.",
-        "ru": "Кнопка Refresh більше не перезавантажує статичні SKU-бібліотеки (scene/music/DIY/features) — кількість викликів знижується з ~7 до 2 на пристрій за клік. Ці endpoint'и повертали 403 для багатьох акаунтів і лише накопичували відставання rate-limiter на хвилини.",
-        "pt": "O botão Refresh não busca mais as bibliotecas estáticas por SKU (scene/music/DIY/features) — o número de chamadas cai de ~7 para 2 por dispositivo por clique. Esses endpoints retornavam 403 para muitas contas e só produziam backlog de minutos no rate-limiter.",
-        "nl": "Refresh-knop haalt de statische SKU-bibliotheken (scene/music/DIY/features) niet meer opnieuw op — aantal calls daalt van ~7 naar 2 per device per klik. Die endpoints leverden 403 voor veel accounts en zorgden alleen voor minutenlange rate-limiter backlog.",
-        "fr": "Le bouton Refresh ne récupère plus les bibliothèques statiques par SKU (scene/music/DIY/features) — le nombre d'appels passe de ~7 à 2 par appareil par clic. Ces endpoints retournaient 403 pour beaucoup de comptes et ne produisaient qu'un backlog de plusieurs minutes côté rate-limiter.",
-        "it": "Il pulsante Refresh non ricarica più le librerie statiche per SKU (scene/music/DIY/features) — il numero di chiamate scende da ~7 a 2 per dispositivo per click. Quegli endpoint restituivano 403 per molti account e producevano solo arretrati di minuti nel rate-limiter.",
-        "es": "El botón Refresh ya no vuelve a buscar las librerías estáticas por SKU (scene/music/DIY/features) — el número de llamadas baja de ~7 a 2 por dispositivo por clic. Esos endpoints devolvían 403 para muchas cuentas y solo producían backlogs de minutos en el rate-limiter.",
-        "pl": "Przycisk Refresh nie pobiera już statycznych bibliotek SKU (scene/music/DIY/features) — liczba wywołań spada z ~7 do 2 na urządzenie na kliknięcie. Te endpointy zwracały 403 dla wielu kont i powodowały tylko minutowy backlog rate-limitera.",
-        "uk": "Кнопка Refresh більше не перезавантажує статичні SKU-бібліотеки (scene/music/DIY/features) — кількість викликів знижується з ~7 до 2 на пристрій за клік. Ці endpoint'и повертали 403 для багатьох акаунтів і лише накопичували rate-limiter-backlog на хвилини.",
-        "zh-cn": "刷新按钮不再重新获取静态 SKU 库（scene/music/DIY/features）—— 每次点击每设备的调用数从约 7 个降至 2 个。这些端点对许多账户返回 403，只会产生数分钟的 rate-limiter 积压。"
       }
     },
     "titleLang": {

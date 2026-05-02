@@ -26,7 +26,7 @@ __export(govee_constants_exports, {
 });
 module.exports = __toCommonJS(govee_constants_exports);
 var import_uuid = require("uuid");
-const GOVEE_APP_VERSION = "7.4.21";
+const GOVEE_APP_VERSION = "7.4.22";
 const GOVEE_CLIENT_TYPE = "1";
 const GOVEE_USER_AGENT = `GoveeHome/${GOVEE_APP_VERSION} (com.ihoment.GoVeeSensor; build:8; iOS 26.5.0) Alamofire/5.11.0`;
 const GOVEE_APP_BASE_URL = "https://app2.govee.com";

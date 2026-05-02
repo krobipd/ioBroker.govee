@@ -124,8 +124,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 2.1.1 (2026-05-02)
 
 - Security fix: in v2.1.0 your saved MQTT login (token + certificate) was accidentally stored unencrypted. Now actually encrypted at rest as intended.
 - Diagnostics datapoints renamed from `info.diagnostics_*` to `diag.export` / `diag.result` / `diag.tier`. Old datapoints are removed on first start — adjust scripts that referenced the old names.
@@ -159,13 +158,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - Snapshots and scenes only attach to lights now — thermometers, heaters and kettles no longer get `snapshot_local` / `snapshot_save` / `snapshot_delete`.
 - The `N experimental device(s) detected` boot-time log line is gone. The hint now fires once per lifetime per SKU, only when that SKU actually shows up.
 - Less info-level log noise on startup (the routine `OpenAPI MQTT connected` line was removed; recovery messages stay).
-
-### 2.0.0 (2026-04-26)
-
-- Major release — Govee appliances and sensors (thermometers like H5179, heaters, kettles, ice makers) are now handled here alongside lights.
-- The standalone `iobroker.govee-appliances` adapter is deprecated and rolls into here. Install govee-smart 2.0.0+ and uninstall govee-appliances when convenient.
-- New **"Enable experimental device support"** checkbox in the adapter config — applies known per-model corrections to devices that are catalogued but not yet confirmed by a tester.
-- New state `info.openapiMqttConnected` showing whether the push channel for sensor / appliance events is up; `info.mqttConnected` keeps tracking the channel used for lights.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
