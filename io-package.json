@@ -1,9 +1,9 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "news": {
-      "NEXT": {
+      "2.1.2": {
         "en": "Verification message no longer claims your account has 2FA when it doesn't. Stale credentials from v2.1.0 are cleared on first start. H61D5 added to the catalogue.",
         "de": "Die Verifizierungs-Meldung behauptet nicht mehr 2FA bei Konten ohne 2FA. Alte Credentials aus v2.1.0 werden beim ersten Start aufgeraeumt. H61D5 im Katalog ergaenzt.",
         "ru": "Сообщение о верификации больше не утверждает, что у аккаунта 2FA, если её нет. Старые креды из v2.1.0 чистятся при первом старте. H61D5 в каталоге.",

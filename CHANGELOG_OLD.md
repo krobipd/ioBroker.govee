@@ -1,4 +1,11 @@
 # Older Changes
+## 2.0.1 (2026-04-26)
+
+- Sensor values and events now land under `sensor/` and `events/` (were both under `control/` in v2.0.0). Removes `no existing object` warnings in the log on first start.
+- Snapshots and scenes only attach to lights now — thermometers, heaters and kettles no longer get `snapshot_local` / `snapshot_save` / `snapshot_delete`.
+- The `N experimental device(s) detected` boot-time log line is gone. The hint now fires once per lifetime per SKU, only when that SKU actually shows up.
+- Less info-level log noise on startup (the routine `OpenAPI MQTT connected` line was removed; recovery messages stay).
+
 ## 2.0.0 (2026-04-26)
 
 - Major release — Govee appliances and sensors (thermometers like H5179, heaters, kettles, ice makers) are now handled here alongside lights.
