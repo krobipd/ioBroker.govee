@@ -96,59 +96,95 @@ describe("DiagnosticsCollector", () => {
     });
   });
 
-  describe("setApiResponse", () => {
-    it("stores last response per endpoint", () => {
+  describe("recordApiSuccess / recordApiFailure", () => {
+    it("stores response history per endpoint with most-recent at the end", () => {
       const c = new DiagnosticsCollector();
-      c.setApiResponse("dev1", "/api/state", { code: 200, foo: "bar" });
+      c.recordApiSuccess("dev1", "/api/state", { code: 200, foo: "bar" });
       const result = c.generate(makeDevice({ deviceId: "dev1" }), "2.0.0");
-      const last = result.lastApiResponse as Record<string, unknown>;
-      const entry = last["/api/state"] as Record<string, unknown>;
-      expect(entry).to.exist;
+      const hist = result.apiHistory as Record<string, unknown[]>;
+      const list = hist["/api/state"];
+      expect(list).to.have.lengthOf(1);
+      const entry = list[0] as Record<string, unknown>;
       expect(entry.body).to.deep.equal({ code: 200, foo: "bar" });
       expect(entry.endpoint).to.equal("/api/state");
+      expect(entry.ok).to.equal(true);
+      expect(entry.statusCode).to.equal(200);
     });
 
-    it("overwrites the previous response for the same endpoint", () => {
+    it("keeps multiple slots per endpoint (no overwrite)", () => {
       const c = new DiagnosticsCollector();
-      c.setApiResponse("dev1", "/api/state", { v: 1 });
-      c.setApiResponse("dev1", "/api/state", { v: 2 });
+      c.recordApiSuccess("dev1", "/api/state", { v: 1 });
+      c.recordApiSuccess("dev1", "/api/state", { v: 2 });
       const result = c.generate(makeDevice({ deviceId: "dev1" }), "2.0.0");
-      const last = result.lastApiResponse as Record<string, { body: unknown }>;
-      expect(last["/api/state"].body).to.deep.equal({ v: 2 });
+      const list = (result.apiHistory as Record<string, unknown[]>)["/api/state"] as Array<{ body: unknown }>;
+      expect(list).to.have.lengthOf(2);
+      expect(list[0].body).to.deep.equal({ v: 1 });
+      expect(list[1].body).to.deep.equal({ v: 2 });
     });
 
-    it("evicts oldest endpoint when more than 5 are tracked", () => {
+    it("evicts oldest entry when endpoint exceeds the per-endpoint cap", () => {
       const c = new DiagnosticsCollector();
-      c.setApiResponse("dev1", "/a", { v: 1 });
-      c.setApiResponse("dev1", "/b", { v: 1 });
-      c.setApiResponse("dev1", "/c", { v: 1 });
-      c.setApiResponse("dev1", "/d", { v: 1 });
-      c.setApiResponse("dev1", "/e", { v: 1 });
-      c.setApiResponse("dev1", "/f", { v: 1 });
+      c.recordApiSuccess("dev1", "/api/state", { v: 1 });
+      c.recordApiSuccess("dev1", "/api/state", { v: 2 });
+      c.recordApiSuccess("dev1", "/api/state", { v: 3 });
+      c.recordApiSuccess("dev1", "/api/state", { v: 4 });
       const result = c.generate(makeDevice({ deviceId: "dev1" }), "2.0.0");
-      const last = result.lastApiResponse as Record<string, unknown>;
-      expect(last["/a"]).to.be.undefined;
-      expect(last["/f"]).to.exist;
+      const list = (result.apiHistory as Record<string, unknown[]>)["/api/state"] as Array<{ body: unknown }>;
+      // Cap is MAX_RESPONSES_PER_ENDPOINT = 3 — oldest dropped, newest at end.
+      expect(list).to.have.lengthOf(3);
+      expect(list[0].body).to.deep.equal({ v: 2 });
+      expect(list[2].body).to.deep.equal({ v: 4 });
+    });
+
+    it("evicts oldest endpoint when more than 12 distinct endpoints are tracked", () => {
+      const c = new DiagnosticsCollector();
+      // 13 distinct endpoints — first should be evicted.
+      for (let i = 0; i < 13; i++) {
+        c.recordApiSuccess("dev1", `/ep${i}`, { v: i });
+      }
+      const hist = (c.generate(makeDevice({ deviceId: "dev1" }), "2.0.0").apiHistory) as Record<string, unknown[]>;
+      expect(hist["/ep0"]).to.be.undefined;
+      expect(hist["/ep12"]).to.exist;
     });
 
     it("truncates large bodies with marker", () => {
       const c = new DiagnosticsCollector();
       const big = "x".repeat(20000);
-      c.setApiResponse("dev1", "/api/big", { huge: big });
+      c.recordApiSuccess("dev1", "/api/big", { huge: big });
       const result = c.generate(makeDevice({ deviceId: "dev1" }), "2.0.0");
-      const last = result.lastApiResponse as Record<string, { body: unknown }>;
-      expect(typeof last["/api/big"].body).to.equal("string");
-      expect(last["/api/big"].body as string).to.include("<truncated");
+      const list = (result.apiHistory as Record<string, Array<{ body: unknown }>>)["/api/big"];
+      expect(typeof list[0].body).to.equal("string");
+      expect(list[0].body as string).to.include("<truncated");
     });
 
     it("falls back to String() when body is non-serialisable", () => {
       const c = new DiagnosticsCollector();
       const cyclic: Record<string, unknown> = {};
       cyclic.self = cyclic;
-      c.setApiResponse("dev1", "/api/cycle", cyclic);
+      c.recordApiSuccess("dev1", "/api/cycle", cyclic);
       const result = c.generate(makeDevice({ deviceId: "dev1" }), "2.0.0");
-      const last = result.lastApiResponse as Record<string, { body: unknown }>;
-      expect(typeof last["/api/cycle"].body).to.equal("string");
+      const list = (result.apiHistory as Record<string, Array<{ body: unknown }>>)["/api/cycle"];
+      expect(typeof list[0].body).to.equal("string");
+    });
+
+    it("recordApiFailure captures the error + status code so silent fetch failures become visible", () => {
+      const c = new DiagnosticsCollector();
+      c.recordApiFailure("dev1", "/light-effect-libraries", new Error("403 Forbidden"), 403);
+      const result = c.generate(makeDevice({ deviceId: "dev1" }), "2.0.0");
+      const list = (result.apiHistory as Record<string, Array<Record<string, unknown>>>)["/light-effect-libraries"];
+      expect(list).to.have.lengthOf(1);
+      expect(list[0].ok).to.equal(false);
+      expect(list[0].statusCode).to.equal(403);
+      expect(list[0].body).to.deep.equal({ error: "403 Forbidden", status: 403 });
+    });
+
+    it("setApiResponse alias still works (back-compat shim)", () => {
+      const c = new DiagnosticsCollector();
+      c.setApiResponse("dev1", "/legacy", { v: 1 });
+      const list = (c.generate(makeDevice({ deviceId: "dev1" }), "2.0.0").apiHistory as Record<string, unknown[]>)[
+        "/legacy"
+      ];
+      expect(list).to.have.lengthOf(1);
     });
   });
 
@@ -211,7 +247,7 @@ describe("DiagnosticsCollector", () => {
         "state",
         "recentLogs",
         "lastMqttPackets",
-        "lastApiResponse",
+        "apiHistory",
       ]);
     });
 
@@ -232,7 +268,7 @@ describe("DiagnosticsCollector", () => {
       const result = c.generate(makeDevice(), "2.0.0");
       expect(result.recentLogs).to.deep.equal([]);
       expect(result.lastMqttPackets).to.deep.equal([]);
-      expect(result.lastApiResponse).to.deep.equal({});
+      expect(result.apiHistory).to.deep.equal({});
     });
   });
 });

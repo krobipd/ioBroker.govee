@@ -1133,9 +1133,11 @@ export function buildDeviceStateDefs(
     });
   }
 
-  // Diagnostics — under info/ because it exports ALL device data, not just snapshots
+  // Diagnostics — own top-level `diag` channel on the device. Self-service
+  // dump for users to attach to GitHub issues; clustered together so it's
+  // immediately recognisable in the object tree.
   stateDefs.push({
-    id: "diagnostics_export",
+    id: "export",
     name: "Export Diagnostics",
     type: "boolean",
     role: "button",
@@ -1143,10 +1145,10 @@ export function buildDeviceStateDefs(
     def: false,
     capabilityType: "local",
     capabilityInstance: "diagnosticsExport",
-    channel: "info",
+    channel: "diag",
   });
   stateDefs.push({
-    id: "diagnostics_result",
+    id: "result",
     name: "Diagnostics JSON",
     type: "string",
     role: "json",
@@ -1154,14 +1156,14 @@ export function buildDeviceStateDefs(
     def: "",
     capabilityType: "local",
     capabilityInstance: "diagnosticsResult",
-    channel: "info",
+    channel: "diag",
   });
   // Trust tier for the user — verified/reported/seed/unknown. Tells
   // power users whether the experimental toggle would buy them anything,
   // and lets unknown-SKU users see at a glance that their device isn't
   // in the catalogue yet.
   stateDefs.push({
-    id: "diagnostics_tier",
+    id: "tier",
     name: "Device Tier",
     type: "string",
     role: "text",
@@ -1171,11 +1173,11 @@ export function buildDeviceStateDefs(
       verified: "Verified — confirmed by a tester",
       reported: "Reported — community-reported, treated as verified",
       seed: "Seed — beta, needs experimental toggle in adapter settings",
-      unknown: "Unknown SKU — please run diagnostics_export and post in a GitHub issue",
+      unknown: "Unknown SKU — please run diag.export and post in a GitHub issue",
     },
     capabilityType: "local",
     capabilityInstance: "diagnosticsTier",
-    channel: "info",
+    channel: "diag",
   });
 
   return stateDefs;

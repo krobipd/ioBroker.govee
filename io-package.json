@@ -3,6 +3,19 @@
     "name": "govee-smart",
     "version": "2.1.0",
     "news": {
+      "NEXT": {
+        "en": "Hotfix: encryptedNative/protectedNative at root only (schema-error in v2.1.0). Diagnostics moved to diag.* per device. 2FA warning no longer spams reconnect cycles.",
+        "de": "Hotfix: encryptedNative/protectedNative nur am Root (war Schema-Error in v2.1.0). Diagnostik liegt jetzt unter diag.* pro Geraet. 2FA-Warn spammt Reconnects nicht mehr.",
+        "ru": "Хотфикс: encryptedNative/protectedNative только в root (был schema-error в v2.1.0). Диагностика теперь в diag.* на устройство. 2FA-warn больше не спамит реконнекты.",
+        "pt": "Hotfix: encryptedNative/protectedNative apenas no root (schema-error em v2.1.0). Diagnostico migrado para diag.* por dispositivo. Aviso 2FA nao spama mais reconexoes.",
+        "nl": "Hotfix: encryptedNative/protectedNative alleen op root (was schema-error in v2.1.0). Diagnose verplaatst naar diag.* per apparaat. 2FA-waarschuwing spamt reconnects niet meer.",
+        "fr": "Hotfix: encryptedNative/protectedNative uniquement a la racine (schema-error en v2.1.0). Diagnostics deplaces vers diag.* par appareil. L'avertissement 2FA ne spamme plus les reconnexions.",
+        "it": "Hotfix: encryptedNative/protectedNative solo al root (schema-error in v2.1.0). Diagnostica spostata in diag.* per dispositivo. Avviso 2FA non spamma piu le riconnessioni.",
+        "es": "Hotfix: encryptedNative/protectedNative solo en root (schema-error en v2.1.0). Diagnostico movido a diag.* por dispositivo. El aviso 2FA ya no spamea reconexiones.",
+        "pl": "Hotfix: encryptedNative/protectedNative tylko na root (schema-error w v2.1.0). Diagnostyka przeniesiona do diag.* na urzadzenie. Ostrzezenie 2FA nie spamuje reconnectow.",
+        "uk": "Хотфікс: encryptedNative/protectedNative лише в root (була schema-error у v2.1.0). Діагностика переїхала до diag.* на пристрій. 2FA-warn більше не спамить реконекти.",
+        "zh-cn": "Hotfix：encryptedNative/protectedNative 仅在 root 层级（v2.1.0 中是 schema 错误）。诊断状态迁移到每设备的 diag.*。2FA 警告不再在重连时刷屏。"
+      },
       "2.1.0": {
         "en": "2FA login + persisted MQTT credentials. info.online fixed for App-API sensors (H5179). New info.diagnostics_tier per device. Capability-driven scene/snapshot dropdowns.",
         "de": "2FA-Login + persistierte MQTT-Credentials. info.online fuer App-API-Sensoren behoben (H5179). Neuer info.diagnostics_tier pro Geraet. Capability-getriebene Szenen-/Snapshot-Dropdowns.",
@@ -164,27 +177,23 @@
       {
         "admin": ">=7.7.22"
       }
-    ],
-    "encryptedNative": [
-      "mqttBearerToken",
-      "mqttIotEndpoint",
-      "mqttP12Cert",
-      "mqttP12Pass"
-    ],
-    "protectedNative": [
-      "mqttBearerToken",
-      "mqttIotEndpoint",
-      "mqttP12Cert",
-      "mqttP12Pass"
     ]
   },
   "encryptedNative": [
     "apiKey",
-    "goveePassword"
+    "goveePassword",
+    "mqttBearerToken",
+    "mqttIotEndpoint",
+    "mqttP12Cert",
+    "mqttP12Pass"
   ],
   "protectedNative": [
     "apiKey",
-    "goveePassword"
+    "goveePassword",
+    "mqttBearerToken",
+    "mqttIotEndpoint",
+    "mqttP12Cert",
+    "mqttP12Pass"
   ],
   "instanceObjects": [
     {

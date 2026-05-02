@@ -260,20 +260,30 @@ class GoveeMqttClient {
       const msg = `MQTT connection failed: ${err instanceof Error ? err.message : String(err)}`;
       (_j = this.onConnection) == null ? void 0 : _j.call(this, false);
       if (category === "VERIFICATION_PENDING") {
+        const isNew = this.lastErrorCategory !== category;
         this.lastErrorCategory = category;
-        this.log.warn(
-          "Govee requires 2-Factor verification \u2014 request a code via the adapter settings, paste it into 'mqttVerificationCode' and save"
-        );
+        if (isNew) {
+          this.log.warn(
+            "Govee requires 2-Factor verification \u2014 request a code via the adapter settings, paste it into 'mqttVerificationCode' and save"
+          );
+        } else {
+          this.log.debug("MQTT verification still pending (Govee returned 454 again)");
+        }
         if (this.onVerificationFailed) {
           this.onVerificationFailed("pending");
         }
         return;
       }
       if (category === "VERIFICATION_FAILED") {
+        const isNew = this.lastErrorCategory !== category;
         this.lastErrorCategory = category;
-        this.log.warn(
-          "Govee 2-Factor verification code is invalid or expired \u2014 request a fresh code via the adapter settings"
-        );
+        if (isNew) {
+          this.log.warn(
+            "Govee 2-Factor verification code is invalid or expired \u2014 request a fresh code via the adapter settings"
+          );
+        } else {
+          this.log.debug("MQTT verification code rejected again (Govee returned 455)");
+        }
         if (this.onVerificationFailed) {
           this.onVerificationFailed("failed");
         }
@@ -347,7 +357,7 @@ class GoveeMqttClient {
   /**
    * Register a hook called for every parsed MQTT packet. Used by the
    * adapter to forward op.command hex strings into the DiagnosticsCollector
-   * for `info.diagnostics_export`.
+   * for `diag.export`.
    *
    * @param cb Callback receiving (deviceId, topic, hex)
    */
@@ -473,9 +483,19 @@ class GoveeMqttClient {
     });
   }
   /**
-   * Schedule a proactive re-login 5 minutes before token expiry. Govee
-   * doesn't push token-rotation events, so we trigger one ourselves to
-   * avoid hitting the expired-token cliff in the middle of a streaming session.
+   * Schedule a proactive token refresh 5 minutes before bearer expiry.
+   *
+   * v2.1.0 disconnect+reconnect was disruptive: it killed the live MQTT
+   * session, then triggered a fresh login. If Govee responded with 454
+   * (e.g. account flagged for re-verification), the user saw the 2FA
+   * warning even though MQTT was previously working — and the
+   * disconnect dropped status push for the duration of the re-auth.
+   *
+   * v2.1.1: silent re-login. We just call /v1/login, save the new
+   * bearer + cert (so the next adapter restart skips full login), and
+   * let the existing MQTT session keep running. The current cert may
+   * stay valid past the bearer's expiry — losing the bearer only
+   * affects API-key-less REST calls, not the live MQTT push channel.
    *
    * @param expiresAt ms-timestamp at which the bearer token will be rejected
    */
@@ -491,13 +511,51 @@ class GoveeMqttClient {
     }
     this.refreshTimer = this.timers.setTimeout(() => {
       this.refreshTimer = void 0;
-      this.log.debug("Proactive MQTT token refresh triggered");
-      this.persisted = null;
-      this.disconnect();
-      if (this.onStatus && this.onConnection) {
-        void this.connect(this.onStatus, this.onConnection);
-      }
+      void this.refreshBearerSilently();
     }, delay);
+  }
+  /**
+   * Refresh the bearer token without disconnecting MQTT. Called by the
+   * proactive-refresh timer. Failures don't disrupt the live session —
+   * the next reconnect-cycle (if Govee invalidates the cert) handles
+   * recovery via the normal connect() path.
+   */
+  async refreshBearerSilently() {
+    var _a, _b, _c, _d, _e, _f;
+    this.log.debug("Proactive MQTT bearer refresh triggered");
+    try {
+      const loginResp = await this.login();
+      if (!loginResp.client) {
+        const status = (_a = loginResp.status) != null ? _a : 0;
+        this.log.debug(`Silent bearer refresh declined by Govee (status ${status}) \u2014 current session kept`);
+        return;
+      }
+      this._bearerToken = loginResp.client.token;
+      (_b = this.onToken) == null ? void 0 : _b.call(this, this._bearerToken);
+      const ttlSec = (_d = (_c = loginResp.client.token_expire_cycle) != null ? _c : loginResp.client.tokenExpireCycle) != null ? _d : 3600;
+      const newExpiresAt = Date.now() + ttlSec * 1e3;
+      try {
+        const iotResp = await this.getIotKey();
+        if ((_e = iotResp == null ? void 0 : iotResp.data) == null ? void 0 : _e.endpoint) {
+          (_f = this.onCredentialsRefresh) == null ? void 0 : _f.call(this, {
+            bearerToken: this._bearerToken,
+            iotEndpoint: iotResp.data.endpoint,
+            p12Cert: iotResp.data.p12,
+            p12Pass: iotResp.data.p12Pass,
+            accountId: this.accountId,
+            accountTopic: this.accountTopic,
+            tokenExpiresAt: newExpiresAt
+          });
+        }
+      } catch (e) {
+        this.log.debug(`Silent IoT-key refresh failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      this.scheduleProactiveRefresh(newExpiresAt);
+    } catch (e) {
+      this.log.debug(
+        `Silent bearer refresh failed: ${e instanceof Error ? e.message : String(e)} \u2014 current session kept`
+      );
+    }
   }
   /** Login to Govee account */
   login() {

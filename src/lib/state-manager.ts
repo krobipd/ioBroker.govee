@@ -37,6 +37,7 @@ const CHANNEL_NAMES: Record<string, string> = {
   sensor: "Sensor Data",
   events: "Events",
   info: "Device Information",
+  diag: "Diagnostics",
 };
 
 /**
@@ -149,10 +150,10 @@ export class StateManager {
 
   /**
    * Push the device's trust tier (verified/reported/seed/unknown) into
-   * the user-visible `info.diagnostics_tier` state. Called after every
-   * device-state refresh so the value tracks any registry change between
-   * adapter restarts (e.g. seed → verified once a tester confirms).
-   * No-op for groups (BaseGroup has no per-device tier).
+   * the user-visible `diag.tier` state. Called after every device-state
+   * refresh so the value tracks any registry change between adapter
+   * restarts (e.g. seed → verified once a tester confirms). No-op for
+   * groups (BaseGroup has no per-device tier).
    *
    * @param device Govee device
    * @param tier Canonical tier label
@@ -162,9 +163,27 @@ export class StateManager {
       return;
     }
     const prefix = this.devicePrefix(device);
-    await this.adapter
-      .setStateAsync(`${prefix}.info.diagnostics_tier`, { val: tier, ack: true })
-      .catch(() => undefined);
+    await this.adapter.setStateAsync(`${prefix}.diag.tier`, { val: tier, ack: true }).catch(() => undefined);
+  }
+
+  /**
+   * Migrate v2.1.0 layout (`info.diagnostics_*`) to v2.1.1 layout
+   * (`diag.*`). Deletes the three old objects + states; the new ones get
+   * created by the regular `createDeviceStates` pass. Idempotent — calling
+   * twice is a no-op once the old objects are gone.
+   *
+   * @param device Govee device
+   */
+  async migrateLegacyDiagnostics(device: GoveeDevice): Promise<void> {
+    if (device.sku === "BaseGroup") {
+      return;
+    }
+    const prefix = this.devicePrefix(device);
+    for (const stale of ["diagnostics_export", "diagnostics_result", "diagnostics_tier"]) {
+      await this.adapter.delObjectAsync(`${prefix}.info.${stale}`).catch(() => undefined);
+      await this.adapter.delStateAsync(`${prefix}.info.${stale}`).catch(() => undefined);
+      this.stateChannelMap.delete(`${prefix}.${stale}`);
+    }
   }
 
   /**
@@ -346,6 +365,8 @@ export class StateManager {
         await this.adapter.delObjectAsync(`${prefix}.info.${staleId}`).catch(() => {});
         await this.adapter.delStateAsync(`${prefix}.info.${staleId}`).catch(() => {});
       }
+      // Groups never had a `diag` channel — drop any leftover from migrated installs.
+      await this.adapter.delObjectAsync(`${prefix}.diag`, { recursive: true }).catch(() => {});
     }
 
     // Group state defs by channel (control, scenes, music, snapshots)

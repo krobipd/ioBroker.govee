@@ -836,7 +836,7 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
     });
   }
   stateDefs.push({
-    id: "diagnostics_export",
+    id: "export",
     name: "Export Diagnostics",
     type: "boolean",
     role: "button",
@@ -844,10 +844,10 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
     def: false,
     capabilityType: "local",
     capabilityInstance: "diagnosticsExport",
-    channel: "info"
+    channel: "diag"
   });
   stateDefs.push({
-    id: "diagnostics_result",
+    id: "result",
     name: "Diagnostics JSON",
     type: "string",
     role: "json",
@@ -855,10 +855,10 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
     def: "",
     capabilityType: "local",
     capabilityInstance: "diagnosticsResult",
-    channel: "info"
+    channel: "diag"
   });
   stateDefs.push({
-    id: "diagnostics_tier",
+    id: "tier",
     name: "Device Tier",
     type: "string",
     role: "text",
@@ -868,11 +868,11 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
       verified: "Verified \u2014 confirmed by a tester",
       reported: "Reported \u2014 community-reported, treated as verified",
       seed: "Seed \u2014 beta, needs experimental toggle in adapter settings",
-      unknown: "Unknown SKU \u2014 please run diagnostics_export and post in a GitHub issue"
+      unknown: "Unknown SKU \u2014 please run diag.export and post in a GitHub issue"
     },
     capabilityType: "local",
     capabilityInstance: "diagnosticsTier",
-    channel: "info"
+    channel: "diag"
   });
   return stateDefs;
 }

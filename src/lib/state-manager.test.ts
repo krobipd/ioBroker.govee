@@ -552,7 +552,7 @@ describe("StateManager", () => {
       expect(val!.val).to.equal("");
     });
 
-    it("should clean up diagnostics states for BaseGroup", async () => {
+    it("should clean up legacy diagnostics + new diag channel for BaseGroup", async () => {
       const { adapter, calls } = createMockAdapter();
       const sm = new StateManager(adapter as never);
       const dev = createTestDevice({ sku: "BaseGroup", deviceId: "6781311" });
@@ -560,8 +560,12 @@ describe("StateManager", () => {
       await sm.createDeviceStates(dev, []);
 
       const delCalls = calls.filter(c => c.method === "delObjectAsync").map(c => c.args[0] as string);
+      // Legacy v2.1.0 layout (info.diagnostics_*) — drop on every group create
       expect(delCalls).to.include("groups.basegroup_1311.info.diagnostics_export");
       expect(delCalls).to.include("groups.basegroup_1311.info.diagnostics_result");
+      expect(delCalls).to.include("groups.basegroup_1311.info.diagnostics_tier");
+      // v2.1.1 layout — groups never have a diag channel either, drop the whole subtree
+      expect(delCalls).to.include("groups.basegroup_1311.diag");
     });
   });
 
@@ -703,13 +707,13 @@ describe("StateManager", () => {
       );
     });
 
-    it("should route diagnostics states to info channel", async () => {
+    it("should route diagnostics states to diag channel (top-level on device)", async () => {
       const { adapter } = createMockAdapter();
       const sm = new StateManager(adapter as never);
       const dev = createTestDevice();
       await sm.createDeviceStates(dev, [
         {
-          id: "diagnostics_export",
+          id: "export",
           name: "Export",
           type: "boolean",
           role: "button",
@@ -717,10 +721,10 @@ describe("StateManager", () => {
           def: false,
           capabilityType: "local",
           capabilityInstance: "diagnosticsExport",
-          channel: "info",
+          channel: "diag",
         },
         {
-          id: "diagnostics_result",
+          id: "result",
           name: "Result",
           type: "string",
           role: "json",
@@ -728,15 +732,11 @@ describe("StateManager", () => {
           def: "",
           capabilityType: "local",
           capabilityInstance: "diagnosticsResult",
-          channel: "info",
+          channel: "diag",
         },
       ]);
-      expect(sm.resolveStatePath("devices.h6160_0011", "diagnostics_export")).to.equal(
-        "devices.h6160_0011.info.diagnostics_export",
-      );
-      expect(sm.resolveStatePath("devices.h6160_0011", "diagnostics_result")).to.equal(
-        "devices.h6160_0011.info.diagnostics_result",
-      );
+      expect(sm.resolveStatePath("devices.h6160_0011", "export")).to.equal("devices.h6160_0011.diag.export");
+      expect(sm.resolveStatePath("devices.h6160_0011", "result")).to.equal("devices.h6160_0011.diag.result");
     });
 
     it("should route unknown states to control channel", () => {

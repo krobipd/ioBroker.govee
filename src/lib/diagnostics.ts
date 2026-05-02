@@ -21,13 +21,17 @@ export interface MqttPacketEntry {
   hex: string;
 }
 
-/** Last response captured for a Cloud / App-API endpoint. */
+/** One captured API call (success or failure) for a Cloud / App-API endpoint. */
 export interface ApiResponseEntry {
   /** ISO timestamp */
   ts: string;
   /** Endpoint identifier (e.g. "/router/api/v1/device/state") */
   endpoint: string;
-  /** Response body (JSON-serializable; truncated by collector if large) */
+  /** True = body holds the parsed response. False = body holds `{ error, status }`. */
+  ok: boolean;
+  /** HTTP status code if known. Useful for failed calls (e.g. 403 from /light-effect-libraries). */
+  statusCode?: number;
+  /** Response body on success. On failure: `{ error: string, status?: number }`. */
   body: unknown;
 }
 
@@ -35,18 +39,23 @@ export interface ApiResponseEntry {
 interface DeviceBuffers {
   logs: LogEntry[];
   packets: MqttPacketEntry[];
-  /** Keyed by endpoint — keeps only the last response per distinct endpoint. */
-  responses: Map<string, ApiResponseEntry>;
+  /**
+   * Per-endpoint history (most-recent at the end). Keeping multiple slots
+   * is essential for diagnosing "the first call returned X, the refresh
+   * call returned Y" cases — the single-slot design lost that timeline.
+   */
+  responses: Map<string, ApiResponseEntry[]>;
 }
 
 const MAX_LOGS = 20;
 const MAX_PACKETS = 10;
-const MAX_RESPONSE_ENDPOINTS = 5;
+const MAX_RESPONSE_ENDPOINTS = 12;
+const MAX_RESPONSES_PER_ENDPOINT = 3;
 const MAX_BODY_BYTES = 8192;
 
 /**
  * Collects diagnostic context per device and produces the
- * `info.diagnostics_result` JSON. Replaces the inline
+ * `diag.result` JSON. Replaces the inline
  * `device-manager.generateDiagnostics()` so log/MQTT/API hooks can write
  * data without coupling to DeviceManager.
  *
@@ -114,9 +123,10 @@ export class DiagnosticsCollector {
   }
 
   /**
-   * Record the last response body for a Cloud/App-API endpoint. Older
-   * responses for the same endpoint are overwritten (one slot per
-   * endpoint, capped at MAX_RESPONSE_ENDPOINTS distinct endpoints).
+   * Record a successful API call for a Cloud/App-API endpoint. Appends
+   * to the per-endpoint history (most-recent at the end), keeping at
+   * most MAX_RESPONSES_PER_ENDPOINT entries per endpoint and at most
+   * MAX_RESPONSE_ENDPOINTS distinct endpoints overall.
    *
    * Body is shallow-copied + serialised so later mutations of the
    * caller's object do not change what we report. Large bodies get
@@ -125,31 +135,92 @@ export class DiagnosticsCollector {
    * @param deviceId Govee device id
    * @param endpoint Endpoint identifier
    * @param body Response body
+   * @param statusCode Optional HTTP status (200 by default if omitted)
    */
-  setApiResponse(deviceId: string, endpoint: string, body: unknown): void {
+  recordApiSuccess(deviceId: string, endpoint: string, body: unknown, statusCode?: number): void {
     if (typeof deviceId !== "string" || !deviceId) {
       return;
     }
     if (typeof endpoint !== "string" || !endpoint) {
       return;
     }
-    const b = this.get(deviceId);
-    let stored: unknown = body;
+    const stored = this.cloneAndCap(body);
+    this.appendResponse(this.get(deviceId), {
+      ts: new Date().toISOString(),
+      endpoint,
+      ok: true,
+      statusCode: statusCode ?? 200,
+      body: stored,
+    });
+  }
+
+  /**
+   * Record a FAILED API call. Captures the error message + HTTP status
+   * (if extractable) so the diag JSON shows "endpoint attempted, returned
+   * 403 Forbidden" instead of silent gaps. Without this, the user can't
+   * tell "endpoint never called" from "endpoint returned []" from
+   * "endpoint rejected with 403".
+   *
+   * @param deviceId Govee device id
+   * @param endpoint Endpoint identifier
+   * @param error The thrown Error or any value
+   * @param statusCode Optional HTTP status if extractable from the error
+   */
+  recordApiFailure(deviceId: string, endpoint: string, error: unknown, statusCode?: number): void {
+    if (typeof deviceId !== "string" || !deviceId) {
+      return;
+    }
+    if (typeof endpoint !== "string" || !endpoint) {
+      return;
+    }
+    const errMsg = error instanceof Error ? error.message : String(error);
+    this.appendResponse(this.get(deviceId), {
+      ts: new Date().toISOString(),
+      endpoint,
+      ok: false,
+      statusCode,
+      body: { error: errMsg, status: statusCode },
+    });
+  }
+
+  /**
+   * @deprecated Use {@link recordApiSuccess} instead. Kept as a shim so
+   *   in-flight callers don't break during the v2.1.0 → v2.1.1 refactor.
+   * @param deviceId Govee device id
+   * @param endpoint Endpoint identifier
+   * @param body Response body
+   */
+  setApiResponse(deviceId: string, endpoint: string, body: unknown): void {
+    this.recordApiSuccess(deviceId, endpoint, body);
+  }
+
+  /** @param body Body to clone-via-JSON and cap at MAX_BODY_BYTES. */
+  private cloneAndCap(body: unknown): unknown {
     try {
       const serialised = JSON.stringify(body);
       if (typeof serialised === "string" && serialised.length > MAX_BODY_BYTES) {
-        stored = `<truncated ${serialised.length}b: ${serialised.slice(0, MAX_BODY_BYTES)}…>`;
-      } else if (typeof serialised === "string") {
-        stored = JSON.parse(serialised) as unknown;
+        return `<truncated ${serialised.length}b: ${serialised.slice(0, MAX_BODY_BYTES)}…>`;
       }
+      if (typeof serialised === "string") {
+        return JSON.parse(serialised) as unknown;
+      }
+      return body;
     } catch {
-      stored = String(body);
+      return String(body);
     }
-    b.responses.set(endpoint, {
-      ts: new Date().toISOString(),
-      endpoint,
-      body: stored,
-    });
+  }
+
+  /**
+   * @param b Device buffers
+   * @param entry New API response entry (success or failure) to append
+   */
+  private appendResponse(b: DeviceBuffers, entry: ApiResponseEntry): void {
+    const list = b.responses.get(entry.endpoint) ?? [];
+    list.push(entry);
+    if (list.length > MAX_RESPONSES_PER_ENDPOINT) {
+      list.splice(0, list.length - MAX_RESPONSES_PER_ENDPOINT);
+    }
+    b.responses.set(entry.endpoint, list);
     if (b.responses.size > MAX_RESPONSE_ENDPOINTS) {
       const first = b.responses.keys().next().value;
       if (first !== undefined) {
@@ -243,7 +314,10 @@ export class DiagnosticsCollector {
       state: { ...device.state },
       recentLogs: b?.logs.slice() ?? [],
       lastMqttPackets: b?.packets.slice() ?? [],
-      lastApiResponse: b ? Object.fromEntries(b.responses) : {},
+      // History per endpoint (most-recent at the end). Each entry has
+      // {ts, ok, statusCode, body}. body holds either the success
+      // response or `{error, status}` for failed calls.
+      apiHistory: b ? Object.fromEntries(Array.from(b.responses.entries()).map(([k, v]) => [k, v.slice()])) : {},
     };
   }
 }

@@ -1044,8 +1044,9 @@ describe("CapabilityMapper", () => {
       expect(ids).to.not.include("snapshot_save");
       expect(ids).to.not.include("snapshot_delete");
       expect(ids).to.not.include("snapshot");
-      expect(ids).to.not.include("diagnostics_export");
-      expect(ids).to.not.include("diagnostics_result");
+      expect(ids).to.not.include("export");
+      expect(ids).to.not.include("result");
+      expect(ids).to.not.include("tier");
     });
 
     it("should compute scene intersection across members", () => {

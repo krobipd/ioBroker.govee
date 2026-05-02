@@ -20,7 +20,7 @@ export class GoveeCloudClient {
   /**
    * Diagnostics hook — receives (deviceId, endpoint, body) for each
    * response. Optional; the adapter wires it to a DiagnosticsCollector
-   * for `info.diagnostics_export`.
+   * for `diag.export`.
    */
   private onResponse: ((deviceId: string, endpoint: string, body: unknown) => void) | null = null;
 
@@ -82,7 +82,7 @@ export class GoveeCloudClient {
     instance: string,
     value: unknown,
   ): Promise<void> {
-    await this.request("POST", "/router/api/v1/device/control", {
+    const reqBody = {
       requestId: `ctrl_${Date.now()}`,
       payload: {
         sku,
@@ -93,7 +93,9 @@ export class GoveeCloudClient {
           value,
         },
       },
-    });
+    };
+    const resp = await this.request("POST", "/router/api/v1/device/control", reqBody);
+    this.onResponse?.(device, "/router/api/v1/device/control", { request: reqBody.payload.capability, response: resp });
   }
 
   /**
@@ -115,6 +117,7 @@ export class GoveeCloudClient {
       requestId: "scenes",
       payload: { sku, device },
     });
+    this.onResponse?.(device, "/router/api/v1/device/scenes", resp);
 
     const lightScenes: CloudScene[] = [];
     const diyScenes: CloudScene[] = [];
@@ -160,6 +163,7 @@ export class GoveeCloudClient {
       requestId: "diy-scenes",
       payload: { sku, device },
     });
+    this.onResponse?.(device, "/router/api/v1/device/diy-scenes", resp);
 
     const scenes: CloudScene[] = [];
     const caps = Array.isArray(resp?.payload?.capabilities) ? resp.payload.capabilities : [];

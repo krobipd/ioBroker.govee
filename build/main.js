@@ -569,7 +569,7 @@ class GoveeAdapter extends utils.Adapter {
       await this.handleManualSegmentsChange(device, stateSuffix, val);
       return;
     }
-    if (stateSuffix === "info.diagnostics_export" && val) {
+    if (stateSuffix === "diag.export" && val) {
       const deviceKey = `${device.sku}:${device.deviceId}`;
       const now = Date.now();
       const last = (_a = this.diagnosticsLastRun.get(deviceKey)) != null ? _a : 0;
@@ -580,7 +580,7 @@ class GoveeAdapter extends utils.Adapter {
       }
       this.diagnosticsLastRun.set(deviceKey, now);
       const diag = this.deviceManager.generateDiagnostics(device, (_b = this.version) != null ? _b : "unknown");
-      const resultId = `${this.namespace}.${prefix}.info.diagnostics_result`;
+      const resultId = `${this.namespace}.${prefix}.diag.result`;
       await this.setStateAsync(resultId, {
         val: JSON.stringify(diag, null, 2),
         ack: true
@@ -890,8 +890,9 @@ class GoveeAdapter extends utils.Adapter {
     }
     const stateDefs = (0, import_capability_mapper.buildDeviceStateDefs)(device, localSnaps, memberDevices);
     const p = this.stateManager.createDeviceStates(device, stateDefs).then(async () => {
-      var _a2;
-      await ((_a2 = this.stateManager) == null ? void 0 : _a2.updateDeviceTier(device, (0, import_device_registry.getDeviceTier)(device.sku)));
+      var _a2, _b;
+      await ((_a2 = this.stateManager) == null ? void 0 : _a2.migrateLegacyDiagnostics(device));
+      await ((_b = this.stateManager) == null ? void 0 : _b.updateDeviceTier(device, (0, import_device_registry.getDeviceTier)(device.sku)));
     }).catch((e) => {
       this.log.error(`createDeviceStates failed for ${device.name}: ${e instanceof Error ? e.message : String(e)}`);
     });

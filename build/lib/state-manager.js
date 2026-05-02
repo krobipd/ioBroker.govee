@@ -35,7 +35,8 @@ const CHANNEL_NAMES = {
   snapshots: "Snapshots",
   sensor: "Sensor Data",
   events: "Events",
-  info: "Device Information"
+  info: "Device Information",
+  diag: "Diagnostics"
 };
 const SENSOR_STATE_IDS = /* @__PURE__ */ new Set(["temperature", "humidity", "battery", "co2", "carbondioxide", "online"]);
 const EVENT_STATE_IDS = /* @__PURE__ */ new Set([
@@ -110,10 +111,10 @@ class StateManager {
   }
   /**
    * Push the device's trust tier (verified/reported/seed/unknown) into
-   * the user-visible `info.diagnostics_tier` state. Called after every
-   * device-state refresh so the value tracks any registry change between
-   * adapter restarts (e.g. seed → verified once a tester confirms).
-   * No-op for groups (BaseGroup has no per-device tier).
+   * the user-visible `diag.tier` state. Called after every device-state
+   * refresh so the value tracks any registry change between adapter
+   * restarts (e.g. seed → verified once a tester confirms). No-op for
+   * groups (BaseGroup has no per-device tier).
    *
    * @param device Govee device
    * @param tier Canonical tier label
@@ -123,7 +124,26 @@ class StateManager {
       return;
     }
     const prefix = this.devicePrefix(device);
-    await this.adapter.setStateAsync(`${prefix}.info.diagnostics_tier`, { val: tier, ack: true }).catch(() => void 0);
+    await this.adapter.setStateAsync(`${prefix}.diag.tier`, { val: tier, ack: true }).catch(() => void 0);
+  }
+  /**
+   * Migrate v2.1.0 layout (`info.diagnostics_*`) to v2.1.1 layout
+   * (`diag.*`). Deletes the three old objects + states; the new ones get
+   * created by the regular `createDeviceStates` pass. Idempotent — calling
+   * twice is a no-op once the old objects are gone.
+   *
+   * @param device Govee device
+   */
+  async migrateLegacyDiagnostics(device) {
+    if (device.sku === "BaseGroup") {
+      return;
+    }
+    const prefix = this.devicePrefix(device);
+    for (const stale of ["diagnostics_export", "diagnostics_result", "diagnostics_tier"]) {
+      await this.adapter.delObjectAsync(`${prefix}.info.${stale}`).catch(() => void 0);
+      await this.adapter.delStateAsync(`${prefix}.info.${stale}`).catch(() => void 0);
+      this.stateChannelMap.delete(`${prefix}.${stale}`);
+    }
   }
   /**
    * Resolve full state path for a given device prefix and state ID.
@@ -276,6 +296,8 @@ class StateManager {
         await this.adapter.delStateAsync(`${prefix}.info.${staleId}`).catch(() => {
         });
       }
+      await this.adapter.delObjectAsync(`${prefix}.diag`, { recursive: true }).catch(() => {
+      });
     }
     const nonSegmentDefs = stateDefs.filter((d) => !d.id.startsWith("_segment_"));
     const channelGroups = /* @__PURE__ */ new Map();

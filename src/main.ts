@@ -292,7 +292,7 @@ class GoveeAdapter extends utils.Adapter {
       this.mqttClient = new GoveeMqttClient(config.goveeEmail, config.goveePassword, this.log, this);
 
       // Forward every parsed MQTT op.command into the diagnostics ring buffer
-      // so info.diagnostics_export contains the recent packets per device.
+      // so diag.export contains the recent packets per device.
       this.mqttClient.setPacketHook((deviceId, topic, hex) => {
         this.deviceManager?.getDiagnostics().addMqttPacket(deviceId, topic, hex);
       });
@@ -688,7 +688,7 @@ class GoveeAdapter extends utils.Adapter {
 
     // Diagnostics export button — throttled to 2 s per device so a repeated
     // or scripted trigger can't produce a burst of JSON serialisations.
-    if (stateSuffix === "info.diagnostics_export" && val) {
+    if (stateSuffix === "diag.export" && val) {
       const deviceKey = `${device.sku}:${device.deviceId}`;
       const now = Date.now();
       const last = this.diagnosticsLastRun.get(deviceKey) ?? 0;
@@ -699,7 +699,7 @@ class GoveeAdapter extends utils.Adapter {
       }
       this.diagnosticsLastRun.set(deviceKey, now);
       const diag = this.deviceManager.generateDiagnostics(device, this.version ?? "unknown");
-      const resultId = `${this.namespace}.${prefix}.info.diagnostics_result`;
+      const resultId = `${this.namespace}.${prefix}.diag.result`;
       await this.setStateAsync(resultId, {
         val: JSON.stringify(diag, null, 2),
         ack: true,
@@ -1088,6 +1088,9 @@ class GoveeAdapter extends utils.Adapter {
     const p = this.stateManager
       .createDeviceStates(device, stateDefs)
       .then(async () => {
+        // v2.1.0 → v2.1.1 layout migration: drop legacy info.diagnostics_*
+        // before publishing the new diag.tier value. Idempotent.
+        await this.stateManager?.migrateLegacyDiagnostics(device);
         await this.stateManager?.updateDeviceTier(device, getDeviceTier(device.sku));
       })
       .catch(e => {

@@ -336,7 +336,7 @@ export function isSeedAndDormant(sku: string): boolean {
 
 /**
  * Single canonical trust tier for a SKU as exposed to users via the
- * `info.diagnostics_tier` state. Unlike `getStatus`, this collapses the
+ * `diag.tier` state. Unlike `getStatus`, this collapses the
  * `undefined`-from-registry case into the explicit string `"unknown"` so
  * the value is always one of four well-known labels.
  *

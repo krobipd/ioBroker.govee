@@ -217,6 +217,30 @@ export class DeviceManager {
   }
 
   /**
+   * Pull the HTTP status code out of any error shape we know about
+   * (HttpError, Govee API responses with `.statusCode` / `.status`).
+   * Returns undefined for network errors / generic failures so the
+   * diagnostics entry shows "no status — likely network/timeout".
+   *
+   * @param e Caught error value
+   */
+  private extractStatus(e: unknown): number | undefined {
+    if (e instanceof HttpError) {
+      return e.statusCode;
+    }
+    if (typeof e === "object" && e !== null) {
+      const x = e as { statusCode?: unknown; status?: unknown };
+      if (typeof x.statusCode === "number") {
+        return x.statusCode;
+      }
+      if (typeof x.status === "number") {
+        return x.status;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Register the LAN client
    *
    * @param client LAN UDP client instance
@@ -490,6 +514,9 @@ export class DeviceManager {
     }
     let anyChanged = false;
     const lights = Array.from(this.devices.values()).filter(d => d.type === "devices.types.light");
+    for (const dev of lights) {
+      this.diagnostics.addLog(dev.deviceId, "info", `User-triggered refresh-cloud-data for ${dev.sku}`);
+    }
     for (const device of lights) {
       const cd: CloudDevice = {
         sku: device.sku,
@@ -562,6 +589,7 @@ export class DeviceManager {
    * @returns true if any scene data changed
    */
   private async loadDeviceScenes(device: GoveeDevice, cd: CloudDevice): Promise<boolean> {
+    this.diagnostics.addLog(cd.device, "debug", `loadDeviceScenes called for ${cd.sku}`);
     // Scenes from dedicated scenes endpoint (rate-limited).
     // Guards are per-list, not combined: Govee's /device/scenes sometimes
     // returns 149 lightScenes + 0 snapshots (or vice versa) on back-to-back
@@ -572,6 +600,9 @@ export class DeviceManager {
     const loadScenes = async (): Promise<void> => {
       try {
         const { lightScenes, diyScenes, snapshots } = await this.cloudClient!.getScenes(cd.sku, cd.device);
+        // Cloud-client already captured the raw response on success — but
+        // record the catch path here so the diag JSON shows "/device/scenes
+        // attempted, returned 403" instead of an empty slot.
         if (lightScenes.length > 0) {
           device.scenes = lightScenes;
         }
@@ -581,8 +612,9 @@ export class DeviceManager {
         if (snapshots.length > 0) {
           device.snapshots = snapshots;
         }
-      } catch {
-        this.log.debug(`Could not load scenes for ${cd.sku}`);
+      } catch (e) {
+        this.diagnostics.recordApiFailure(cd.device, "/router/api/v1/device/scenes", e, this.extractStatus(e));
+        this.log.debug(`Could not load scenes for ${cd.sku}: ${e instanceof Error ? e.message : String(e)}`);
       }
     };
     await this.commandRouter.executeRateLimited(loadScenes, 2);
@@ -595,8 +627,9 @@ export class DeviceManager {
           if (diy.length > 0) {
             device.diyScenes = diy;
           }
-        } catch {
-          this.log.debug(`Could not load DIY scenes for ${cd.sku}`);
+        } catch (e) {
+          this.diagnostics.recordApiFailure(cd.device, "/router/api/v1/device/diy-scenes", e, this.extractStatus(e));
+          this.log.debug(`Could not load DIY scenes for ${cd.sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       };
       await this.commandRouter.executeRateLimited(loadDiy, 2);
@@ -648,6 +681,7 @@ export class DeviceManager {
       return false;
     }
 
+    this.diagnostics.addLog(device.deviceId, "debug", `loadDeviceLibraries called for ${sku} (force=${force})`);
     let changed = false;
 
     // Run each fetch inside a rate-limited slot. Priority 2 = below
@@ -659,29 +693,35 @@ export class DeviceManager {
 
     if (force || device.sceneLibrary.length === 0) {
       await runLimited(async () => {
+        const ep = `/light-effect-libraries?sku=${sku}`;
         try {
           const lib = await this.apiClient!.fetchSceneLibrary(sku);
+          this.diagnostics.recordApiSuccess(device.deviceId, ep, { count: lib.length, names: lib.map(s => s.name) });
           if (lib.length > 0) {
             device.sceneLibrary = lib;
             changed = true;
             this.log.debug(`Scene library for ${sku}: ${lib.length} scenes`);
           }
-        } catch {
-          this.log.debug(`Could not load scene library for ${sku}`);
+        } catch (e) {
+          this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
+          this.log.debug(`Could not load scene library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
     }
 
     if (force || device.musicLibrary.length === 0) {
       await runLimited(async () => {
+        const ep = `/light-effect-libraries-music?sku=${sku}`;
         try {
           const lib = await this.apiClient!.fetchMusicLibrary(sku);
+          this.diagnostics.recordApiSuccess(device.deviceId, ep, { count: lib.length, names: lib.map(m => m.name) });
           if (lib.length > 0) {
             device.musicLibrary = lib;
             changed = true;
             this.log.debug(`Music library for ${sku}: ${lib.length} modes`);
           }
         } catch (e) {
+          this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
           this.log.debug(`Could not load music library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
@@ -689,14 +729,17 @@ export class DeviceManager {
 
     if (force || device.diyLibrary.length === 0) {
       await runLimited(async () => {
+        const ep = `/diy-effect-libraries?sku=${sku}`;
         try {
           const lib = await this.apiClient!.fetchDiyLibrary(sku);
+          this.diagnostics.recordApiSuccess(device.deviceId, ep, { count: lib.length, names: lib.map(d => d.name) });
           if (lib.length > 0) {
             device.diyLibrary = lib;
             changed = true;
             this.log.debug(`DIY library for ${sku}: ${lib.length} effects`);
           }
         } catch (e) {
+          this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
           this.log.debug(`Could not load DIY library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
@@ -704,14 +747,17 @@ export class DeviceManager {
 
     if (force || !device.skuFeatures) {
       await runLimited(async () => {
+        const ep = `/sku-features?sku=${sku}`;
         try {
           const features = await this.apiClient!.fetchSkuFeatures(sku);
+          this.diagnostics.recordApiSuccess(device.deviceId, ep, features);
           if (features) {
             device.skuFeatures = features;
             changed = true;
             this.log.debug(`SKU features for ${sku}: ${JSON.stringify(features).slice(0, 200)}`);
           }
         } catch (e) {
+          this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
           this.log.debug(`Could not load SKU features for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
         }
       });
@@ -882,6 +928,7 @@ export class DeviceManager {
         channels: { lan: true, mqtt: false, cloud: false },
       };
       this.devices.set(this.deviceKey(lanDevice.sku, lanDevice.device), device);
+      this.diagnostics.addLog(lanDevice.device, "info", `LAN-discovered at ${lanDevice.ip}`);
       this.log.debug(`LAN: New device ${lanDevice.sku} at ${lanDevice.ip}`);
       this.maybeNudgeSeedSku(lanDevice.sku, device.name);
       this.onDeviceListChanged?.(this.getDevices());
@@ -893,7 +940,7 @@ export class DeviceManager {
    * device reconnects don't spam the log. Behaviour by tier:
    *   - verified / reported: silent (the catalog backs the device, no
    *     action needed). The tier is still surfaced via the
-   *     `info.diagnostics_tier` state for any user who wants to check.
+   *     `diag.tier` state for any user who wants to check.
    *   - seed (toggle off): warn — points the user at the experimental
    *     toggle that gates the per-SKU corrections we'd otherwise apply.
    *   - seed (toggle on): info — confirms quirks are active.
@@ -926,7 +973,7 @@ export class DeviceManager {
         return;
       case "unknown":
         this.log.warn(
-          `Device ${label} is not in the supported device list. Please trigger info.diagnostics_export and post the resulting JSON in a GitHub issue so the SKU can be added.`,
+          `Device ${label} is not in the supported device list. Please trigger diag.export and post the resulting JSON in a GitHub issue so the SKU can be added.`,
         );
         return;
     }

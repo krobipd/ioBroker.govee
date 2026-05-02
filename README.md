@@ -124,6 +124,15 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+
+### **WORK IN PROGRESS**
+
+- Hotfix: `encryptedNative` / `protectedNative` were duplicated under `common` in v2.1.0 (schema error E1105). Now at root only — the new MQTT bearer/certificate fields are actually encrypted at rest.
+- Diagnostics states moved from `info.diagnostics_*` to a top-level `diag.*` channel per device (`diag.export`, `diag.result`, `diag.tier`). Old objects are migrated on first start.
+- Diagnostics export now captures every Cloud + App-API call (success and failure with HTTP status), keeps a 3-entry history per endpoint, and includes recent per-device log lines.
+- 2-Factor verification warning no longer repeats on every reconnect — fires once per pending/failed state, debug-deduped afterwards.
+- Proactive MQTT bearer refresh is now silent — token refreshes happen in the background without disconnecting the live session, so no more transient 2FA warning at token-rollover.
+
 ### 2.1.0 (2026-05-01)
 
 - 2FA login flow for Govee accounts that require email verification — adapter settings expose a verification-code button + field; the code is consumed on the next login and cleared automatically.
