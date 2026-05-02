@@ -4,17 +4,20 @@
     "H5051": {
       "name": "Thermo-Hygrometer",
       "type": "thermometer",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H5100": {
       "name": "Thermo-Hygrometer",
       "type": "thermometer",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H5103": {
       "name": "Thermo-Hygrometer",
       "type": "thermometer",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H5179": {
       "name": "Wifi Thermometer",
@@ -26,6 +29,7 @@
       "name": "LED Bulb",
       "type": "light",
       "status": "seed",
+      "since": "2.0.0",
       "quirks": {
         "brokenPlatformApi": true
       }
@@ -34,6 +38,7 @@
       "name": "LED Bulb (RGBWW)",
       "type": "light",
       "status": "seed",
+      "since": "2.0.0",
       "quirks": {
         "colorTempRange": {
           "min": 2700,
@@ -45,6 +50,7 @@
       "name": "LED Glide",
       "type": "light",
       "status": "seed",
+      "since": "2.0.0",
       "quirks": {
         "brokenPlatformApi": true
       }
@@ -53,6 +59,7 @@
       "name": "LED Bulb",
       "type": "light",
       "status": "seed",
+      "since": "2.0.0",
       "quirks": {
         "colorTempRange": {
           "min": 2200,
@@ -64,6 +71,7 @@
       "name": "LED Strip",
       "type": "light",
       "status": "seed",
+      "since": "2.0.0",
       "quirks": {
         "brokenPlatformApi": true
       }
@@ -72,6 +80,7 @@
       "name": "LED Strip",
       "type": "light",
       "status": "seed",
+      "since": "2.0.0",
       "quirks": {
         "brokenPlatformApi": true
       }
@@ -86,6 +95,7 @@
       "name": "LED Strip",
       "type": "light",
       "status": "seed",
+      "since": "2.0.0",
       "quirks": {
         "brokenPlatformApi": true
       }
@@ -94,6 +104,7 @@
       "name": "LED Strip",
       "type": "light",
       "status": "seed",
+      "since": "2.0.0",
       "quirks": {
         "brokenPlatformApi": true
       }
@@ -102,6 +113,7 @@
       "name": "LED Strip",
       "type": "light",
       "status": "seed",
+      "since": "2.0.0",
       "quirks": {
         "brokenPlatformApi": true
       }
@@ -110,6 +122,7 @@
       "name": "LED Strip",
       "type": "light",
       "status": "seed",
+      "since": "2.0.0",
       "quirks": {
         "brokenPlatformApi": true
       }
@@ -118,6 +131,7 @@
       "name": "LED Strip",
       "type": "light",
       "status": "seed",
+      "since": "2.0.0",
       "quirks": {
         "brokenPlatformApi": true
       }
@@ -149,7 +163,8 @@
     "H61D5": {
       "name": "LED Strip",
       "type": "light",
-      "status": "verified"
+      "status": "verified",
+      "since": "2.1.2"
     },
     "H70B3": {
       "name": "Curtain Lights",
@@ -172,67 +187,80 @@
     "H7130": {
       "name": "Smart Space Heater",
       "type": "heater",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H7131": {
       "name": "Smart Space Heater (mit Nachtlicht)",
       "type": "heater",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H7132": {
       "name": "Smart Space Heater",
       "type": "heater",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H7133": {
       "name": "Smart Space Heater (mit Nachtlicht)",
       "type": "heater",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H7134": {
       "name": "Smart Space Heater (mit Nachtlicht)",
       "type": "heater",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H7135": {
       "name": "Smart Space Heater",
       "type": "heater",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H713A": {
       "name": "Smart Space Heater",
       "type": "heater",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H713B": {
       "name": "Smart Space Heater",
       "type": "heater",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H7160": {
       "name": "Smart Space Heater",
       "type": "heater",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H7170": {
       "name": "Smart Kettle",
       "type": "kettle",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H7171": {
       "name": "Smart Kettle (M1-M4)",
       "type": "kettle",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H7172": {
       "name": "Smart Ice Maker",
       "type": "ice_maker",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     },
     "H7173": {
       "name": "Smart Kettle (Tea/Coffee/DIY)",
       "type": "kettle",
-      "status": "seed"
+      "status": "seed",
+      "since": "2.0.0"
     }
   }
 }
