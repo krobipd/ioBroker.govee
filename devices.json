@@ -146,6 +146,11 @@
       "status": "verified",
       "since": "1.0.0"
     },
+    "H61D5": {
+      "name": "LED Strip",
+      "type": "light",
+      "status": "verified"
+    },
     "H70B3": {
       "name": "Curtain Lights",
       "type": "light",

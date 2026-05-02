@@ -1334,6 +1334,14 @@ class GoveeAdapter extends utils.Adapter {
    * Read the persisted MQTT bundle out of adapter native. Returns null if
    * any required field is missing — the caller falls back to a fresh login.
    *
+   * v2.1.0 had `encryptedNative` / `protectedNative` listed under
+   * `/common` (schema-rejected) so the new MQTT bundle was written as
+   * plaintext. v2.1.1 moved them to root, so js-controller now tries to
+   * decrypt the previously plaintext-stored bytes — yielding garbage.
+   * Detect that here by trying to base64-decode the P12 cert: if it
+   * fails or the decoded length looks wrong, the bundle is unusable.
+   * `null` return triggers fresh login + the caller wipes native.
+   *
    * @param config Adapter native settings
    */
   buildPersistedCredsFromConfig(config) {
@@ -1346,6 +1354,35 @@ class GoveeAdapter extends utils.Adapter {
     const accountTopic = (_f = config.mqttAccountTopic) != null ? _f : "";
     const expiresAt = Number((_g = config.mqttTokenExpiresAt) != null ? _g : 0);
     if (!bearer || !endpoint || !p12 || !accountId || !accountTopic || !expiresAt) {
+      return null;
+    }
+    try {
+      const decoded = Buffer.from(p12, "base64");
+      if (decoded.length < 100 || decoded[0] !== 48) {
+        this.log.info(
+          "MQTT: stored credentials look corrupted (likely a v2.1.0 plaintext-storage leftover) \u2014 clearing and forcing fresh login."
+        );
+        void this.persistMqttCredentials({
+          bearerToken: "",
+          iotEndpoint: "",
+          p12Cert: "",
+          p12Pass: "",
+          accountId: "",
+          accountTopic: "",
+          tokenExpiresAt: 0
+        });
+        return null;
+      }
+    } catch {
+      void this.persistMqttCredentials({
+        bearerToken: "",
+        iotEndpoint: "",
+        p12Cert: "",
+        p12Pass: "",
+        accountId: "",
+        accountTopic: "",
+        tokenExpiresAt: 0
+      });
       return null;
     }
     return {

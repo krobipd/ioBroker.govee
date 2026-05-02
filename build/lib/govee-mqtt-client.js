@@ -264,7 +264,7 @@ class GoveeMqttClient {
         this.lastErrorCategory = category;
         if (isNew) {
           this.log.warn(
-            "Govee requires 2-Factor verification \u2014 request a code via the adapter settings, paste it into 'mqttVerificationCode' and save"
+            'Govee asked for one-time client verification (HTTP 454). Open adapter settings, click "Request verification code", paste the code from the email into the field, save. Govee remembers this client afterwards. Account-level 2FA is not required.'
           );
         } else {
           this.log.debug("MQTT verification still pending (Govee returned 454 again)");
@@ -279,7 +279,7 @@ class GoveeMqttClient {
         this.lastErrorCategory = category;
         if (isNew) {
           this.log.warn(
-            "Govee 2-Factor verification code is invalid or expired \u2014 request a fresh code via the adapter settings"
+            "Govee rejected the verification code (HTTP 455) \u2014 request a fresh code via the adapter settings."
           );
         } else {
           this.log.debug("MQTT verification code rejected again (Govee returned 455)");

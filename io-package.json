@@ -3,6 +3,19 @@
     "name": "govee-smart",
     "version": "2.1.1",
     "news": {
+      "NEXT": {
+        "en": "Verification message no longer claims your account has 2FA when it doesn't. Stale credentials from v2.1.0 are cleared on first start. H61D5 added to the catalogue.",
+        "de": "Die Verifizierungs-Meldung behauptet nicht mehr 2FA bei Konten ohne 2FA. Alte Credentials aus v2.1.0 werden beim ersten Start aufgeraeumt. H61D5 im Katalog ergaenzt.",
+        "ru": "Сообщение о верификации больше не утверждает, что у аккаунта 2FA, если её нет. Старые креды из v2.1.0 чистятся при первом старте. H61D5 в каталоге.",
+        "pt": "A mensagem de verificacao nao afirma mais que sua conta tem 2FA quando nao tem. Credenciais antigas de v2.1.0 sao limpas no primeiro start. H61D5 adicionado ao catalogo.",
+        "nl": "De verificatie-melding claimt niet meer dat je account 2FA heeft als dat niet zo is. Oude credentials uit v2.1.0 worden bij de eerste start opgeruimd. H61D5 toegevoegd.",
+        "fr": "Le message de verification ne pretend plus que ton compte a la 2FA s'il ne l'a pas. Les anciens identifiants de v2.1.0 sont nettoyes au premier demarrage. H61D5 ajoute.",
+        "it": "Il messaggio di verifica non afferma piu che l'account ha la 2FA quando non l'ha. Le credenziali residue di v2.1.0 vengono pulite al primo avvio. H61D5 aggiunto al catalogo.",
+        "es": "El mensaje de verificacion ya no afirma que tu cuenta tenga 2FA cuando no la tiene. Las credenciales antiguas de v2.1.0 se limpian al primer arranque. H61D5 anadido.",
+        "pl": "Komunikat weryfikacji nie twierdzi juz, ze konto ma 2FA, gdy nie ma. Stare dane z v2.1.0 sa czyszczone przy pierwszym starcie. H61D5 dodano do katalogu.",
+        "uk": "Повідомлення верифікації більше не стверджує, що у акаунта 2FA, якщо її немає. Старі креди з v2.1.0 чистяться при першому старті. H61D5 у каталозі.",
+        "zh-cn": "验证消息不再误称账户开启了 2FA。来自 v2.1.0 的旧凭据在首次启动时清理。H61D5 加入支持目录。"
+      },
       "2.1.1": {
         "en": "Security fix: in v2.1.0 your MQTT login was stored unencrypted by mistake — now encrypted. Diagnostics renamed to diag.export/result/tier. 2FA warning no longer repeats on every reconnect.",
         "de": "Sicherheitsfix: in v2.1.0 wurde dein MQTT-Login versehentlich unverschluesselt gespeichert — jetzt verschluesselt. Diagnose-Datenpunkte heissen jetzt diag.*. 2FA-Warnung wiederholt sich nicht mehr.",
@@ -80,19 +93,6 @@
         "pl": "Termometry Govee, grzejniki, czajniki, kostkarki i inne urzadzenia sa teraz wspierane razem z lampami. iobroker.govee-appliances jest deprecated i przechodzi tutaj.",
         "uk": "Термометри Govee, обігрівачі, чайники, льодогенератори та інші пристрої тепер підтримуються разом із лампами. iobroker.govee-appliances вважається застарілим і переноситься сюди.",
         "zh-cn": "Govee 温度计、加热器、水壶、制冰机等设备现在与灯具一起支持。iobroker.govee-appliances 已废弃并并入此处。"
-      },
-      "1.11.0": {
-        "en": "Scene/DIY/snapshot/music-mode dropdowns now accept index-as-number, index-as-string and the entry name (case-insensitive). State type is mixed — no more 'expects type string but received number' warning. Duplicate scene names from the cloud are auto-disambiguated with ' (2)', ' (3)' suffixes.",
-        "de": "Scene/DIY/Snapshot/Musik-Modus-Dropdowns akzeptieren jetzt Index als Zahl, Index als String und den Klartext-Namen (case-insensitive). State-Typ ist 'mixed' — kein 'expects type string but received number'-Warning mehr. Doppelte Szenennamen aus der Cloud werden automatisch mit ' (2)', ' (3)' suffixiert.",
-        "ru": "Випадайки для сцен/DIY/snapshot/музики тепер приймають індекс як число, як string і назву елемента (case-insensitive). Тип state — mixed — попередження 'expects type string but received number' зникло. Дублікати назв сцен з cloud отримують суфікси ' (2)', ' (3)'.",
-        "pt": "Os dropdowns de scene/DIY/snapshot/music-mode agora aceitam índice como número, como string e o nome da entrada (case-insensitive). O tipo do state é mixed — o aviso 'expects type string but received number' desapareceu. Nomes duplicados de cena vindos da nuvem são automaticamente desambiguados com sufixos ' (2)', ' (3)'.",
-        "nl": "Scene/DIY/snapshot/music-mode dropdowns accepteren nu de index als number, als string en de entry-name (case-insensitive). State-type is mixed — de waarschuwing 'expects type string but received number' is weg. Dubbele scènenamen uit de cloud krijgen automatisch ' (2)', ' (3)' achtervoegsels.",
-        "fr": "Les dropdowns scene/DIY/snapshot/music-mode acceptent désormais l'index en number, en string ou le nom (insensible à la casse). Le type de state est mixed — l'avertissement 'expects type string but received number' a disparu. Les noms de scène dupliqués depuis le cloud sont automatiquement suffixés ' (2)', ' (3)'.",
-        "it": "I dropdown scene/DIY/snapshot/music-mode ora accettano l'indice come number, come string e il nome (case-insensitive). Il tipo di state è mixed — l'avviso 'expects type string but received number' è scomparso. I nomi di scena duplicati dal cloud vengono auto-disambiguati con suffissi ' (2)', ' (3)'.",
-        "es": "Los desplegables scene/DIY/snapshot/music-mode aceptan ahora el índice como number, como string o el nombre (case-insensitive). El tipo de state es mixed — desaparece la advertencia 'expects type string but received number'. Los nombres de escena duplicados de la nube se desambiguan automáticamente con sufijos ' (2)', ' (3)'.",
-        "pl": "Listy rozwijane scene/DIY/snapshot/music-mode akceptują teraz indeks jako number, jako string oraz nazwę (case-insensitive). Typ state to mixed — ostrzeżenie 'expects type string but received number' znika. Zduplikowane nazwy scen z chmury są automatycznie różnicowane sufiksami ' (2)', ' (3)'.",
-        "uk": "Випадайки для scene/DIY/snapshot/music-mode тепер приймають індекс як number, як string і назву елемента (case-insensitive). Тип state — mixed — попередження 'expects type string but received number' зникло. Дубльовані назви сцен з cloud автоматично отримують суфікси ' (2)', ' (3)'.",
-        "zh-cn": "场景/DIY/snapshot/音乐模式下拉菜单现在接受索引为数字、索引为字符串或条目名称（不区分大小写）。state 类型为 mixed —— 'expects type string but received number' 警告消失。云端重复场景名称自动添加 ' (2)'、' (3)' 后缀。"
       }
     },
     "titleLang": {

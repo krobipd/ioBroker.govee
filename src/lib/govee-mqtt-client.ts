@@ -299,21 +299,26 @@ export class GoveeMqttClient {
       // State-Sync: connect() throw = not connected, unabhängig von Fehlertyp
       this.onConnection?.(false);
 
-      // 2FA pending/failed: pause reconnect until the user submits a code
-      // via Settings (which triggers an adapter restart). Don't increment
-      // auth-failure counter — these are not credential errors.
+      // Govee verification 454: pause reconnect until the user submits a
+      // code via Settings (which triggers an adapter restart). Don't
+      // increment auth-failure counter — this is not a credential error.
+      //
+      // Wording: Govee returns 454 the first time a particular client-id
+      // tries to log in, regardless of whether the user enabled 2FA on
+      // their account. It's a "new client, please verify once" handshake
+      // — not "you have 2FA enabled". Earlier wording was scaring users
+      // whose accounts are 2FA-free. The actual message says: this is a
+      // one-time setup per client.
       //
       // Dedup: only warn on the FIRST occurrence of this category (per
       // adapter lifetime). Subsequent reconnect attempts that hit the
-      // same 454 are demoted to debug — the warn would otherwise fire on
-      // every reconnect-backoff cycle and look like a hard failure even
-      // when MQTT settles after the next attempt.
+      // same 454 are demoted to debug.
       if (category === "VERIFICATION_PENDING") {
         const isNew = this.lastErrorCategory !== category;
         this.lastErrorCategory = category;
         if (isNew) {
           this.log.warn(
-            "Govee requires 2-Factor verification — request a code via the adapter settings, paste it into 'mqttVerificationCode' and save",
+            'Govee asked for one-time client verification (HTTP 454). Open adapter settings, click "Request verification code", paste the code from the email into the field, save. Govee remembers this client afterwards. Account-level 2FA is not required.',
           );
         } else {
           this.log.debug("MQTT verification still pending (Govee returned 454 again)");
@@ -328,7 +333,7 @@ export class GoveeMqttClient {
         this.lastErrorCategory = category;
         if (isNew) {
           this.log.warn(
-            "Govee 2-Factor verification code is invalid or expired — request a fresh code via the adapter settings",
+            "Govee rejected the verification code (HTTP 455) — request a fresh code via the adapter settings.",
           );
         } else {
           this.log.debug("MQTT verification code rejected again (Govee returned 455)");
