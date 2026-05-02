@@ -96,16 +96,16 @@ All ports are fixed by the Govee LAN protocol and cannot be changed.
 
 ## Device tiers
 
-Each device exposes its trust tier in `info.diagnostics_tier`:
+Each device shows where its model sits in the catalogue under `diag.tier`:
 
 | Tier         | Meaning                                                                                                                            |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **verified** | Confirmed on real hardware — full per-SKU corrections active.                                                                      |
+| **verified** | Confirmed on real hardware — known per-SKU corrections active.                                                                     |
 | **reported** | Community-reported, treated as verified.                                                                                           |
-| **seed**     | Beta. Per-SKU corrections only apply when **Experimentelle Geräte-Unterstützung aktivieren** is on in adapter settings.            |
-| **unknown**  | The SKU isn't in the catalogue yet. Press `info.diagnostics_export` and post the resulting JSON in a GitHub issue so it can be added. |
+| **seed**     | Beta. Known per-SKU corrections only apply when **Enable experimental device support** is on in adapter settings.                  |
+| **unknown**  | The model isn't in the catalogue yet. Press `diag.export` on the device and post the resulting JSON in a GitHub issue so it can be added. |
 
-The adapter logs one nudge per SKU per startup for `seed` (without the toggle) and `unknown`, so reconnects don't spam the log.
+The adapter writes one log line per model on startup if the model is `seed` (without the toggle) or `unknown` — once per startup, not on every reconnect.
 
 ---
 
@@ -113,7 +113,7 @@ The adapter logs one nudge per SKU per startup for `seed` (without the toggle) a
 
 Common issues (no devices discovered, empty scenes dropdown, segment colors not changing, limited group commands, delayed status updates) are covered on the Wiki [Behavior](https://github.com/krobipd/ioBroker.govee-smart/wiki/Behavior) / [Verhalten](https://github.com/krobipd/ioBroker.govee-smart/wiki/Verhalten) page.
 
-For anything else, press **`info.diagnostics_export`** on the affected device, copy the JSON from `info.diagnostics_result`, and open a [GitHub Issue](https://github.com/krobipd/ioBroker.govee-smart/issues).
+For anything else, press **`diag.export`** on the affected device, copy the JSON from `diag.result`, and open a [GitHub Issue](https://github.com/krobipd/ioBroker.govee-smart/issues).
 
 ---
 
@@ -127,49 +127,45 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 ### **WORK IN PROGRESS**
 
-- Hotfix: `encryptedNative` / `protectedNative` were duplicated under `common` in v2.1.0 (schema error E1105). Now at root only — the new MQTT bearer/certificate fields are actually encrypted at rest.
-- Diagnostics states moved from `info.diagnostics_*` to a top-level `diag.*` channel per device (`diag.export`, `diag.result`, `diag.tier`). Old objects are migrated on first start.
-- Diagnostics export now captures every Cloud + App-API call (success and failure with HTTP status), keeps a 3-entry history per endpoint, and includes recent per-device log lines.
-- 2-Factor verification warning no longer repeats on every reconnect — fires once per pending/failed state, debug-deduped afterwards.
-- Proactive MQTT bearer refresh is now silent — token refreshes happen in the background without disconnecting the live session, so no more transient 2FA warning at token-rollover.
+- Security fix: in v2.1.0 your saved MQTT login (token + certificate) was accidentally stored unencrypted. Now actually encrypted at rest as intended.
+- Diagnostics datapoints renamed from `info.diagnostics_*` to `diag.export` / `diag.result` / `diag.tier`. Old datapoints are removed on first start — adjust scripts that referenced the old names.
+- The `diag.export` JSON now also shows failed Cloud calls (with status code) and recent log lines for the device, so a single JSON dump is enough for a bug report.
+- 2-Factor verification warning no longer repeats on every reconnect attempt. You'll see it once when Govee actually wants a code, not every minute while the adapter retries.
+- The MQTT connection is no longer dropped every few hours when the access token rotates — refreshed in the background. No more spurious 2FA warning after the adapter has been running a while.
 
 ### 2.1.0 (2026-05-01)
 
-- 2FA login flow for Govee accounts that require email verification — adapter settings expose a verification-code button + field; the code is consumed on the next login and cleared automatically.
-- MQTT credentials are persisted across restarts so the verification email is not re-sent on every reboot, with a proactive refresh shortly before the token expires.
-- Stable AWS-IoT MQTT client ID across restarts — reconnects keep the same identity instead of looking like a fresh session each time.
-- `info.online` is now updated for App-API sensors and OpenAPI-MQTT appliances. Fixes the H5179 thermometer staying at `info.online=false` while readings kept updating.
-- New `info.diagnostics_tier` state per device — exposes the trust tier (verified / reported / seed / unknown). Unknown SKUs and seed-without-toggle now log a one-time warn nudge.
-- Scene, DIY scene, and snapshot dropdowns are created from device capabilities — visible from the first start, even before the first `/device/scenes` call returns.
-- `info.refresh_cloud_data` button refetches the scene/music/DIY libraries again (was skipped since v1.10.1).
+- Govee accounts that require email verification on login can now be used. Adapter settings have a button to request the code, plus a field to paste it.
+- The MQTT login is remembered across restarts, so the verification email is not re-sent on every reboot.
+- Reconnects no longer look like a brand-new login to Govee, which used to trigger a verification email even for already-verified accounts.
+- `info.online` now reflects reality for sensors and appliances. Fixes thermometers (e.g. H5179) staying at offline while their values kept updating.
+- New per-device datapoint shows whether your model is verified, community-reported, beta or unknown. Unknown SKUs get a one-time hint to file a diag.export.
+- Scene / DIY-scene / snapshot dropdowns now appear from the first start instead of waiting for the first Cloud call to come back.
+- The Refresh Cloud Data button reloads the scene / music / DIY libraries again (had been skipped since v1.10.1).
 - Min js-controller `>=7.0.7`, min admin `>=7.7.22`.
 
 ### 2.0.3 (2026-04-26)
 
-- Min js-controller correction: was incorrectly bumped to `>=7.0.23` in 2.0.2 (and admin downgraded from `>=7.6.20` to `>=7.6.17`). The repochecker-recommended values are `>=6.0.11` / `>=7.6.20` — restored.
+- Min js-controller `>=6.0.11`, admin `>=7.6.20` (correcting an accidental bump in 2.0.2).
 
 ### 2.0.2 (2026-04-26)
 
-- OpenAPI MQTT now keeps a stable client ID across reconnects (was `Date.now`-based, which Govee's broker treats as new connections).
-- Stop shipping the `manual-review` release-script plugin and the redundant `@iobroker/types` runtime dep — adapter-only consequences.
-- Bump min js-controller to `>=7.0.23` (matches latest-repo recommendation).
-- Audit-driven boilerplate sync with the other krobi adapters (`.vscode` json5 schemas, dependabot assignees + github-actions ecosystem, `tsconfig.test` looser test rules).
-- Repo hygiene: ignore `package/` (npm-pack artefact).
+- Sensor and appliance events (lack-of-water, ice-bucket-full, etc.) now arrive reliably across reconnects. Govee used to treat each reconnect as a new connection and drop the subscription.
+- Min js-controller `>=7.0.23`.
 
 ### 2.0.1 (2026-04-26)
 
-- Sensor states route to `sensor/`, event states to `events/` (was `control/` for both); state objects are created lazily on first write to avoid `no existing object` warnings.
-- Snapshots and scenes only attach to lights now; thermometers, heaters and kettles no longer get `snapshot_local` / `snapshot_save` / `snapshot_delete`.
-- No more boot-time `N experimental device(s) detected` log dump — only triggers when an experimental SKU actually shows up, once per lifetime per SKU.
-- Routine `OpenAPI MQTT connected for sensor events` info line removed; reconnect-recovery log kept.
+- Sensor values and events now land under `sensor/` and `events/` (were both under `control/` in v2.0.0). Removes `no existing object` warnings in the log on first start.
+- Snapshots and scenes only attach to lights now — thermometers, heaters and kettles no longer get `snapshot_local` / `snapshot_save` / `snapshot_delete`.
+- The `N experimental device(s) detected` boot-time log line is gone. The hint now fires once per lifetime per SKU, only when that SKU actually shows up.
+- Less info-level log noise on startup (the routine `OpenAPI MQTT connected` line was removed; recovery messages stay).
 
 ### 2.0.0 (2026-04-26)
 
-- Major release — Govee appliances and sensors (thermometers like H5179, heaters, kettles, ice makers) are now handled here alongside lights, via the App API and OpenAPI-MQTT push channel.
+- Major release — Govee appliances and sensors (thermometers like H5179, heaters, kettles, ice makers) are now handled here alongside lights.
 - The standalone `iobroker.govee-appliances` adapter is deprecated and rolls into here. Install govee-smart 2.0.0+ and uninstall govee-appliances when convenient.
-- New **"Enable experimental device support"** checkbox in the adapter config. The Wiki [Devices](https://github.com/krobipd/ioBroker.govee-smart/wiki/Devices) page lists every SKU and its status.
-- `devices.json` in the repo root tracks 36 SKUs and is the single source of truth for the Wiki and for runtime quirk overrides.
-- New state `info.openapiMqttConnected` for the OpenAPI-MQTT channel; `info.mqttConnected` keeps tracking AWS IoT MQTT for lights.
+- New **"Enable experimental device support"** checkbox in the adapter config — applies known per-model corrections to devices that are catalogued but not yet confirmed by a tester.
+- New state `info.openapiMqttConnected` showing whether the push channel for sensor / appliance events is up; `info.mqttConnected` keeps tracking the channel used for lights.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

@@ -1,13 +1,13 @@
 # Older Changes
 ## 1.11.0 (2026-04-25)
 
-- Scene / DIY-scene / snapshot / music-mode dropdowns now accept index-as-number, index-as-string and the entry name (case-insensitive). The state type is `mixed` — no more `expects type string but received number` warning when scripts write a numeric index.
+- Scene / DIY-scene / snapshot / music-mode dropdowns now accept the entry name (case-insensitive) as well as the numeric index. No more type-mismatch warning when scripts write a number.
 - Duplicate scene names from the cloud are auto-disambiguated with `" (2)"`, `" (3)"` suffixes; reverse-lookup is deterministic.
 - The adapter acks back the canonical key after activation, so the dropdown stays in sync regardless of how the value was written.
 
 ## 1.10.1 (2026-04-20)
 
-- Refresh button no longer re-fetches static SKU libraries (scene/music/DIY/features) — call count drops from ~7 to 2 per device per click. The endpoints returned 403 for many accounts and just produced minute-long rate-limiter backlogs.
+- Refresh-Cloud-Data button is now much faster (about 2 calls per device instead of ~7) — the static library endpoints often returned 403 anyway and only produced rate-limiter backlogs.
 
 ## 1.10.0 (2026-04-20)
 
@@ -16,11 +16,11 @@
 
 ## 1.9.1 (2026-04-20)
 
-- Each Cloud list (scenes / DIY / snapshots) is now guarded independently. Govee's `/device/scenes` sometimes returns e.g. 149 scenes + 0 snapshots when a snapshot clearly exists; the old combined guard then wiped existing snapshots and the dropdown errored on click.
+- Fix: existing snapshots were sometimes wiped from the dropdown after a Cloud refresh — the Govee API occasionally returns scenes but zero snapshots, the cleanup now keeps the last-known-good list.
 
 ## 1.9.0 (2026-04-20)
 
-- **BREAKING** — `snapshots.snapshot` renamed to `snapshots.snapshot_cloud` (clearer alongside `snapshot_local` / `snapshot_save` / `snapshot_delete`). Update scripts and VIS widgets; old state is removed on first start.
+- **BREAKING** — `snapshots.snapshot` renamed to `snapshots.snapshot_cloud` (clearer alongside the local-snapshot states). Update scripts and VIS widgets; the old state is removed on first start.
 - Scenes and snapshots are re-fetched from the Cloud on every adapter start. A stale `scenesChecked` flag could hide new Govee-app snapshots until the cache was wiped.
 - New `info.refresh_cloud_data` button to trigger the same fresh fetch without restarting the adapter.
 - All four snapshot states carry a `common.desc` so the object browser distinguishes Govee-app from ioBroker snapshots.
@@ -211,8 +211,7 @@
 - Community quirks database — external `community-quirks.json` for user-contributed SKU overrides.
 - Array bounds checks in scene/DIY/snapshot index lookups (prevents crash on invalid indices).
 - Segment batch parsing edge cases — negative indices, empty device list growth.
-- Internal refactoring — `CommandRouter` extracted from DeviceManager (1459→886 lines), `GoveeApiClient` extracted from MQTT client (785→483), `buildDeviceStateDefs` extracted to capability-mapper (main.ts 1077→921), shared HTTP client, shared color utilities, channel field on `StateDefinition` instead of Set-based routing.
-- 309 tests (was 291).
+- Internal refactoring. No user-facing changes.
 
 ## 1.0.1 (2026-04-11)
 
@@ -278,7 +277,7 @@
 
 ## 0.8.3 (2026-04-09)
 
-- Release-script blocking on `manual-review` plugin fixed.
+- Internal release-script fix. No user-facing changes.
 
 ## 0.8.2 (2026-04-08)
 
