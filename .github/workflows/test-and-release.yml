@@ -144,6 +144,12 @@ jobs:
     steps:
       - uses: ioBroker/testing-action-deploy@v1
         with:
-          node-version: "22.x"
+          # Node 24 (statt 22) — Workaround für Issue
+          # ioBroker/testing-action-deploy#19: `npm install -g npm@latest`
+          # scheitert auf Node 22 mit MODULE_NOT_FOUND (promise-retry).
+          # Maintainer-Empfehlung von mcm1957. Engines-Constraint des
+          # Adapters bleibt davon unberührt — das ist nur die CI-Runtime
+          # für `npm publish`.
+          node-version: "24.x"
           build: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
