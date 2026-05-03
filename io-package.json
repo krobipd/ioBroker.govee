@@ -3,6 +3,19 @@
     "name": "govee-smart",
     "version": "2.1.3",
     "news": {
+      "NEXT": {
+        "en": "Online status correct again after adapter restart — lights flip to online with the first LAN scan, sensors with the first cloud poll (5 s after start instead of 2 minutes).",
+        "de": "Online-Status nach Adapter-Restart wieder korrekt — Lichter werden direkt mit dem ersten LAN-Scan online, Sensoren mit dem ersten Cloud-Poll (5 s nach Start statt 2 Minuten).",
+        "ru": "Состояние «онлайн» снова корректно после рестарта адаптера — лампы переключаются на онлайн с первым LAN-сканом, сенсоры — с первым облачным опросом (5 с после старта вместо 2 минут).",
+        "pt": "Estado online correto novamente apos reiniciar o adapter — luzes ficam online com o primeiro scan LAN, sensores com o primeiro polling de nuvem (5 s apos o inicio em vez de 2 minutos).",
+        "nl": "Online-status weer correct na herstart van de adapter — lampen springen op online bij de eerste LAN-scan, sensoren bij de eerste cloud-poll (5 s na start in plaats van 2 minuten).",
+        "fr": "Statut en ligne correct apres redemarrage de l'adapter — les lumieres passent online au premier scan LAN, les capteurs au premier poll cloud (5 s apres le demarrage au lieu de 2 minutes).",
+        "it": "Stato online di nuovo corretto dopo il riavvio dell'adapter — le luci passano online al primo scan LAN, i sensori al primo poll cloud (5 s dopo l'avvio invece di 2 minuti).",
+        "es": "Estado online correcto otra vez tras reiniciar el adaptador — las luces pasan a online con el primer escaneo LAN, los sensores con el primer poll de nube (5 s tras el inicio en vez de 2 minutos).",
+        "pl": "Status online znow poprawny po restarcie adaptera — lampy przechodza w online przy pierwszym skanie LAN, sensory przy pierwszym pollu chmury (5 s po starcie zamiast 2 minut).",
+        "uk": "Стан «онлайн» знову коректний після рестарту адаптера — лампи перемикаються на онлайн з першим LAN-сканом, сенсори — з першим хмарним опитуванням (5 с після старту замість 2 хвилин).",
+        "zh-cn": "适配器重启后在线状态恢复准确——灯具会在第一次 LAN 扫描时切换为在线，传感器在第一次云轮询时（启动后 5 秒，而不是 2 分钟）。"
+      },
       "2.1.3": {
         "en": "Critical fix: no more restart-loop after entering the verification code. Saving credentials in the adapter config works again. Honest startup messages — when MQTT can't connect, the log says why.",
         "de": "Kritischer Fix: kein Restart-Loop mehr nach dem Verifizierungs-Code. Speichern in der Config funktioniert wieder. Ehrliche Startup-Meldungen — wenn MQTT nicht verbindet, steht der Grund im Log.",

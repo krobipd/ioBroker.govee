@@ -898,12 +898,21 @@ export class DeviceManager {
 
     if (matched) {
       const ipChanged = matched.lanIp !== lanDevice.ip;
+      const wasOffline = matched.state.online !== true;
       matched.lanIp = lanDevice.ip;
       matched.channels.lan = true;
       matched.lastSeenOnNetwork = Date.now();
       if (ipChanged) {
         this.log.debug(`LAN: ${matched.name} (${matched.sku}) at ${lanDevice.ip}`);
         this.onLanIpChanged?.(matched, lanDevice.ip);
+      }
+      // Discovery-Antwort beweist dass das Gerät am Netz ist. main.ts skipped
+      // den expliziten devStatus-Poll wenn MQTT connected ist, und MQTT pushed
+      // nur bei tatsächlichen Zustandswechseln — d.h. ohne diesen Pfad bleibt
+      // info.online für gecachte Lichter forever false.
+      if (wasOffline) {
+        matched.state.online = true;
+        this.onDeviceUpdate?.(matched, { online: true });
       }
     } else {
       // LAN-only device (no Cloud data yet)

@@ -396,14 +396,16 @@ class GoveeAdapter extends utils.Adapter {
       // App-API poll — every 2 minutes, pulls state for sensors like H5179
       // where OpenAPI v2 /device/state returns empty. Bearer token comes
       // from the AWS-IoT MQTT login, so a no-op until that succeeds.
-      this.appApiPollTimer = this.setInterval(
-        () => {
-          this.deviceManager
-            ?.pollAppApi()
-            .catch(e => this.log.debug(`pollAppApi failed: ${e instanceof Error ? e.message : String(e)}`));
-        },
-        2 * 60 * 1000,
-      );
+      const triggerAppApiPoll = (): void => {
+        this.deviceManager
+          ?.pollAppApi()
+          .catch(e => this.log.debug(`pollAppApi failed: ${e instanceof Error ? e.message : String(e)}`));
+      };
+      this.appApiPollTimer = this.setInterval(triggerAppApiPoll, 2 * 60 * 1000);
+      // Initial poll 5s nach Start — gibt MQTT Zeit für den Bearer-Login.
+      // Ohne diesen Sofort-Poll bleiben Sensoren wie H5179 die ersten 2
+      // Minuten nach Start offline (Online-Signal kommt nur via App-API).
+      this.setTimeout(triggerAppApiPoll, 5000);
 
       if (!cachedOk) {
         // No cache — first start, fetch from Cloud with 60s hard-timeout.

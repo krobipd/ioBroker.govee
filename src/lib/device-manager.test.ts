@@ -199,6 +199,59 @@ describe("DeviceManager", () => {
       expect(devices).to.have.lengthOf(1);
       expect(devices[0].lanIp).to.equal("192.168.1.200");
     });
+
+    it("should flip cache-loaded matched device from offline to online + emit onDeviceUpdate", () => {
+      // Simulate a device pre-loaded from cache via SkuCache. loadFromCache
+      // always sets state.online=false (sku-cache.ts does not persist the
+      // runtime online flag), so the matched-branch of handleLanDiscovery
+      // is the only place that can flip it to true on next discovery.
+      const mockCache = {
+        loadAll: () =>
+          [
+            {
+              sku: "H6160",
+              deviceId: "AABBCCDDEEFF0011",
+              name: "cached H6160",
+              type: "devices.types.light",
+              capabilities: [],
+              scenes: [],
+              diyScenes: [],
+              snapshots: [],
+              sceneLibrary: [],
+              musicLibrary: [],
+              diyLibrary: [],
+              skuFeatures: null,
+              lastSeenOnNetwork: 0,
+            },
+          ] as never,
+        save: () => {},
+        pruneStale: () => 0,
+        clear: () => {},
+      };
+      dm.setSkuCache(mockCache as never);
+      dm.loadFromCache();
+      expect(dm.getDevices()[0].state.online).to.be.false;
+
+      let updateCount = 0;
+      let lastUpdate: Partial<import("./types").DeviceState> | null = null;
+      dm.setCallbacks(
+        (_dev, state) => {
+          updateCount++;
+          lastUpdate = state;
+        },
+        () => {},
+      );
+
+      // First Discovery — must flip online to true and emit one update
+      dm.handleLanDiscovery({ ip: "192.168.1.100", device: "AABBCCDDEEFF0011", sku: "H6160" });
+      expect(dm.getDevices()[0].state.online).to.be.true;
+      expect(updateCount).to.equal(1);
+      expect(lastUpdate).to.deep.equal({ online: true });
+
+      // Second Discovery — must NOT emit again (idempotent)
+      dm.handleLanDiscovery({ ip: "192.168.1.100", device: "AABBCCDDEEFF0011", sku: "H6160" });
+      expect(updateCount).to.equal(1);
+    });
   });
 
   describe("handleMqttStatus", () => {
