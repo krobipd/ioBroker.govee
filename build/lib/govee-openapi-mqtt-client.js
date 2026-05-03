@@ -69,7 +69,7 @@ class GoveeOpenapiMqttClient {
     this.topic = `GA/${apiKey}`;
   }
   /**
-   * Connect to the OpenAPI MQTT broker.
+   * Connect to the Cloud-events broker.
    *
    * @param onEvent Called on incoming sensor events
    * @param onConnection Called on connection state changes
@@ -94,15 +94,15 @@ class GoveeOpenapiMqttClient {
         this.reconnectAttempts = 0;
         this.connectFailCount = 0;
         if (this.lastErrorCategory) {
-          this.log.info("OpenAPI MQTT connection restored");
+          this.log.info("Cloud-events connection restored");
           this.lastErrorCategory = null;
         }
         (_a = this.client) == null ? void 0 : _a.subscribe(this.topic, { qos: 0 }, (err) => {
           var _a2;
           if (err) {
-            this.log.warn(`OpenAPI MQTT subscribe failed: ${err.message}`);
+            this.log.warn(`Cloud-events subscribe failed: ${err.message}`);
           } else {
-            this.log.debug("OpenAPI MQTT subscribed to event topic");
+            this.log.debug("Cloud-events subscribed to event topic");
             (_a2 = this.onConnection) == null ? void 0 : _a2.call(this, true);
           }
         });
@@ -116,26 +116,26 @@ class GoveeOpenapiMqttClient {
         if (category === "AUTH") {
           this.connectFailCount++;
           if (this.connectFailCount >= MAX_CONNECT_FAILURES) {
-            this.log.warn("OpenAPI MQTT auth failed repeatedly \u2014 check API key");
+            this.log.warn("Cloud-events auth failed repeatedly \u2014 check API key");
             (_a = this.onConnection) == null ? void 0 : _a.call(this, false);
             this.disconnect();
             return;
           }
         }
-        this.log.debug(`OpenAPI MQTT error: ${err.message}`);
+        this.log.debug(`Cloud-events error: ${err.message}`);
       });
       this.client.on("close", () => {
         var _a;
         (_a = this.onConnection) == null ? void 0 : _a.call(this, false);
         if (!this.lastErrorCategory) {
           this.lastErrorCategory = "NETWORK";
-          this.log.debug("OpenAPI MQTT disconnected \u2014 will reconnect");
+          this.log.debug("Cloud-events disconnected \u2014 will reconnect");
         }
         this.scheduleReconnect();
       });
     } catch (err) {
       const category = (0, import_types.classifyError)(err);
-      const msg = `OpenAPI MQTT connection failed: ${err instanceof Error ? err.message : String(err)}`;
+      const msg = `Cloud-events connection failed: ${err instanceof Error ? err.message : String(err)}`;
       if (category !== this.lastErrorCategory) {
         this.lastErrorCategory = category;
         this.log.warn(msg);
@@ -179,18 +179,18 @@ class GoveeOpenapiMqttClient {
       const sku = (_b = raw.sku) != null ? _b : "";
       const device = (_c = raw.device) != null ? _c : "";
       if (!sku && !device) {
-        this.log.debug(`OpenAPI MQTT: message without device info: ${payload.toString().slice(0, 200)}`);
+        this.log.debug(`Cloud-events: message without device info: ${payload.toString().slice(0, 200)}`);
         return;
       }
       const caps = raw.capabilities;
       if (!caps || !Array.isArray(caps) || caps.length === 0) {
-        this.log.debug(`OpenAPI MQTT: message without capabilities from ${sku}: ${payload.toString().slice(0, 300)}`);
+        this.log.debug(`Cloud-events: message without capabilities from ${sku}: ${payload.toString().slice(0, 300)}`);
         return;
       }
       const event = { sku, device, capabilities: caps };
       (_d = this.onEvent) == null ? void 0 : _d.call(this, event);
     } catch {
-      this.log.debug(`OpenAPI MQTT: failed to parse message: ${payload.toString().slice(0, 200)}`);
+      this.log.debug(`Cloud-events: failed to parse message: ${payload.toString().slice(0, 200)}`);
     }
   }
   /** Schedule reconnect with exponential backoff */
@@ -203,7 +203,7 @@ class GoveeOpenapiMqttClient {
     }
     this.reconnectAttempts++;
     const delay = Math.min(5e3 * Math.pow(2, this.reconnectAttempts - 1), 3e5);
-    this.log.debug(`OpenAPI MQTT: reconnecting in ${delay / 1e3}s (attempt ${this.reconnectAttempts})`);
+    this.log.debug(`Cloud-events: reconnecting in ${delay / 1e3}s (attempt ${this.reconnectAttempts})`);
     this.reconnectTimer = this.timers.setTimeout(() => {
       var _a;
       this.reconnectTimer = void 0;

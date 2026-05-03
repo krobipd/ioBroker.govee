@@ -141,6 +141,35 @@ class GoveeMqttClient {
   get token() {
     return this._bearerToken;
   }
+  /**
+   * Short user-facing reason for "MQTT not connected", or null if the
+   * client has never seen an error. Used by the adapter ready-summary
+   * to give a concrete message instead of "still pending".
+   */
+  getFailureReason() {
+    if (this.connected) {
+      return null;
+    }
+    switch (this.lastErrorCategory) {
+      case "VERIFICATION_PENDING":
+        return "Govee asked for verification \u2014 request a code in adapter settings";
+      case "VERIFICATION_FAILED":
+        return "verification code rejected \u2014 request a fresh code";
+      case "AUTH":
+        return this.authFailCount >= MAX_AUTH_FAILURES ? "login rejected \u2014 check email/password" : "login failed (will retry)";
+      case "RATE_LIMIT":
+        return "rate-limited by Govee \u2014 will retry";
+      case "NETWORK":
+        return "cannot reach Govee servers \u2014 will retry";
+      case "TIMEOUT":
+        return "connection timeout \u2014 will retry";
+      case "UNKNOWN":
+        return "login rejected \u2014 see earlier log";
+      case null:
+      default:
+        return null;
+    }
+  }
   /** Persisted credentials from a previous run; null until setPersistedCredentials() is called. */
   persisted = null;
   /** Hook fired after a successful login so the adapter can persist the new credentials. */
@@ -263,9 +292,7 @@ class GoveeMqttClient {
         const isNew = this.lastErrorCategory !== category;
         this.lastErrorCategory = category;
         if (isNew) {
-          this.log.warn(
-            'Govee asked for one-time client verification (HTTP 454). Open adapter settings, click "Request verification code", paste the code from the email into the field, save. Govee remembers this client afterwards. Account-level 2FA is not required.'
-          );
+          this.log.warn("MQTT not connected: Govee asked for verification \u2014 request a code in adapter settings");
         } else {
           this.log.debug("MQTT verification still pending (Govee returned 454 again)");
         }
@@ -278,9 +305,7 @@ class GoveeMqttClient {
         const isNew = this.lastErrorCategory !== category;
         this.lastErrorCategory = category;
         if (isNew) {
-          this.log.warn(
-            "Govee rejected the verification code (HTTP 455) \u2014 request a fresh code via the adapter settings."
-          );
+          this.log.warn("MQTT not connected: verification code rejected \u2014 request a fresh code");
         } else {
           this.log.debug("MQTT verification code rejected again (Govee returned 455)");
         }
@@ -292,7 +317,7 @@ class GoveeMqttClient {
       if (category === "AUTH") {
         this.authFailCount++;
         if (this.authFailCount >= MAX_AUTH_FAILURES) {
-          this.log.warn(`MQTT login failed ${this.authFailCount} times \u2014 check email/password in adapter settings`);
+          this.log.warn("MQTT not connected: login rejected \u2014 check email/password");
           return;
         }
       } else {
@@ -415,7 +440,7 @@ class GoveeMqttClient {
     this.accountTopic = creds.accountTopic;
     (_a = this.onToken) == null ? void 0 : _a.call(this, this._bearerToken);
     const clientId = `AP/${creds.accountId}/${this.sessionUuid}`;
-    this.log.info("MQTT: trying cached credentials (no fresh login)");
+    this.log.debug("MQTT: trying cached credentials (no fresh login)");
     this.persistedAttemptInFlight = true;
     this.client = mqtt.connect(`mqtts://${creds.iotEndpoint}:8883`, {
       clientId,
@@ -449,7 +474,7 @@ class GoveeMqttClient {
         this.log.info("MQTT connection restored");
         this.lastErrorCategory = null;
       } else {
-        this.log.info("MQTT connected to AWS IoT");
+        this.log.info("MQTT connected");
       }
       (_a = this.client) == null ? void 0 : _a.subscribe(this.accountTopic, { qos: 0 }, (err) => {
         var _a2;
@@ -473,7 +498,7 @@ class GoveeMqttClient {
       if (this.persistedAttemptInFlight) {
         this.persistedAttemptInFlight = false;
         this.persisted = null;
-        this.log.info("MQTT: cached credentials rejected \u2014 falling back to fresh login");
+        this.log.debug("MQTT: cached credentials rejected \u2014 falling back to fresh login");
       }
       if (!this.lastErrorCategory) {
         this.lastErrorCategory = "NETWORK";

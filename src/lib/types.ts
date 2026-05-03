@@ -21,24 +21,6 @@ export interface AdapterConfig {
    * on success. Cleared automatically on 454/455 fail too.
    */
   mqttVerificationCode: string;
-  /** Cached MQTT bearer token (encryptedNative). Populated after a successful login. */
-  mqttBearerToken: string;
-  /** Cached AWS IoT endpoint (encryptedNative). Populated after a successful login. */
-  mqttIotEndpoint: string;
-  /** Cached Govee P12 certificate as base64 (encryptedNative). */
-  mqttP12Cert: string;
-  /** Cached Govee P12 password (encryptedNative). */
-  mqttP12Pass: string;
-  /** Cached Govee account id (numeric, plain native). */
-  mqttAccountId: string;
-  /** Cached MQTT account topic (plain native). */
-  mqttAccountTopic: string;
-  /**
-   * Wall-clock ms-timestamp at which the cached bearer token expires.
-   * 0 = no cache yet. The reuse path checks this before attempting MQTT
-   * with the stored cert; on miss/expired we fall back to a full login.
-   */
-  mqttTokenExpiresAt: number;
 }
 
 /**

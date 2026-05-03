@@ -257,7 +257,7 @@ class GoveeAdapter extends utils.Adapter {
     if (config.goveeEmail && config.goveePassword) {
       startChannels.push("MQTT");
     }
-    this.log.info(`Starting with channels: ${startChannels.join(", ")} — please wait...`);
+    this.log.info(`Starting (${startChannels.join(", ")})`);
 
     // --- LAN (always active) ---
     this.lanClient = new GoveeLanClient(this.log, this);
@@ -314,15 +314,21 @@ class GoveeAdapter extends utils.Adapter {
         }
       });
 
-      // Re-use cached MQTT credentials across restarts: P12 cert + bearer
-      // are encrypted in adapter native. If they're still valid we skip the
-      // login flow entirely (and avoid spamming the user with 2FA emails).
-      const cachedCreds = this.buildPersistedCredsFromConfig(config);
+      // Re-use cached MQTT credentials across restarts. Stored in the
+      // info.mqttCredentials state (NOT in adapter native): writing to
+      // system.adapter.X.0 native triggers a js-controller adapter
+      // restart, which would loop endlessly on every login. States are
+      // restart-safe.
+      //
+      // One-shot: clean up legacy v2.1.0/v2.1.1/v2.1.2 native fields
+      // that contained plaintext credentials. Best-effort.
+      await this.cleanupLegacyMqttNativeOnce();
+      const cachedCreds = await this.loadPersistedCredsFromState();
       if (cachedCreds) {
         this.mqttClient.setPersistedCredentials(cachedCreds);
       }
       this.mqttClient.setOnCredentialsRefresh(creds => {
-        this.persistMqttCredentials(creds).catch(e => {
+        this.persistCredsToState(creds).catch(e => {
           this.log.warn(`Could not persist MQTT credentials: ${e instanceof Error ? e.message : String(e)}`);
         });
       });
@@ -1230,24 +1236,7 @@ class GoveeAdapter extends utils.Adapter {
       channels.push("MQTT");
     }
 
-    // If a channel is configured but not connected, note it honestly —
-    // background reconnect will continue and log "restored" on success.
-    const pending: string[] = [];
-    if (this.cloudClient && !this.cloudWasConnected) {
-      pending.push("Cloud");
-    }
-    if (this.mqttClient && !this.mqttClient.connected) {
-      pending.push("MQTT");
-    }
-    const pendingNote =
-      pending.length > 0 ? `, ${pending.join("+")} noch im Aufbau — wird im Hintergrund fortgesetzt` : "";
-
-    if (devices.length === 0 && groups.length === 0) {
-      this.log.info(`Govee adapter ready — no devices found (channels: ${channels.join("+")}${pendingNote})`);
-      return;
-    }
-
-    // Summary line
+    // Build the device summary
     const parts: string[] = [];
     if (devices.length > 0) {
       parts.push(`${devices.length} device${devices.length > 1 ? "s" : ""}`);
@@ -1255,7 +1244,18 @@ class GoveeAdapter extends utils.Adapter {
     if (groups.length > 0) {
       parts.push(`${groups.length} group${groups.length > 1 ? "s" : ""}`);
     }
-    this.log.info(`Govee adapter ready — ${parts.join(", ")} (channels: ${channels.join("+")}${pendingNote})`);
+    const summary = parts.length > 0 ? parts.join(", ") : "no devices found";
+    this.log.info(`Govee adapter ready — ${summary} (${channels.join("+")})`);
+
+    // Surface configured-but-not-connected channels with a concrete reason.
+    // Truthful — never claim "still pending" when the channel actually failed.
+    if (this.cloudClient && !this.cloudWasConnected) {
+      this.log.warn("Cloud not connected — see earlier errors");
+    }
+    if (this.mqttClient && !this.mqttClient.connected) {
+      const reason = this.mqttClient.getFailureReason();
+      this.log.warn(reason ? `MQTT not connected: ${reason}` : "MQTT not connected — see earlier errors");
+    }
   }
 
   /**
@@ -1452,7 +1452,7 @@ class GoveeAdapter extends utils.Adapter {
       return;
     }
 
-    this.log.info(`${device.name}: manual segments active — ${parsed.indices.length} physical indices (${listVal})`);
+    this.log.debug(`${device.name}: manual segments active — ${parsed.indices.length} physical indices (${listVal})`);
     await this.applyManualSegments(device, true, parsed.indices);
   }
 
@@ -1614,93 +1614,102 @@ class GoveeAdapter extends utils.Adapter {
   }
 
   /**
-   * Read the persisted MQTT bundle out of adapter native. Returns null if
-   * any required field is missing — the caller falls back to a fresh login.
+   * Read persisted MQTT credentials from `info.mqttCredentials`. The
+   * sensitive fields (bearer + cert + pass) are encrypted with the
+   * system secret on save and decrypted here. Returns null if no
+   * credentials are stored or the JSON is unparseable.
    *
-   * v2.1.0 had `encryptedNative` / `protectedNative` listed under
-   * `/common` (schema-rejected) so the new MQTT bundle was written as
-   * plaintext. v2.1.1 moved them to root, so js-controller now tries to
-   * decrypt the previously plaintext-stored bytes — yielding garbage.
-   * Detect that here by trying to base64-decode the P12 cert: if it
-   * fails or the decoded length looks wrong, the bundle is unusable.
-   * `null` return triggers fresh login + the caller wipes native.
-   *
-   * @param config Adapter native settings
+   * State-based persistence (since v2.1.3) — writes to a state instead
+   * of `system.adapter.X.native` so saving doesn't trigger an adapter
+   * restart. The earlier native-based design caused an endless
+   * login → save → restart → login loop.
    */
-  private buildPersistedCredsFromConfig(config: AdapterConfig): PersistedMqttCredentials | null {
-    const bearer = config.mqttBearerToken ?? "";
-    const endpoint = config.mqttIotEndpoint ?? "";
-    const p12 = config.mqttP12Cert ?? "";
-    const p12Pass = config.mqttP12Pass ?? "";
-    const accountId = config.mqttAccountId ?? "";
-    const accountTopic = config.mqttAccountTopic ?? "";
-    const expiresAt = Number(config.mqttTokenExpiresAt ?? 0);
-    if (!bearer || !endpoint || !p12 || !accountId || !accountTopic || !expiresAt) {
-      return null;
-    }
-    // Sanity-check the P12 cert: if base64-decode produces something tiny
-    // or the bytes don't look like ASN.1 (P12 starts with a SEQUENCE
-    // tag 0x30), the field was probably plaintext-stored under v2.1.0
-    // and js-controller's decrypt step turned it into noise. Wipe it.
+  private async loadPersistedCredsFromState(): Promise<PersistedMqttCredentials | null> {
     try {
-      const decoded = Buffer.from(p12, "base64");
-      if (decoded.length < 100 || decoded[0] !== 0x30) {
-        this.log.info(
-          "MQTT: stored credentials look corrupted (likely a v2.1.0 plaintext-storage leftover) — clearing and forcing fresh login.",
-        );
-        void this.persistMqttCredentials({
-          bearerToken: "",
-          iotEndpoint: "",
-          p12Cert: "",
-          p12Pass: "",
-          accountId: "",
-          accountTopic: "",
-          tokenExpiresAt: 0,
-        });
+      const s = await this.getStateAsync("info.mqttCredentials");
+      const raw = typeof s?.val === "string" ? s.val : "";
+      if (!raw) {
         return null;
       }
+      const obj = JSON.parse(raw) as {
+        bearerToken?: string;
+        iotEndpoint?: string;
+        p12Cert?: string;
+        p12Pass?: string;
+        accountId?: string;
+        accountTopic?: string;
+        tokenExpiresAt?: number;
+      };
+      const bearerToken = this.decrypt(obj.bearerToken ?? "");
+      const p12Cert = this.decrypt(obj.p12Cert ?? "");
+      const p12Pass = this.decrypt(obj.p12Pass ?? "");
+      const iotEndpoint = obj.iotEndpoint ?? "";
+      const accountId = obj.accountId ?? "";
+      const accountTopic = obj.accountTopic ?? "";
+      const tokenExpiresAt = Number(obj.tokenExpiresAt ?? 0);
+      if (!bearerToken || !iotEndpoint || !p12Cert || !accountId || !accountTopic || !tokenExpiresAt) {
+        return null;
+      }
+      return { bearerToken, iotEndpoint, p12Cert, p12Pass, accountId, accountTopic, tokenExpiresAt };
     } catch {
-      void this.persistMqttCredentials({
-        bearerToken: "",
-        iotEndpoint: "",
-        p12Cert: "",
-        p12Pass: "",
-        accountId: "",
-        accountTopic: "",
-        tokenExpiresAt: 0,
-      });
       return null;
     }
-    return {
-      bearerToken: bearer,
-      iotEndpoint: endpoint,
-      p12Cert: p12,
-      p12Pass,
-      accountId,
-      accountTopic,
-      tokenExpiresAt: expiresAt,
-    };
   }
 
   /**
-   * Persist freshly-issued MQTT credentials back into adapter native. The
-   * P12 cert + bearer are listed in `encryptedNative` / `protectedNative`
-   * (io-package.json) so js-controller transparently encrypts them at rest.
+   * Persist freshly-issued MQTT credentials into `info.mqttCredentials`.
+   * Sensitive fields go through `this.encrypt()` so the JSON blob is
+   * useless without the system secret. State writes do NOT trigger an
+   * adapter restart.
    *
    * @param creds The freshly-issued MQTT bundle from a successful login
    */
-  private async persistMqttCredentials(creds: PersistedMqttCredentials): Promise<void> {
-    await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
-      native: {
-        mqttBearerToken: creds.bearerToken,
-        mqttIotEndpoint: creds.iotEndpoint,
-        mqttP12Cert: creds.p12Cert,
-        mqttP12Pass: creds.p12Pass,
-        mqttAccountId: creds.accountId,
-        mqttAccountTopic: creds.accountTopic,
-        mqttTokenExpiresAt: creds.tokenExpiresAt,
-      },
+  private async persistCredsToState(creds: PersistedMqttCredentials): Promise<void> {
+    const blob = JSON.stringify({
+      bearerToken: this.encrypt(creds.bearerToken),
+      iotEndpoint: creds.iotEndpoint,
+      p12Cert: this.encrypt(creds.p12Cert),
+      p12Pass: this.encrypt(creds.p12Pass),
+      accountId: creds.accountId,
+      accountTopic: creds.accountTopic,
+      tokenExpiresAt: creds.tokenExpiresAt,
     });
+    await this.setStateAsync("info.mqttCredentials", { val: blob, ack: true });
+  }
+
+  /**
+   * One-shot cleanup of legacy v2.1.0/v2.1.1/v2.1.2 plaintext credentials
+   * sitting in `system.adapter.X.native`. Reads the current native, and
+   * if any of the seven legacy mqtt* fields exist with content, blanks
+   * them. This triggers ONE js-controller restart (config-change), but
+   * it's idempotent — second start finds them empty, skips the cleanup.
+   */
+  private async cleanupLegacyMqttNativeOnce(): Promise<void> {
+    try {
+      const obj = await this.getForeignObjectAsync(`system.adapter.${this.namespace}`);
+      const native = (obj?.native ?? {}) as Record<string, unknown>;
+      const legacy = [
+        "mqttBearerToken",
+        "mqttIotEndpoint",
+        "mqttP12Cert",
+        "mqttP12Pass",
+        "mqttAccountId",
+        "mqttAccountTopic",
+        "mqttTokenExpiresAt",
+      ];
+      const dirty = legacy.some(k => k in native && native[k] !== "" && native[k] !== 0);
+      if (!dirty) {
+        return;
+      }
+      this.log.info("Removing legacy plaintext MQTT credentials from native (one-time migration)");
+      const wipe: Record<string, unknown> = {};
+      for (const k of legacy) {
+        wipe[k] = k === "mqttTokenExpiresAt" ? 0 : "";
+      }
+      await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, { native: wipe });
+    } catch {
+      // best-effort — if cleanup fails, leftover plaintext stays but new flow ignores it
+    }
   }
 
   private sendMessageResponse(obj: ioBroker.Message, data: unknown): void {

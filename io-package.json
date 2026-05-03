@@ -3,6 +3,19 @@
     "name": "govee-smart",
     "version": "2.1.2",
     "news": {
+      "NEXT": {
+        "en": "Critical fix: no more restart-loop after entering the verification code. Saving credentials in the adapter config works again. Honest startup messages — when MQTT can't connect, the log says why.",
+        "de": "Kritischer Fix: kein Restart-Loop mehr nach dem Verifizierungs-Code. Speichern in der Config funktioniert wieder. Ehrliche Startup-Meldungen — wenn MQTT nicht verbindet, steht der Grund im Log.",
+        "ru": "Критический фикс: больше нет restart-loop после ввода кода верификации. Сохранение данных в конфиге снова работает. Честные стартовые сообщения — если MQTT не подключился, видно почему.",
+        "pt": "Correcao critica: sem mais loop de reinicio apos o codigo de verificacao. Salvar credenciais na config funciona de novo. Mensagens de start honestas — se MQTT nao conecta, o log diz porque.",
+        "nl": "Kritieke fix: geen restart-loop meer na de verificatiecode. Inloggegevens opslaan in de config werkt weer. Eerlijke opstartmeldingen — als MQTT niet verbindt, staat de reden in het log.",
+        "fr": "Correctif critique : plus de boucle de redemarrage apres le code de verification. La sauvegarde fonctionne a nouveau. Messages de demarrage honnetes — si MQTT n'arrive pas, le log dit pourquoi.",
+        "it": "Fix critico: niente piu loop di riavvio dopo il codice di verifica. Salvare le credenziali nella config funziona di nuovo. Messaggi di avvio onesti — se MQTT non si connette, il log dice perche.",
+        "es": "Correccion critica: no mas bucle de reinicio tras el codigo de verificacion. Guardar credenciales funciona otra vez. Mensajes de arranque honestos — si MQTT no conecta, el log dice por que.",
+        "pl": "Krytyczna poprawka: koniec restart-loopa po wpisaniu kodu weryfikacji. Zapis danych w konfiguracji adaptera znow dziala. Uczciwe komunikaty startu — gdy MQTT nie laczy, log mowi dlaczego.",
+        "uk": "Критичний фікс: більше немає циклу рестартів після вводу коду верифікації. Збереження даних у конфігу знову працює. Чесні стартові повідомлення — якщо MQTT не підключається, у лозі видно чому.",
+        "zh-cn": "关键修复：输入验证码后不再陷入重启循环。在适配器配置中保存账号又能正常工作。诚实的启动消息——MQTT 连不上时日志会说明原因。"
+      },
       "2.1.2": {
         "en": "Verification message no longer claims your account has 2FA when it doesn't. Stale credentials from v2.1.0 are cleared on first start. H61D5 added to the catalogue.",
         "de": "Die Verifizierungs-Meldung behauptet nicht mehr 2FA bei Konten ohne 2FA. Alte Credentials aus v2.1.0 werden beim ersten Start aufgeraeumt. H61D5 im Katalog ergaenzt.",
@@ -80,19 +93,6 @@
         "pl": "Hotfixy dla v2.0.0: wartosci czujnikow pod sensor/, eventy pod events/. Snapshoty nie sa juz dodawane do termometrow/grzejnikow/czajnikow. Mniej szumu w logu przy starcie.",
         "uk": "Хотфікси для v2.0.0: значення сенсорів під sensor/, події під events/. Снапшоти більше не додаються термометрам/обігрівачам/чайникам. Менше шуму в лозі при старті.",
         "zh-cn": "v2.0.0 热修复：传感器值放在 sensor/ 下，事件放在 events/ 下。快照不再添加到温度计/加热器/水壶。启动时日志更干净。"
-      },
-      "2.0.0": {
-        "en": "Govee thermometers, heaters, kettles, ice makers and other appliances are now supported alongside lights. iobroker.govee-appliances is deprecated and rolls in here.",
-        "de": "Govee-Thermometer, Heizgeraete, Wasserkocher, Eiswuerfelbereiter und weitere Geraete werden jetzt zusammen mit Lights unterstuetzt. iobroker.govee-appliances ist deprecated und geht hier auf.",
-        "ru": "Термометры Govee, нагреватели, чайники, льдогенераторы и другие устройства теперь поддерживаются вместе с лампами. iobroker.govee-appliances устарел и переезжает сюда.",
-        "pt": "Termometros Govee, aquecedores, chaleiras, maquinas de gelo e outros dispositivos agora suportados junto com as luzes. iobroker.govee-appliances esta deprecated e migra para ca.",
-        "nl": "Govee-thermometers, verwarmers, waterkokers, ijsmachines en andere apparaten worden nu samen met lampen ondersteund. iobroker.govee-appliances is deprecated en gaat hierin op.",
-        "fr": "Les thermometres Govee, chauffages, bouilloires, machines a glacons et autres appareils sont desormais pris en charge a cote des luminaires. iobroker.govee-appliances est deprecie et fusionne ici.",
-        "it": "Termometri Govee, riscaldatori, bollitori, macchine per il ghiaccio e altri dispositivi ora supportati insieme alle luci. iobroker.govee-appliances e deprecato e confluisce qui.",
-        "es": "Termometros Govee, calefactores, hervidores, maquinas de hielo y otros dispositivos ahora compatibles junto con las luces. iobroker.govee-appliances esta deprecated y se integra aqui.",
-        "pl": "Termometry Govee, grzejniki, czajniki, kostkarki i inne urzadzenia sa teraz wspierane razem z lampami. iobroker.govee-appliances jest deprecated i przechodzi tutaj.",
-        "uk": "Термометри Govee, обігрівачі, чайники, льодогенератори та інші пристрої тепер підтримуються разом із лампами. iobroker.govee-appliances вважається застарілим і переноситься сюди.",
-        "zh-cn": "Govee 温度计、加热器、水壶、制冰机等设备现在与灯具一起支持。iobroker.govee-appliances 已废弃并并入此处。"
       }
     },
     "titleLang": {
@@ -168,19 +168,11 @@
   },
   "encryptedNative": [
     "apiKey",
-    "goveePassword",
-    "mqttBearerToken",
-    "mqttIotEndpoint",
-    "mqttP12Cert",
-    "mqttP12Pass"
+    "goveePassword"
   ],
   "protectedNative": [
     "apiKey",
-    "goveePassword",
-    "mqttBearerToken",
-    "mqttIotEndpoint",
-    "mqttP12Cert",
-    "mqttP12Pass"
+    "goveePassword"
   ],
   "instanceObjects": [
     {
@@ -284,6 +276,19 @@
       "native": {}
     },
     {
+      "_id": "info.mqttCredentials",
+      "type": "state",
+      "common": {
+        "name": "Persisted MQTT credentials",
+        "type": "string",
+        "role": "json",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
       "_id": "devices",
       "type": "folder",
       "common": {
@@ -330,13 +335,6 @@
     "goveePassword": "",
     "networkInterface": "0.0.0.0",
     "experimentalQuirks": false,
-    "mqttVerificationCode": "",
-    "mqttAccountId": "",
-    "mqttAccountTopic": "",
-    "mqttTokenExpiresAt": 0,
-    "mqttBearerToken": "",
-    "mqttIotEndpoint": "",
-    "mqttP12Cert": "",
-    "mqttP12Pass": ""
+    "mqttVerificationCode": ""
   }
 }
