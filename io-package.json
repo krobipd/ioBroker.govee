@@ -1,9 +1,9 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.1.2",
+    "version": "2.1.3",
     "news": {
-      "NEXT": {
+      "2.1.3": {
         "en": "Critical fix: no more restart-loop after entering the verification code. Saving credentials in the adapter config works again. Honest startup messages — when MQTT can't connect, the log says why.",
         "de": "Kritischer Fix: kein Restart-Loop mehr nach dem Verifizierungs-Code. Speichern in der Config funktioniert wieder. Ehrliche Startup-Meldungen — wenn MQTT nicht verbindet, steht der Grund im Log.",
         "ru": "Критический фикс: больше нет restart-loop после ввода кода верификации. Сохранение данных в конфиге снова работает. Честные стартовые сообщения — если MQTT не подключился, видно почему.",

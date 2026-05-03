@@ -1,4 +1,9 @@
 # Older Changes
+## 2.0.2 (2026-04-26)
+
+- Sensor and appliance events (lack-of-water, ice-bucket-full, etc.) now arrive reliably across reconnects. Govee used to treat each reconnect as a new connection and drop the subscription.
+- Min js-controller `>=7.0.23`.
+
 ## 2.0.1 (2026-04-26)
 
 - Sensor values and events now land under `sensor/` and `events/` (were both under `control/` in v2.0.0). Removes `no existing object` warnings in the log on first start.

@@ -124,8 +124,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 2.1.3 (2026-05-03)
 
 - Critical fix: no more restart-loop after entering the verification code. The cached login is now stored in a state, not in the adapter config — saving the config doesn't trigger a restart anymore.
 - Saving email + password in the adapter config works again. The previous loop made it look like only the "Test login" button worked.
@@ -161,11 +160,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ### 2.0.3 (2026-04-26)
 
 - Min js-controller `>=6.0.11`, admin `>=7.6.20` (correcting an accidental bump in 2.0.2).
-
-### 2.0.2 (2026-04-26)
-
-- Sensor and appliance events (lack-of-water, ice-bucket-full, etc.) now arrive reliably across reconnects. Govee used to treat each reconnect as a new connection and drop the subscription.
-- Min js-controller `>=7.0.23`.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
