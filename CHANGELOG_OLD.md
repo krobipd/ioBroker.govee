@@ -1,4 +1,8 @@
 # Older Changes
+## 2.0.3 (2026-04-26)
+
+- Min js-controller `>=6.0.11`, admin `>=7.6.20` (correcting an accidental bump in 2.0.2).
+
 ## 2.0.2 (2026-04-26)
 
 - Sensor and appliance events (lack-of-water, ice-bucket-full, etc.) now arrive reliably across reconnects. Govee used to treat each reconnect as a new connection and drop the subscription.

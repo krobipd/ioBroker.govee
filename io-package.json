@@ -1,9 +1,9 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.1.3",
+    "version": "2.1.4",
     "news": {
-      "NEXT": {
+      "2.1.4": {
         "en": "Online status correct again after adapter restart — lights flip to online with the first LAN scan, sensors with the first cloud poll (5 s after start instead of 2 minutes).",
         "de": "Online-Status nach Adapter-Restart wieder korrekt — Lichter werden direkt mit dem ersten LAN-Scan online, Sensoren mit dem ersten Cloud-Poll (5 s nach Start statt 2 Minuten).",
         "ru": "Состояние «онлайн» снова корректно после рестарта адаптера — лампы переключаются на онлайн с первым LAN-сканом, сенсоры — с первым облачным опросом (5 с после старта вместо 2 минут).",
@@ -93,19 +93,6 @@
         "pl": "Eventy czujnikow i urzadzen przychodza teraz niezawodnie takze po reconnectach. Min js-controller >=7.0.23.",
         "uk": "Події від сенсорів і пристроїв тепер надходять надійно й після реконектів. Мін. js-controller >=7.0.23.",
         "zh-cn": "传感器和设备事件现在在重连后也能可靠到达。最低 js-controller >=7.0.23。"
-      },
-      "2.0.1": {
-        "en": "Hotfixes for v2.0.0: sensor values land under sensor/, events under events/. Snapshots no longer added to thermometers/heaters/kettles. Less log noise on startup.",
-        "de": "Hotfixes fuer v2.0.0: Sensorwerte landen unter sensor/, Events unter events/. Snapshots werden nicht mehr an Thermometer/Heizgeraete/Wasserkocher angehaengt. Weniger Log-Rauschen beim Start.",
-        "ru": "Хотфиксы для v2.0.0: значения сенсоров теперь под sensor/, события под events/. Снапшоты больше не добавляются термометрам/нагревателям/чайникам. Меньше шума в логе при старте.",
-        "pt": "Hotfixes para v2.0.0: valores de sensores ficam sob sensor/, eventos sob events/. Snapshots nao mais adicionados a termometros/aquecedores/chaleiras. Menos ruido no log no arranque.",
-        "nl": "Hotfixes voor v2.0.0: sensorwaarden onder sensor/, events onder events/. Snapshots niet meer toegevoegd aan thermometers/verwarmers/waterkokers. Minder log-ruis bij start.",
-        "fr": "Hotfixes pour v2.0.0: valeurs des capteurs sous sensor/, evenements sous events/. Snapshots ne sont plus ajoutes aux thermometres/chauffages/bouilloires. Moins de bruit dans le log au demarrage.",
-        "it": "Hotfix per v2.0.0: i valori dei sensori sotto sensor/, eventi sotto events/. Gli snapshot non vengono piu aggiunti a termometri/riscaldatori/bollitori. Meno rumore nel log all'avvio.",
-        "es": "Hotfixes para v2.0.0: los valores de sensores bajo sensor/, eventos bajo events/. Los snapshots ya no se agregan a termometros/calefactores/hervidores. Menos ruido en el log al iniciar.",
-        "pl": "Hotfixy dla v2.0.0: wartosci czujnikow pod sensor/, eventy pod events/. Snapshoty nie sa juz dodawane do termometrow/grzejnikow/czajnikow. Mniej szumu w logu przy starcie.",
-        "uk": "Хотфікси для v2.0.0: значення сенсорів під sensor/, події під events/. Снапшоти більше не додаються термометрам/обігрівачам/чайникам. Менше шуму в лозі при старті.",
-        "zh-cn": "v2.0.0 热修复：传感器值放在 sensor/ 下，事件放在 events/ 下。快照不再添加到温度计/加热器/水壶。启动时日志更干净。"
       }
     },
     "titleLang": {

@@ -320,13 +320,12 @@ class GoveeAdapter extends utils.Adapter {
           });
         }
       );
-      this.appApiPollTimer = this.setInterval(
-        () => {
-          var _a2;
-          (_a2 = this.deviceManager) == null ? void 0 : _a2.pollAppApi().catch((e) => this.log.debug(`pollAppApi failed: ${e instanceof Error ? e.message : String(e)}`));
-        },
-        2 * 60 * 1e3
-      );
+      const triggerAppApiPoll = () => {
+        var _a2;
+        (_a2 = this.deviceManager) == null ? void 0 : _a2.pollAppApi().catch((e) => this.log.debug(`pollAppApi failed: ${e instanceof Error ? e.message : String(e)}`));
+      };
+      this.appApiPollTimer = this.setInterval(triggerAppApiPoll, 2 * 60 * 1e3);
+      this.setTimeout(triggerAppApiPoll, 5e3);
       if (!cachedOk) {
         const result = await this.cloudInitWithTimeout();
         this.cloudWasConnected = result.ok;

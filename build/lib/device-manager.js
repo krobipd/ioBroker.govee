@@ -701,7 +701,7 @@ class DeviceManager {
    * @param lanDevice Discovered LAN device
    */
   handleLanDiscovery(lanDevice) {
-    var _a, _b;
+    var _a, _b, _c;
     let matched;
     for (const dev of this.devices.values()) {
       if ((0, import_types.normalizeDeviceId)(dev.deviceId) === (0, import_types.normalizeDeviceId)(lanDevice.device)) {
@@ -715,12 +715,17 @@ class DeviceManager {
     }
     if (matched) {
       const ipChanged = matched.lanIp !== lanDevice.ip;
+      const wasOffline = matched.state.online !== true;
       matched.lanIp = lanDevice.ip;
       matched.channels.lan = true;
       matched.lastSeenOnNetwork = Date.now();
       if (ipChanged) {
         this.log.debug(`LAN: ${matched.name} (${matched.sku}) at ${lanDevice.ip}`);
         (_a = this.onLanIpChanged) == null ? void 0 : _a.call(this, matched, lanDevice.ip);
+      }
+      if (wasOffline) {
+        matched.state.online = true;
+        (_b = this.onDeviceUpdate) == null ? void 0 : _b.call(this, matched, { online: true });
       }
     } else {
       const shortId = (0, import_types.normalizeDeviceId)(lanDevice.device).slice(-4);
@@ -746,7 +751,7 @@ class DeviceManager {
       this.diagnostics.addLog(lanDevice.device, "info", `LAN-discovered at ${lanDevice.ip}`);
       this.log.debug(`LAN: New device ${lanDevice.sku} at ${lanDevice.ip}`);
       this.maybeNudgeSeedSku(lanDevice.sku, device.name);
-      (_b = this.onDeviceListChanged) == null ? void 0 : _b.call(this, this.getDevices());
+      (_c = this.onDeviceListChanged) == null ? void 0 : _c.call(this, this.getDevices());
     }
   }
   /**

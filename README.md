@@ -124,7 +124,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 2.1.4 (2026-05-03)
 
 - Online status correct again after adapter restart — lights flip to online with the first LAN scan, sensors with the first cloud poll (5 s after start instead of 2 minutes).
 
@@ -160,10 +160,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - Scene / DIY-scene / snapshot dropdowns now appear from the first start instead of waiting for the first Cloud call to come back.
 - The Refresh Cloud Data button reloads the scene / music / DIY libraries again (had been skipped since v1.10.1).
 - Min js-controller `>=7.0.7`, min admin `>=7.7.22`.
-
-### 2.0.3 (2026-04-26)
-
-- Min js-controller `>=6.0.11`, admin `>=7.6.20` (correcting an accidental bump in 2.0.2).
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
