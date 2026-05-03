@@ -1,7 +1,7 @@
 # ioBroker.govee-smart
 
 [![npm version](https://img.shields.io/npm/v/iobroker.govee-smart)](https://www.npmjs.com/package/iobroker.govee-smart)
-![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)
+![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![npm downloads](https://img.shields.io/npm/dt/iobroker.govee-smart)](https://www.npmjs.com/package/iobroker.govee-smart)
@@ -63,7 +63,7 @@ Full user documentation lives in the **[Wiki](https://github.com/krobipd/ioBroke
 
 ## Requirements
 
-- Node.js >= 20
+- Node.js >= 22
 - ioBroker js-controller >= 7.0.7
 - ioBroker Admin >= 7.7.22
 - A Govee account and at least one Govee WiFi device. LAN control needs a light with LAN mode enabled in the Govee Home app — see Govee's [LAN-supported device list](https://app-h5.govee.com/user-manual/wlan-guide).
