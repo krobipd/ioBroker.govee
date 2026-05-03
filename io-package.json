@@ -12,7 +12,7 @@
         "fr": "Correctif critique : plus de boucle de redemarrage apres le code de verification. La sauvegarde fonctionne a nouveau. Messages de demarrage honnetes — si MQTT n'arrive pas, le log dit pourquoi.",
         "it": "Fix critico: niente piu loop di riavvio dopo il codice di verifica. Salvare le credenziali nella config funziona di nuovo. Messaggi di avvio onesti — se MQTT non si connette, il log dice perche.",
         "es": "Correccion critica: no mas bucle de reinicio tras el codigo de verificacion. Guardar credenciales funciona otra vez. Mensajes de arranque honestos — si MQTT no conecta, el log dice por que.",
-        "pl": "Krytyczna poprawka: koniec restart-loopa po wpisaniu kodu weryfikacji. Zapis danych w konfiguracji adaptera znow dziala. Uczciwe komunikaty startu — gdy MQTT nie laczy, log mowi dlaczego.",
+        "pl": "Krytyczna poprawka: koniec restart-loopa po wpisaniu kodu weryfikacji. Zapis konfiguracji adaptera znow dziala. Uczciwe komunikaty startu — gdy MQTT nie laczy, log mowi dlaczego.",
         "uk": "Критичний фікс: більше немає циклу рестартів після вводу коду верифікації. Збереження даних у конфігу знову працює. Чесні стартові повідомлення — якщо MQTT не підключається, у лозі видно чому.",
         "zh-cn": "关键修复：输入验证码后不再陷入重启循环。在适配器配置中保存账号又能正常工作。诚实的启动消息——MQTT 连不上时日志会说明原因。"
       },
