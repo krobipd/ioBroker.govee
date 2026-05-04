@@ -65,6 +65,11 @@ class GoveeAdapter extends utils.Adapter {
   rateLimiter = null;
   /** Repeating timer for the App-API poll (sensor-state pull). */
   appApiPollTimer;
+  /** One-shot timer for the FIRST app-api poll (5s nach start) — Handle
+   *  damit onUnload das wegräumen kann bevor es ins Leere feuert. */
+  appApiInitialTimer;
+  /** One-shot timer for cloud-init 60s safety timeout — gleiches Pattern. */
+  cloudInitTimer;
   skuCache = null;
   localSnapshots = null;
   cloudWasConnected = false;
@@ -325,7 +330,7 @@ class GoveeAdapter extends utils.Adapter {
         (_a2 = this.deviceManager) == null ? void 0 : _a2.pollAppApi().catch((e) => this.log.debug(`pollAppApi failed: ${e instanceof Error ? e.message : String(e)}`));
       };
       this.appApiPollTimer = this.setInterval(triggerAppApiPoll, 2 * 60 * 1e3);
-      this.setTimeout(triggerAppApiPoll, 5e3);
+      this.appApiInitialTimer = this.setTimeout(triggerAppApiPoll, 5e3);
       if (!cachedOk) {
         const result = await this.cloudInitWithTimeout();
         this.cloudWasConnected = result.ok;
@@ -391,7 +396,7 @@ class GoveeAdapter extends utils.Adapter {
     }
     const loadPromise = this.deviceManager.loadFromCloud();
     const timeoutPromise = new Promise((resolve) => {
-      this.setTimeout(() => resolve({ ok: false, reason: "transient" }), 6e4);
+      this.cloudInitTimer = this.setTimeout(() => resolve({ ok: false, reason: "transient" }), 6e4);
     });
     try {
       return await Promise.race([loadPromise, timeoutPromise]);
@@ -477,6 +482,14 @@ class GoveeAdapter extends utils.Adapter {
       if (this.appApiPollTimer) {
         this.clearInterval(this.appApiPollTimer);
         this.appApiPollTimer = void 0;
+      }
+      if (this.appApiInitialTimer) {
+        this.clearTimeout(this.appApiInitialTimer);
+        this.appApiInitialTimer = void 0;
+      }
+      if (this.cloudInitTimer) {
+        this.clearTimeout(this.cloudInitTimer);
+        this.cloudInitTimer = void 0;
       }
       (_a = this.cloudRetry) == null ? void 0 : _a.dispose();
       (_b = this.segmentWizard) == null ? void 0 : _b.dispose();
@@ -956,6 +969,8 @@ class GoveeAdapter extends utils.Adapter {
     }
     const currentDevices = this.deviceManager.getDevices();
     await this.stateManager.cleanupDevices(currentDevices);
+    const liveDeviceIds = new Set(currentDevices.map((d) => d.deviceId));
+    this.deviceManager.getDiagnostics().pruneOrphans(liveDeviceIds);
     const liveKeys = new Set(currentDevices.map((d) => `${d.sku}:${d.deviceId}`));
     for (const key of this.diagnosticsLastRun.keys()) {
       if (!liveKeys.has(key)) {
@@ -1353,7 +1368,6 @@ class GoveeAdapter extends utils.Adapter {
    * login → save → restart → login loop.
    */
   async loadPersistedCredsFromState() {
-    var _a, _b, _c, _d, _e, _f, _g;
     try {
       const s = await this.getStateAsync("info.mqttCredentials");
       const raw = typeof (s == null ? void 0 : s.val) === "string" ? s.val : "";
@@ -1361,13 +1375,14 @@ class GoveeAdapter extends utils.Adapter {
         return null;
       }
       const obj = JSON.parse(raw);
-      const bearerToken = this.decrypt((_a = obj.bearerToken) != null ? _a : "");
-      const p12Cert = this.decrypt((_b = obj.p12Cert) != null ? _b : "");
-      const p12Pass = this.decrypt((_c = obj.p12Pass) != null ? _c : "");
-      const iotEndpoint = (_d = obj.iotEndpoint) != null ? _d : "";
-      const accountId = (_e = obj.accountId) != null ? _e : "";
-      const accountTopic = (_f = obj.accountTopic) != null ? _f : "";
-      const tokenExpiresAt = Number((_g = obj.tokenExpiresAt) != null ? _g : 0);
+      const safeStr = (v) => typeof v === "string" ? v : "";
+      const bearerToken = this.decrypt(safeStr(obj.bearerToken));
+      const p12Cert = this.decrypt(safeStr(obj.p12Cert));
+      const p12Pass = this.decrypt(safeStr(obj.p12Pass));
+      const iotEndpoint = safeStr(obj.iotEndpoint);
+      const accountId = safeStr(obj.accountId);
+      const accountTopic = safeStr(obj.accountTopic);
+      const tokenExpiresAt = typeof obj.tokenExpiresAt === "number" ? obj.tokenExpiresAt : 0;
       if (!bearerToken || !iotEndpoint || !p12Cert || !accountId || !accountTopic || !tokenExpiresAt) {
         return null;
       }

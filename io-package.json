@@ -133,7 +133,7 @@
     "extIcon": "https://raw.githubusercontent.com/krobipd/ioBroker.govee-smart/main/admin/govee-smart.svg",
     "readme": "https://github.com/krobipd/ioBroker.govee-smart/blob/main/README.md",
     "enabled": true,
-    "tier": 3,
+    "tier": 2,
     "loglevel": "info",
     "mode": "daemon",
     "messagebox": true,

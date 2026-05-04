@@ -212,6 +212,26 @@ export class StateManager {
   }
 
   /**
+   * Idempotent state-delete: prüft erst ob das Object existiert. Wenn nicht,
+   * no-op (verhindert „has no existing object"-WARN den `delStateAsync`
+   * sonst intern triggert wenn das Object weg ist).
+   *
+   * Pattern: Caller will ein State löschen (z.B. weil der Zustand „cleaned"
+   * geworden ist), aber weiß nicht ob das Object jemals da war. delObject
+   * + delState ist nur dann sicher wenn das Object EXISTIERT.
+   *
+   * @param id Voller State-Pfad (`devices.X.info.Y`)
+   */
+  private async safeDeleteState(id: string): Promise<void> {
+    const obj = await this.adapter.getObjectAsync(id).catch(() => null);
+    if (!obj) {
+      return;
+    }
+    await this.adapter.delStateAsync(id).catch(() => undefined);
+    await this.adapter.delObjectAsync(id).catch(() => undefined);
+  }
+
+  /**
    * Push the device's trust tier (verified/reported/seed/unknown) into
    * the user-visible `diag.tier` state. Called after every device-state
    * refresh so the value tracks any registry change between adapter
@@ -243,8 +263,7 @@ export class StateManager {
     }
     const prefix = this.devicePrefix(device);
     for (const stale of ["diagnostics_export", "diagnostics_result", "diagnostics_tier"]) {
-      await this.adapter.delObjectAsync(`${prefix}.info.${stale}`).catch(() => undefined);
-      await this.adapter.delStateAsync(`${prefix}.info.${stale}`).catch(() => undefined);
+      await this.safeDeleteState(`${prefix}.info.${stale}`);
       this.stateChannelMap.delete(`${prefix}.${stale}`);
     }
   }
@@ -429,8 +448,7 @@ export class StateManager {
         "diagnostics_result",
         "diagnostics_tier",
       ]) {
-        await this.adapter.delObjectAsync(`${prefix}.info.${staleId}`).catch(() => {});
-        await this.adapter.delStateAsync(`${prefix}.info.${staleId}`).catch(() => {});
+        await this.safeDeleteState(`${prefix}.info.${staleId}`);
       }
       // Groups never had a `diag` channel — drop any leftover from migrated installs.
       await this.adapter.delObjectAsync(`${prefix}.diag`, { recursive: true }).catch(() => {});
@@ -791,9 +809,10 @@ export class StateManager {
       });
 
     if (unreachable.length === 0) {
-      // All members reachable — delete the state
-      await this.adapter.delObjectAsync(stateId).catch(() => {});
-      await this.adapter.delStateAsync(stateId).catch(() => {});
+      // All members reachable — drop the state via safeDeleteState (no-op
+      // wenn nie ein unreachable-Member existierte, damit kein WARN-Spam
+      // alle 2 Minuten beim refresh).
+      await this.safeDeleteState(stateId);
     } else {
       await this.ensureState(stateId, "Unreachable Members", "string", "text", false);
       await this.adapter.setStateAsync(stateId, {

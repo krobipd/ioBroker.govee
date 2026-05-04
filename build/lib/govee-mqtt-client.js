@@ -89,6 +89,11 @@ class GoveeMqttClient {
    * for forwarding to a DiagnosticsCollector if one is set up.
    */
   onPacket = null;
+  /**
+   * Set true in disconnect(); refreshBearerSilently bails as first step
+   *  if true, so timers that fire after dispose are no-ops.
+   */
+  disposed = false;
   /** Account-derived client ID (UUIDv5(email)) — stable per account, distinct per user. */
   clientId;
   /** Optional 2FA code — set once after a 454, sent in the next login body, then cleared. */
@@ -249,9 +254,17 @@ class GoveeMqttClient {
       if (codeWasSent) {
         (_d = this.onVerificationConsumed) == null ? void 0 : _d.call(this);
       }
+      const accIdRaw = loginResp.client.accountId;
+      if (typeof accIdRaw !== "string" && typeof accIdRaw !== "number") {
+        throw new Error(`Login response missing accountId (got ${typeof accIdRaw})`);
+      }
+      const topicRaw = loginResp.client.topic;
+      if (typeof topicRaw !== "string" || topicRaw.length === 0) {
+        throw new Error(`Login response missing account topic (got ${typeof topicRaw})`);
+      }
       this._bearerToken = loginResp.client.token;
-      this.accountId = String(loginResp.client.accountId);
-      this.accountTopic = loginResp.client.topic;
+      this.accountId = String(accIdRaw);
+      this.accountTopic = topicRaw;
       (_e = this.onToken) == null ? void 0 : _e.call(this, this._bearerToken);
       const iotResp = await this.getIotKey();
       if (!((_f = iotResp.data) == null ? void 0 : _f.endpoint)) {
@@ -339,9 +352,14 @@ class GoveeMqttClient {
   }
   /** Disconnect and cleanup */
   disconnect() {
+    this.disposed = true;
     if (this.reconnectTimer) {
       this.timers.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = void 0;
+    }
+    if (this.refreshTimer) {
+      this.timers.clearTimeout(this.refreshTimer);
+      this.refreshTimer = void 0;
     }
     if (this.client) {
       this.client.removeAllListeners();
@@ -490,7 +508,7 @@ class GoveeMqttClient {
       this.handleMessage(payload, topic);
     });
     this.client.on("error", (err) => {
-      this.log.debug(`MQTT error: ${err.message}`);
+      this.lastErrorCategory = (0, import_types.logDedup)(this.log, this.lastErrorCategory, "MQTT", err);
     });
     this.client.on("close", () => {
       var _a;
@@ -547,6 +565,9 @@ class GoveeMqttClient {
    */
   async refreshBearerSilently() {
     var _a, _b, _c, _d, _e, _f;
+    if (this.disposed) {
+      return;
+    }
     this.log.debug("Proactive MQTT bearer refresh triggered");
     try {
       const loginResp = await this.login();

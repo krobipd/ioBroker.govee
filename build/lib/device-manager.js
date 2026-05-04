@@ -229,6 +229,26 @@ class DeviceManager {
     return Array.from(this.devices.values());
   }
   /**
+   * Entfernt ein Gerät aus dem internen Tracking. Aufgerufen wenn ein Gerät
+   * aus dem Govee-Account entfernt wurde — die jsonl-Objects räumt
+   * `cleanupDevices` (state-manager) ab; hier nur die in-memory-Maps.
+   *
+   * Returnt die deviceId des gedroppten Geräts (zur Diagnostics-Cleanup),
+   * oder null wenn nichts zu entfernen war.
+   *
+   * @param sku Govee-SKU
+   * @param deviceId Device-ID (mit/ohne Doppelpunkte)
+   */
+  removeDevice(sku, deviceId) {
+    const key = this.deviceKey(sku, deviceId);
+    const dev = this.devices.get(key);
+    if (!dev) {
+      return null;
+    }
+    this.devices.delete(key);
+    return dev.deviceId;
+  }
+  /**
    * Load devices from local SKU cache.
    * Returns true if any devices were loaded (= Cloud not needed).
    */

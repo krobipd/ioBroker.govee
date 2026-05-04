@@ -5,6 +5,7 @@ import { httpsRequest } from "./http-client";
 import { GOVEE_APP_VERSION, GOVEE_CLIENT_TYPE, GOVEE_USER_AGENT, deriveGoveeClientId } from "./govee-constants";
 import {
   classifyError,
+  logDedup,
   type ErrorCategory,
   type GoveeIotKeyResponse,
   type GoveeLoginResponse,
@@ -83,6 +84,12 @@ export class GoveeMqttClient {
    * for forwarding to a DiagnosticsCollector if one is set up.
    */
   private onPacket: ((deviceId: string, topic: string, hex: string) => void) | null = null;
+
+  /**
+   * Set true in disconnect(); refreshBearerSilently bails as first step
+   *  if true, so timers that fire after dispose are no-ops.
+   */
+  private disposed = false;
 
   /** Account-derived client ID (UUIDv5(email)) — stable per account, distinct per user. */
   private readonly clientId: string;
@@ -276,9 +283,21 @@ export class GoveeMqttClient {
       if (codeWasSent) {
         this.onVerificationConsumed?.();
       }
+      // H11 — Login-Response-Validation. Govee schickt accountId + topic
+      // bei erfolgreichem Login. Fehlt eines, wäre die clientId
+      // `AP/undefined/<uuid>` und Govee-Broker rejected mit unklarem
+      // disconnect. Frühzeitig validieren mit klarem Fehler.
+      const accIdRaw = loginResp.client.accountId;
+      if (typeof accIdRaw !== "string" && typeof accIdRaw !== "number") {
+        throw new Error(`Login response missing accountId (got ${typeof accIdRaw})`);
+      }
+      const topicRaw = loginResp.client.topic;
+      if (typeof topicRaw !== "string" || topicRaw.length === 0) {
+        throw new Error(`Login response missing account topic (got ${typeof topicRaw})`);
+      }
       this._bearerToken = loginResp.client.token;
-      this.accountId = String(loginResp.client.accountId);
-      this.accountTopic = loginResp.client.topic;
+      this.accountId = String(accIdRaw);
+      this.accountTopic = topicRaw;
       // Notify dependents (e.g. api-client for authenticated library endpoints)
       // so they don't keep a stale token after a long-delay reconnect.
       this.onToken?.(this._bearerToken);
@@ -402,9 +421,17 @@ export class GoveeMqttClient {
 
   /** Disconnect and cleanup */
   disconnect(): void {
+    this.disposed = true;
     if (this.reconnectTimer) {
       this.timers.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = undefined;
+    }
+    // refreshTimer löscht der Adapter-Stop sonst nicht — würde nach
+    // disconnect() noch refreshBearerSilently() triggern und Login-Calls
+    // gegen einen abgebauten Adapter feuern.
+    if (this.refreshTimer) {
+      this.timers.clearTimeout(this.refreshTimer);
+      this.refreshTimer = undefined;
     }
     if (this.client) {
       this.client.removeAllListeners();
@@ -561,7 +588,10 @@ export class GoveeMqttClient {
       this.handleMessage(payload, topic);
     });
     this.client.on("error", err => {
-      this.log.debug(`MQTT error: ${err.message}`);
+      // H10 — error-events klassifizieren, sonst sieht der User nur debug.
+      // close-event-fallback fängt vieles, aber nicht spurious network
+      // errors die nicht zu Disconnect führen.
+      this.lastErrorCategory = logDedup(this.log, this.lastErrorCategory, "MQTT", err);
     });
     this.client.on("close", () => {
       this.onConnection?.(false);
@@ -622,6 +652,11 @@ export class GoveeMqttClient {
    * recovery via the normal connect() path.
    */
   private async refreshBearerSilently(): Promise<void> {
+    if (this.disposed) {
+      // Adapter wurde gestoppt zwischen Timer-Schedule und Timer-Fire —
+      // nicht mehr loggen + nicht mehr Login-Call.
+      return;
+    }
     this.log.debug("Proactive MQTT bearer refresh triggered");
     try {
       const loginResp = await this.login();

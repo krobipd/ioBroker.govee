@@ -80,6 +80,13 @@ class GoveeAdapter extends utils.Adapter {
   private rateLimiter: RateLimiter | null = null;
   /** Repeating timer for the App-API poll (sensor-state pull). */
   private appApiPollTimer: ioBroker.Interval | undefined;
+  /**
+   * One-shot timer for the FIRST app-api poll (5s nach start) — Handle
+   *  damit onUnload das wegräumen kann bevor es ins Leere feuert.
+   */
+  private appApiInitialTimer: ioBroker.Timeout | undefined;
+  /** One-shot timer for cloud-init 60s safety timeout — gleiches Pattern. */
+  private cloudInitTimer: ioBroker.Timeout | undefined;
   private skuCache: SkuCache | null = null;
   private localSnapshots: LocalSnapshotStore | null = null;
   private cloudWasConnected = false;
@@ -406,7 +413,9 @@ class GoveeAdapter extends utils.Adapter {
       // Initial poll 5s nach Start — gibt MQTT Zeit für den Bearer-Login.
       // Ohne diesen Sofort-Poll bleiben Sensoren wie H5179 die ersten 2
       // Minuten nach Start offline (Online-Signal kommt nur via App-API).
-      this.setTimeout(triggerAppApiPoll, 5000);
+      // Handle in Member-Variable damit onUnload den Timer cleart bevor
+      // er auf disposed deviceManager feuert.
+      this.appApiInitialTimer = this.setTimeout(triggerAppApiPoll, 5000);
 
       if (!cachedOk) {
         // No cache — first start, fetch from Cloud with 60s hard-timeout.
@@ -492,7 +501,7 @@ class GoveeAdapter extends utils.Adapter {
     }
     const loadPromise = this.deviceManager.loadFromCloud();
     const timeoutPromise = new Promise<CloudLoadResult>(resolve => {
-      this.setTimeout(() => resolve({ ok: false, reason: "transient" }), 60_000);
+      this.cloudInitTimer = this.setTimeout(() => resolve({ ok: false, reason: "transient" }), 60_000);
     });
     try {
       return await Promise.race([loadPromise, timeoutPromise]);
@@ -579,6 +588,14 @@ class GoveeAdapter extends utils.Adapter {
       if (this.appApiPollTimer) {
         this.clearInterval(this.appApiPollTimer);
         this.appApiPollTimer = undefined;
+      }
+      if (this.appApiInitialTimer) {
+        this.clearTimeout(this.appApiInitialTimer);
+        this.appApiInitialTimer = undefined;
+      }
+      if (this.cloudInitTimer) {
+        this.clearTimeout(this.cloudInitTimer);
+        this.cloudInitTimer = undefined;
       }
       this.cloudRetry?.dispose();
       this.segmentWizard?.dispose();
@@ -1180,6 +1197,11 @@ class GoveeAdapter extends utils.Adapter {
     const currentDevices = this.deviceManager.getDevices();
     await this.stateManager.cleanupDevices(currentDevices);
 
+    // Diagnostics-buffer für entfernte Devices droppen damit Logs/Packets/
+    // Responses längst entfernter Geräte nicht im Speicher bleiben.
+    const liveDeviceIds = new Set(currentDevices.map(d => d.deviceId));
+    this.deviceManager.getDiagnostics().pruneOrphans(liveDeviceIds);
+
     const liveKeys = new Set(currentDevices.map(d => `${d.sku}:${d.deviceId}`));
     for (const key of this.diagnosticsLastRun.keys()) {
       if (!liveKeys.has(key)) {
@@ -1651,21 +1673,25 @@ class GoveeAdapter extends utils.Adapter {
         return null;
       }
       const obj = JSON.parse(raw) as {
-        bearerToken?: string;
-        iotEndpoint?: string;
-        p12Cert?: string;
-        p12Pass?: string;
-        accountId?: string;
-        accountTopic?: string;
-        tokenExpiresAt?: number;
+        bearerToken?: unknown;
+        iotEndpoint?: unknown;
+        p12Cert?: unknown;
+        p12Pass?: unknown;
+        accountId?: unknown;
+        accountTopic?: unknown;
+        tokenExpiresAt?: unknown;
       };
-      const bearerToken = this.decrypt(obj.bearerToken ?? "");
-      const p12Cert = this.decrypt(obj.p12Cert ?? "");
-      const p12Pass = this.decrypt(obj.p12Pass ?? "");
-      const iotEndpoint = obj.iotEndpoint ?? "";
-      const accountId = obj.accountId ?? "";
-      const accountTopic = obj.accountTopic ?? "";
-      const tokenExpiresAt = Number(obj.tokenExpiresAt ?? 0);
+      // typeof-Guards — JSON.parse liefert raw, this.decrypt() wirft auf
+      // non-string-Input. Defensive: wenn das State-Blob durch ein Tool
+      // editiert wurde und falsche Typen drin hat, returnen wir null.
+      const safeStr = (v: unknown): string => (typeof v === "string" ? v : "");
+      const bearerToken = this.decrypt(safeStr(obj.bearerToken));
+      const p12Cert = this.decrypt(safeStr(obj.p12Cert));
+      const p12Pass = this.decrypt(safeStr(obj.p12Pass));
+      const iotEndpoint = safeStr(obj.iotEndpoint);
+      const accountId = safeStr(obj.accountId);
+      const accountTopic = safeStr(obj.accountTopic);
+      const tokenExpiresAt = typeof obj.tokenExpiresAt === "number" ? obj.tokenExpiresAt : 0;
       if (!bearerToken || !iotEndpoint || !p12Cert || !accountId || !accountTopic || !tokenExpiresAt) {
         return null;
       }

@@ -552,19 +552,43 @@ describe("StateManager", () => {
       expect(val!.val).to.equal("");
     });
 
-    it("should clean up legacy diagnostics + new diag channel for BaseGroup", async () => {
-      const { adapter, calls } = createMockAdapter();
+    it("should clean up legacy diagnostics + new diag channel for BaseGroup (when objects exist)", async () => {
+      const { adapter, calls, objects } = createMockAdapter();
       const sm = new StateManager(adapter as never);
       const dev = createTestDevice({ sku: "BaseGroup", deviceId: "6781311" });
+      // Pre-seed legacy objects to simulate an upgrade scenario — without
+      // these, safeDeleteState's existence-probe would correctly skip the
+      // delete-calls (no-op when object never existed).
+      objects.set("groups.basegroup_1311.info.diagnostics_export", { type: "state", common: {} });
+      objects.set("groups.basegroup_1311.info.diagnostics_result", { type: "state", common: {} });
+      objects.set("groups.basegroup_1311.info.diagnostics_tier", { type: "state", common: {} });
+      objects.set("groups.basegroup_1311.diag", { type: "channel", common: {} });
 
       await sm.createDeviceStates(dev, []);
 
       const delCalls = calls.filter(c => c.method === "delObjectAsync").map(c => c.args[0] as string);
-      // Legacy v2.1.0 layout (info.diagnostics_*) — drop on every group create
+      // Legacy v2.1.0 layout (info.diagnostics_*) — dropped via safeDeleteState
       expect(delCalls).to.include("groups.basegroup_1311.info.diagnostics_export");
       expect(delCalls).to.include("groups.basegroup_1311.info.diagnostics_result");
       expect(delCalls).to.include("groups.basegroup_1311.info.diagnostics_tier");
-      // v2.1.1 layout — groups never have a diag channel either, drop the whole subtree
+      // v2.1.1 layout — diag channel via direct delObjectAsync (recursive, no probe)
+      expect(delCalls).to.include("groups.basegroup_1311.diag");
+    });
+
+    it("should NOT trigger del-calls on fresh install when legacy objects never existed (no WARN spam)", async () => {
+      const { adapter, calls } = createMockAdapter();
+      const sm = new StateManager(adapter as never);
+      const dev = createTestDevice({ sku: "BaseGroup", deviceId: "6781311" });
+
+      // No pre-seeded objects — fresh install scenario
+      await sm.createDeviceStates(dev, []);
+
+      const delCalls = calls.filter(c => c.method === "delObjectAsync").map(c => c.args[0] as string);
+      // safeDeleteState skipt das delete weil getObjectAsync(null) returnt
+      expect(delCalls).to.not.include("groups.basegroup_1311.info.diagnostics_export");
+      expect(delCalls).to.not.include("groups.basegroup_1311.info.diagnostics_result");
+      expect(delCalls).to.not.include("groups.basegroup_1311.info.diagnostics_tier");
+      // diag-channel-recursive bleibt — operiert auf bekannter "groups have no diag" Konvention
       expect(delCalls).to.include("groups.basegroup_1311.diag");
     });
   });
@@ -584,7 +608,21 @@ describe("StateManager", () => {
       expect(val!.val).to.equal("h61be_0011");
     });
 
-    it("should delete state when all members are reachable", async () => {
+    it("should delete state when all members are reachable AND state existed before", async () => {
+      const { adapter, calls, objects } = createMockAdapter();
+      const sm = new StateManager(adapter as never);
+      const group = createTestDevice({ sku: "BaseGroup", deviceId: "6781311" });
+      // Pre-seed: state existed (from previous unreachable-cycle)
+      objects.set("groups.basegroup_1311.info.membersUnreachable", { type: "state", common: {} });
+      const m1 = createTestDevice({ state: { online: true } });
+
+      await sm.updateGroupMembersUnreachable(group, [m1]);
+
+      const delCalls = calls.filter(c => c.method === "delObjectAsync").map(c => c.args[0] as string);
+      expect(delCalls).to.include("groups.basegroup_1311.info.membersUnreachable");
+    });
+
+    it("should NOT trigger del-calls when state never existed (no WARN spam every 2 min)", async () => {
       const { adapter, calls } = createMockAdapter();
       const sm = new StateManager(adapter as never);
       const group = createTestDevice({ sku: "BaseGroup", deviceId: "6781311" });
@@ -593,7 +631,9 @@ describe("StateManager", () => {
       await sm.updateGroupMembersUnreachable(group, [m1]);
 
       const delCalls = calls.filter(c => c.method === "delObjectAsync").map(c => c.args[0] as string);
-      expect(delCalls).to.include("groups.basegroup_1311.info.membersUnreachable");
+      const delStates = calls.filter(c => c.method === "delStateAsync").map(c => c.args[0] as string);
+      expect(delCalls).to.not.include("groups.basegroup_1311.info.membersUnreachable");
+      expect(delStates).to.not.include("groups.basegroup_1311.info.membersUnreachable");
     });
   });
 

@@ -1,4 +1,4 @@
-import { hexToRgb, type GoveeDevice, type TimerAdapter } from "./types";
+import { hexToRgb, logDedup, type ErrorCategory, type GoveeDevice, type TimerAdapter } from "./types";
 import type { GoveeCloudClient } from "./govee-cloud-client";
 import type { GoveeLanClient } from "./govee-lan-client";
 import { applySceneSpeed } from "./govee-lan-client";
@@ -22,6 +22,11 @@ export class CommandRouter {
   private lanClient: GoveeLanClient | null = null;
   private cloudClient: GoveeCloudClient | null = null;
   private rateLimiter: RateLimiter | null = null;
+  /**
+   * Letzte Fehler-Kategorie pro Cloud-Fallback-Fail — verhindert
+   *  log-Spam wenn das gleiche Symptom mehrfach kommt.
+   */
+  private lastCloudFallbackError: ErrorCategory | null = null;
 
   /** Callback for batch segment state sync */
   onSegmentBatchUpdate?: (
@@ -594,7 +599,14 @@ export class CommandRouter {
           }
         }
         // No library match — fall through to Cloud
-        this.sendCloudCommand(device, command, value).catch(() => {});
+        this.sendCloudCommand(device, command, value).catch(e => {
+          this.lastCloudFallbackError = logDedup(
+            this.log,
+            this.lastCloudFallbackError,
+            `Cloud fallback for ${device.name}/${command}`,
+            e,
+          );
+        });
         break;
       }
       case "lightScene": {
@@ -626,7 +638,14 @@ export class CommandRouter {
               this.log.debug(
                 `ptReal scene ${scene.name} skipped — ${device.sku} has no segments, falling through to Cloud`,
               );
-              this.sendCloudCommand(device, command, value).catch(() => {});
+              this.sendCloudCommand(device, command, value).catch(e => {
+                this.lastCloudFallbackError = logDedup(
+                  this.log,
+                  this.lastCloudFallbackError,
+                  `Cloud fallback for ${device.name}/${command}`,
+                  e,
+                );
+              });
               return;
             }
             let param = baseParam;
@@ -644,7 +663,14 @@ export class CommandRouter {
           }
         }
         // Scene not in library — fall through to Cloud
-        this.sendCloudCommand(device, command, value).catch(() => {});
+        this.sendCloudCommand(device, command, value).catch(e => {
+          this.lastCloudFallbackError = logDedup(
+            this.log,
+            this.lastCloudFallbackError,
+            `Cloud fallback for ${device.name}/${command}`,
+            e,
+          );
+        });
         break;
       }
       case "snapshot": {
@@ -663,12 +689,26 @@ export class CommandRouter {
           }
         }
         // No BLE data — fall through to Cloud
-        this.sendCloudCommand(device, command, value).catch(() => {});
+        this.sendCloudCommand(device, command, value).catch(e => {
+          this.lastCloudFallbackError = logDedup(
+            this.log,
+            this.lastCloudFallbackError,
+            `Cloud fallback for ${device.name}/${command}`,
+            e,
+          );
+        });
         break;
       }
       default:
         // LAN doesn't support this command — fall through to Cloud
-        this.sendCloudCommand(device, command, value).catch(() => {});
+        this.sendCloudCommand(device, command, value).catch(e => {
+          this.lastCloudFallbackError = logDedup(
+            this.log,
+            this.lastCloudFallbackError,
+            `Cloud fallback for ${device.name}/${command}`,
+            e,
+          );
+        });
     }
   }
 

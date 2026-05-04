@@ -30,6 +30,11 @@ class CommandRouter {
   lanClient = null;
   cloudClient = null;
   rateLimiter = null;
+  /**
+   * Letzte Fehler-Kategorie pro Cloud-Fallback-Fail — verhindert
+   *  log-Spam wenn das gleiche Symptom mehrfach kommt.
+   */
+  lastCloudFallbackError = null;
   /** Callback for batch segment state sync */
   onSegmentBatchUpdate;
   /**
@@ -502,7 +507,13 @@ class CommandRouter {
             return;
           }
         }
-        this.sendCloudCommand(device, command, value).catch(() => {
+        this.sendCloudCommand(device, command, value).catch((e) => {
+          this.lastCloudFallbackError = (0, import_types.logDedup)(
+            this.log,
+            this.lastCloudFallbackError,
+            `Cloud fallback for ${device.name}/${command}`,
+            e
+          );
         });
         break;
       }
@@ -523,7 +534,13 @@ class CommandRouter {
               this.log.debug(
                 `ptReal scene ${scene.name} skipped \u2014 ${device.sku} has no segments, falling through to Cloud`
               );
-              this.sendCloudCommand(device, command, value).catch(() => {
+              this.sendCloudCommand(device, command, value).catch((e) => {
+                this.lastCloudFallbackError = (0, import_types.logDedup)(
+                  this.log,
+                  this.lastCloudFallbackError,
+                  `Cloud fallback for ${device.name}/${command}`,
+                  e
+                );
               });
               return;
             }
@@ -536,7 +553,13 @@ class CommandRouter {
             return;
           }
         }
-        this.sendCloudCommand(device, command, value).catch(() => {
+        this.sendCloudCommand(device, command, value).catch((e) => {
+          this.lastCloudFallbackError = (0, import_types.logDedup)(
+            this.log,
+            this.lastCloudFallbackError,
+            `Cloud fallback for ${device.name}/${command}`,
+            e
+          );
         });
         break;
       }
@@ -555,12 +578,24 @@ class CommandRouter {
             return;
           }
         }
-        this.sendCloudCommand(device, command, value).catch(() => {
+        this.sendCloudCommand(device, command, value).catch((e) => {
+          this.lastCloudFallbackError = (0, import_types.logDedup)(
+            this.log,
+            this.lastCloudFallbackError,
+            `Cloud fallback for ${device.name}/${command}`,
+            e
+          );
         });
         break;
       }
       default:
-        this.sendCloudCommand(device, command, value).catch(() => {
+        this.sendCloudCommand(device, command, value).catch((e) => {
+          this.lastCloudFallbackError = (0, import_types.logDedup)(
+            this.log,
+            this.lastCloudFallbackError,
+            `Cloud fallback for ${device.name}/${command}`,
+            e
+          );
         });
     }
   }

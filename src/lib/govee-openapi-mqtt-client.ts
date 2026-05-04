@@ -184,8 +184,11 @@ export class GoveeOpenapiMqttClient {
 
       const raw = JSON.parse(rawStr) as Record<string, unknown>;
 
-      const sku = (raw.sku as string) ?? "";
-      const device = (raw.device as string) ?? "";
+      // typeof-Guards (analog Account-MQTT-Client) — Govee schickt sku/device
+      // gelegentlich als Number; ohne Guard würde später .replace()/.split()
+      // auf Konsumenten-Seite crashen.
+      const sku = typeof raw.sku === "string" ? raw.sku : "";
+      const device = typeof raw.device === "string" ? raw.device : "";
 
       if (!sku && !device) {
         this.log.debug(`Cloud-events: message without device info: ${payload.toString().slice(0, 200)}`);

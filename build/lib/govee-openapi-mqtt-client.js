@@ -171,13 +171,13 @@ class GoveeOpenapiMqttClient {
    * @param payload Raw MQTT message buffer
    */
   handleMessage(payload) {
-    var _a, _b, _c, _d;
+    var _a, _b;
     try {
       const rawStr = payload.toString();
       (_a = this.onRaw) == null ? void 0 : _a.call(this, rawStr);
       const raw = JSON.parse(rawStr);
-      const sku = (_b = raw.sku) != null ? _b : "";
-      const device = (_c = raw.device) != null ? _c : "";
+      const sku = typeof raw.sku === "string" ? raw.sku : "";
+      const device = typeof raw.device === "string" ? raw.device : "";
       if (!sku && !device) {
         this.log.debug(`Cloud-events: message without device info: ${payload.toString().slice(0, 200)}`);
         return;
@@ -188,7 +188,7 @@ class GoveeOpenapiMqttClient {
         return;
       }
       const event = { sku, device, capabilities: caps };
-      (_d = this.onEvent) == null ? void 0 : _d.call(this, event);
+      (_b = this.onEvent) == null ? void 0 : _b.call(this, event);
     } catch {
       this.log.debug(`Cloud-events: failed to parse message: ${payload.toString().slice(0, 200)}`);
     }
