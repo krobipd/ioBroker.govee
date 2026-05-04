@@ -15,6 +15,7 @@ import { GoveeOpenapiMqttClient } from "./lib/govee-openapi-mqtt-client";
 import { LocalSnapshotStore } from "./lib/local-snapshots";
 import { SnapshotHandler, type SnapshotHandlerHost } from "./lib/snapshot-handler";
 import { GroupFanoutHandler, type GroupFanoutHost } from "./lib/group-fanout";
+import { MessageRouter, type MessageRouterHost } from "./lib/message-router";
 import { CloudRetryLoop, type CloudRetryHost } from "./lib/cloud-retry";
 import { RateLimiter } from "./lib/rate-limiter";
 import { SegmentWizard, wizardIdleText, type WizardHost, type WizardResult } from "./lib/segment-wizard";
@@ -44,14 +45,6 @@ import { httpsRequest } from "./lib/http-client";
  * deprecated and won't run alongside govee-smart.
  */
 const FULL_LIMITS = { perMinute: 8, perDay: 9000 };
-
-/**
- * Minimum gap between two `mqttAuth: requestCode` calls. Govee returns 200
- * for every request and queues another email — without a throttle, double-clicking
- * the button in admin would spam the user's inbox. 30 s is short enough that a
- * legitimate retry after a failed delivery still feels responsive.
- */
-const VERIFICATION_REQUEST_THROTTLE_MS = 30_000;
 
 /**
  * State-suffix → command-name lookup for writable states. Segment indices
@@ -120,6 +113,7 @@ class GoveeAdapter extends utils.Adapter {
   private localSnapshots: LocalSnapshotStore | null = null;
   private snapshotHandler: SnapshotHandler | null = null;
   private groupFanout: GroupFanoutHandler | null = null;
+  private messageRouter: MessageRouter | null = null;
   private stateCreationQueue: Promise<void>[] = [];
   private lanScanTimer: ioBroker.Timeout | undefined;
   private cleanupTimer: ioBroker.Timeout | undefined;
@@ -148,7 +142,7 @@ class GoveeAdapter extends utils.Adapter {
     this.on("stateChange", (id, state) =>
       this.onStateChange(id, state).catch(e => this.log.warn(`onStateChange crashed for ${id}: ${errMessage(e)}`)),
     );
-    this.on("message", obj => this.onMessage(obj));
+    this.on("message", obj => this.messageRouter?.onMessage(obj));
     this.on("unload", callback => this.onUnload(callback));
     // Last-line-of-defence against unhandled rejections / sync throws from
     // fire-and-forget paths. The per-handler .catch() wrappers cover the
@@ -217,6 +211,7 @@ class GoveeAdapter extends utils.Adapter {
     this.localSnapshots = new LocalSnapshotStore(dataDir, this.log);
     this.snapshotHandler = new SnapshotHandler(this.buildSnapshotHost());
     this.groupFanout = new GroupFanoutHandler(this.buildGroupFanoutHost());
+    this.messageRouter = new MessageRouter(this.buildMessageRouterHost());
     this.deviceManager.setSkuCache(this.skuCache);
 
     // API client for undocumented scene/music/DIY libraries (always available)
@@ -1523,143 +1518,34 @@ class GoveeAdapter extends utils.Adapter {
    *
    * @param obj ioBroker message object
    */
-  private onMessage(obj: ioBroker.Message): void {
-    if (!obj?.command) {
-      return;
-    }
-    // Never let a rejection bubble up from the event handler — the ioBroker
-    // event emitter doesn't catch it, which would crash the adapter.
-    this.handleMessage(obj).catch(e => {
-      this.log.warn(`onMessage handler crashed for ${obj.command}: ${errMessage(e)}`);
-      this.sendMessageResponse(obj, {
-        error: e instanceof Error ? e.message : String(e),
-      });
-    });
-  }
-
-  private async handleMessage(obj: ioBroker.Message): Promise<void> {
-    try {
-      if (obj.command === "getSegmentDevices") {
-        const devices = this.deviceManager?.getDevices() ?? [];
-        const list = devices
-          .filter(d => d.sku !== "BaseGroup" && d.state?.online === true && resolveSegmentCount(d) > 0)
-          .map(d => {
-            const count = resolveSegmentCount(d);
-            return {
-              value: this.deviceKeyFor(d),
-              label: `${d.name} (${d.sku}, bisher ${count} Segmente)`,
-            };
-          });
-        // selectSendTo expects the array directly, not wrapped in an object
-        this.sendMessageResponse(obj, list);
-        return;
-      }
-      if (obj.command === "segmentWizard") {
-        const payload = (obj.message ?? {}) as {
-          action?: string;
-          device?: string;
-        };
-        const response = await this.runWizardStep(payload.action ?? "", payload.device ?? "");
-        this.sendMessageResponse(obj, response);
-        return;
-      }
-      if (obj.command === "mqttAuth") {
-        const payload = (obj.message ?? {}) as { action?: string };
-        const response = await this.runMqttAuthAction(payload.action ?? "");
-        this.sendMessageResponse(obj, response);
-        return;
-      }
-    } catch (e) {
-      this.log.warn(`onMessage failed for ${obj.command}: ${errMessage(e)}`);
-      this.sendMessageResponse(obj, {
-        error: e instanceof Error ? e.message : String(e),
-      });
-    }
-  }
-
-  /**
-   * Handle the `mqttAuth` onMessage commands triggered by the admin UI.
-   *
-   * Two actions:
-   *   - `test`        — try a one-shot login with the current settings (incl. any code) and
-   *                     report a single-line plaintext result the admin can show as a toast.
-   *   - `requestCode` — POST to /account/rest/account/v1/verification so Govee emails a fresh
-   *                     code. 30-second in-memory throttle prevents double-click email spam.
-   *
-   * @param action Action name from the jsonConfig sendTo button
-   */
-  private async runMqttAuthAction(action: string): Promise<{ result: string }> {
-    const config = this.config as unknown as AdapterConfig;
-    if (!config.goveeEmail || !config.goveePassword) {
-      return { result: "Email + Passwort in den Adapter-Einstellungen nötig." };
-    }
-
-    if (action === "test") {
-      // One-shot client: don't reuse this.mqttClient — we don't want this
-      // probe to take over its reconnect timer or auth-failure counter.
-      const probe = new GoveeMqttClient(config.goveeEmail, config.goveePassword, this.log, this);
-      probe.setVerificationCode(config.mqttVerificationCode ?? "");
-      try {
-        let connected = false;
-        await probe.connect(
-          () => {},
-          isConnected => {
-            connected = isConnected;
-          },
-        );
-        probe.disconnect();
+  /** Construct host object for MessageRouter. */
+  private buildMessageRouterHost(): MessageRouterHost {
+    return {
+      log: this.log,
+      getConfig: () => {
+        const config = this.config as unknown as AdapterConfig;
         return {
-          result: connected
-            ? "Login erfolgreich — Echtzeit-Status-Updates aktiv."
-            : "Login angenommen, MQTT-Verbindung steht aber noch nicht — Adapter neu starten.",
+          goveeEmail: config.goveeEmail,
+          goveePassword: config.goveePassword,
+          mqttVerificationCode: config.mqttVerificationCode,
         };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        if (/Verification required/i.test(msg)) {
-          return {
-            result:
-              "Govee verlangt 2-Faktor-Bestätigung. Bitte 'Verifizierungs-Code anfordern' klicken, Code aus der E-Mail eintragen und Speichern.",
-          };
-        }
-        if (/Verification code invalid/i.test(msg)) {
-          return {
-            result: "2-Faktor-Code ungültig oder abgelaufen — bitte einen neuen Code anfordern.",
-          };
-        }
-        if (/email not registered/i.test(msg)) {
-          return { result: "Diese E-Mail ist bei Govee nicht registriert." };
-        }
-        if (/Login failed/i.test(msg)) {
-          return { result: "Passwort wurde von Govee abgelehnt." };
-        }
-        if (/Rate limited/i.test(msg)) {
-          return { result: "Govee meldet Rate-Limit — bitte später erneut versuchen." };
-        }
-        if (/Account temporarily locked/i.test(msg)) {
-          return { result: "Govee-Account vorübergehend gesperrt — Govee Home App öffnen und Status prüfen." };
-        }
-        return { result: `Login fehlgeschlagen: ${msg}` };
-      }
-    }
-
-    if (action === "requestCode") {
-      const now = Date.now();
-      if (now - this.lastVerificationRequestMs < VERIFICATION_REQUEST_THROTTLE_MS) {
-        const wait = Math.ceil((VERIFICATION_REQUEST_THROTTLE_MS - (now - this.lastVerificationRequestMs)) / 1000);
-        return { result: `Bitte ${wait}s warten — gerade wurde schon ein Code angefordert.` };
-      }
-      this.lastVerificationRequestMs = now;
-      const probe = new GoveeMqttClient(config.goveeEmail, config.goveePassword, this.log, this);
-      try {
-        await probe.requestVerificationCode();
-        return { result: "Code wurde an deine Govee-E-Mail-Adresse gesendet (Spam-Ordner prüfen)." };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        return { result: `Govee hat den Code-Versand abgelehnt: ${msg}` };
-      }
-    }
-
-    return { result: `Unbekannte Aktion '${action}'.` };
+      },
+      sendResponse: (obj, data) => this.sendMessageResponse(obj, data),
+      createMqttProbeClient: () => {
+        const config = this.config as unknown as AdapterConfig;
+        return new GoveeMqttClient(config.goveeEmail, config.goveePassword, this.log, this);
+      },
+      getSegmentDeviceList: () => {
+        const devices = this.deviceManager?.getDevices() ?? [];
+        return devices
+          .filter(d => d.sku !== "BaseGroup" && d.state?.online === true && resolveSegmentCount(d) > 0)
+          .map(d => ({
+            value: this.deviceKeyFor(d),
+            label: `${d.name} (${d.sku}, bisher ${resolveSegmentCount(d)} Segmente)`,
+          }));
+      },
+      runWizardStep: (action, deviceKey) => this.runWizardStep(action, deviceKey),
+    };
   }
 
   /**

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.4.1",
+    "version": "2.5.0",
     "news": {
+      "2.5.0": {
+        "en": "Code-hygiene: onMessage handler (sendTo from admin UI) is now its own class with host-interface. main.ts shrinks; behaviour unchanged.",
+        "de": "Code-Hygiene: onMessage-Handler (sendTo aus dem Admin-UI) ist jetzt eigene Klasse mit Host-Interface. main.ts wird kleiner; Verhalten identisch.",
+        "ru": "Гигиена кода: onMessage-обработчик (sendTo из admin UI) теперь в отдельном классе с host-интерфейсом. main.ts уменьшается; поведение неизменно.",
+        "pt": "Higiene de codigo: onMessage handler agora vive em classe propria com host-interface. main.ts encolhe; comportamento inalterado.",
+        "nl": "Code-hygiene: onMessage handler heeft nu een eigen klasse met host-interface. main.ts wordt kleiner; gedrag ongewijzigd.",
+        "fr": "Hygiene de code : onMessage handler vit maintenant dans sa propre classe avec host-interface. main.ts retrecit; comportement inchange.",
+        "it": "Igiene del codice: onMessage handler ora vive nella propria classe con host-interface. main.ts si riduce; comportamento invariato.",
+        "es": "Higiene de codigo: onMessage handler vive ahora en su propia clase con host-interface. main.ts se reduce; comportamiento sin cambios.",
+        "pl": "Higiena kodu: onMessage handler zyskal wlasna klase z host-interface. main.ts maleje; zachowanie bez zmian.",
+        "uk": "Гігієна коду: onMessage handler тепер у власному класі з host-інтерфейсом. main.ts зменшується; поведінка без змін.",
+        "zh-cn": "代码卫生：onMessage 处理器现已拆为独立类，使用 host 接口。main.ts 缩小；行为不变。"
+      },
       "2.4.1": {
         "en": "Code-hygiene: group fan-out (member dispatch when switching the group) is now its own class with host interface. main.ts shrinks again; behaviour unchanged.",
         "de": "Code-Hygiene: Group-Fan-Out (Mitglieder-Steuerung beim Schalten der Gruppe) ist jetzt eigene Klasse mit Host-Interface. main.ts wird nochmal kleiner; Verhalten identisch.",
@@ -80,19 +93,6 @@
         "pl": "Status online znow poprawny po restarcie adaptera — lampy przechodza w online przy pierwszym skanie LAN, sensory przy pierwszym pollu chmury (5 s po starcie zamiast 2 minut).",
         "uk": "Стан «онлайн» знову коректний після рестарту адаптера — лампи перемикаються на онлайн з першим LAN-сканом, сенсори — з першим хмарним опитуванням (5 с після старту замість 2 хвилин).",
         "zh-cn": "适配器重启后在线状态恢复准确——灯具会在第一次 LAN 扫描时切换为在线，传感器在第一次云轮询时（启动后 5 秒，而不是 2 分钟）。"
-      },
-      "2.1.3": {
-        "en": "Critical fix: no more restart-loop after entering the verification code. Saving credentials in the adapter config works again. Honest startup messages — when MQTT can't connect, the log says why.",
-        "de": "Kritischer Fix: kein Restart-Loop mehr nach dem Verifizierungs-Code. Speichern in der Config funktioniert wieder. Ehrliche Startup-Meldungen — wenn MQTT nicht verbindet, steht der Grund im Log.",
-        "ru": "Критический фикс: больше нет restart-loop после ввода кода верификации. Сохранение данных в конфиге снова работает. Честные стартовые сообщения — если MQTT не подключился, видно почему.",
-        "pt": "Correcao critica: sem mais loop de reinicio apos o codigo de verificacao. Salvar credenciais na config funciona de novo. Mensagens de start honestas — se MQTT nao conecta, o log diz porque.",
-        "nl": "Kritieke fix: geen restart-loop meer na de verificatiecode. Inloggegevens opslaan in de config werkt weer. Eerlijke opstartmeldingen — als MQTT niet verbindt, staat de reden in het log.",
-        "fr": "Correctif critique : plus de boucle de redemarrage apres le code de verification. La sauvegarde fonctionne a nouveau. Messages de demarrage honnetes — si MQTT n'arrive pas, le log dit pourquoi.",
-        "it": "Fix critico: niente piu loop di riavvio dopo il codice di verifica. Salvare le credenziali nella config funziona di nuovo. Messaggi di avvio onesti — se MQTT non si connette, il log dice perche.",
-        "es": "Correccion critica: no mas bucle de reinicio tras el codigo de verificacion. Guardar credenciales funciona otra vez. Mensajes de arranque honestos — si MQTT no conecta, el log dice por que.",
-        "pl": "Krytyczna poprawka: koniec restart-loopa po wpisaniu kodu weryfikacji. Zapis konfiguracji adaptera znow dziala. Uczciwe komunikaty startu — gdy MQTT nie laczy, log mowi dlaczego.",
-        "uk": "Критичний фікс: більше немає циклу рестартів після вводу коду верифікації. Збереження даних у конфігу знову працює. Чесні стартові повідомлення — якщо MQTT не підключається, у лозі видно чому.",
-        "zh-cn": "关键修复：输入验证码后不再陷入重启循环。在适配器配置中保存账号又能正常工作。诚实的启动消息——MQTT 连不上时日志会说明原因。"
       }
     },
     "titleLang": {

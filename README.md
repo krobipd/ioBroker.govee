@@ -124,6 +124,10 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### 2.5.0 (2026-05-04)
+
+- F4 final: `onMessage`-Handler (sendTo aus dem Admin-UI) ist jetzt eine eigene Klasse mit Host-Interface. main.ts deutlich kleiner, Login-Test/2FA-Code-Anforderung isoliert testbar. Verhalten identisch.
+
 ### 2.4.1 (2026-05-04)
 
 - Group-Fan-Out-Pfad (Mitglieder-Steuerung beim Schalten der Gruppe) ist jetzt eine eigene Klasse mit Host-Interface — `main.ts` nochmal kleiner. Verhalten identisch.
@@ -140,14 +144,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 
 - App-Version-Drift-Monitor: täglicher iTunes-Lookup vergleicht die im Adapter hinterlegte Govee-App-Version mit der aktuellen iOS-Version. Bei Drift > 2 Minor wird gewarnt — Govees undokumentierte Endpoints rejecten gelegentlich zu alte Clients.
 - Code-Hygiene: `onStateChange`-Handler in eigene Methoden für Diagnostics-Export und Generic-Capability-Routing aufgeteilt. Magic-Numbers durch `timing-constants.ts` ersetzt. Lifecycle-Flags besser dokumentiert.
-
-### 2.2.0 (2026-05-04)
-
-- 2FA-Verifizierung triggert keinen Restart mehr. MQTT-Pushes typsicher, Sensor-Datenpunkte im richtigen Kanal (`sensor/`, `events/` statt `control/`).
-- Ready-Log zeigt was operational ist: Channel-Status (LAN+Cloud+MQTT+Cloud-events), Lichter-Online-Count, Sensoren mit Datenmarker. Wartet auf den ersten Sensor-Poll.
-- Persistente UDP-Sockets, abbrechbare HTTP-Calls, HTTP keep-alive (~200 ms schneller), Backoff-Jitter gegen Thundering Herd.
-- Memory-Leaks beim Device-Remove geschlossen — Diagnostics-Buffer und State-Tree werden gemeinsam aufgeräumt wenn ein Gerät aus dem Govee-Account verschwindet.
-- Kein WARN-Spam mehr für Group-State `info.membersUnreachable`. Plus XOR-Validierung für MQTT-BLE-Pakete, type-Guards an allen API-Boundaries, `tier: 2`.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
