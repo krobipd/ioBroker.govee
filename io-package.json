@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.4.0",
+    "version": "2.4.1",
     "news": {
+      "2.4.1": {
+        "en": "Code-hygiene: group fan-out (member dispatch when switching the group) is now its own class with host interface. main.ts shrinks again; behaviour unchanged.",
+        "de": "Code-Hygiene: Group-Fan-Out (Mitglieder-Steuerung beim Schalten der Gruppe) ist jetzt eigene Klasse mit Host-Interface. main.ts wird nochmal kleiner; Verhalten identisch.",
+        "ru": "Гигиена кода: group fan-out (диспетчеризация участников при переключении группы) теперь в отдельном классе с host-интерфейсом. main.ts снова уменьшается; поведение неизменно.",
+        "pt": "Higiene de codigo: group fan-out agora vive em classe propria com host-interface. main.ts encolhe mais; comportamento inalterado.",
+        "nl": "Code-hygiene: group fan-out heeft nu een eigen klasse met host-interface. main.ts wordt opnieuw kleiner; gedrag ongewijzigd.",
+        "fr": "Hygiene de code : group fan-out vit maintenant dans sa propre classe avec host-interface. main.ts retrecit encore; comportement inchange.",
+        "it": "Igiene del codice: group fan-out ora vive nella propria classe con host-interface. main.ts si riduce ancora; comportamento invariato.",
+        "es": "Higiene de codigo: group fan-out vive ahora en su propia clase con host-interface. main.ts se reduce de nuevo; comportamiento sin cambios.",
+        "pl": "Higiena kodu: group fan-out zyskal wlasna klase z host-interface. main.ts znowu maleje; zachowanie bez zmian.",
+        "uk": "Гігієна коду: group fan-out тепер у власному класі з host-інтерфейсом. main.ts знову зменшується; поведінка без змін.",
+        "zh-cn": "代码卫生：group fan-out 现已拆为独立类，使用 host 接口。main.ts 再次缩小；行为不变。"
+      },
       "2.4.0": {
         "en": "Code-hygiene: local snapshot manager (save/restore/delete) now lives in its own class with a host interface. main.ts shrinks; behaviour unchanged.",
         "de": "Code-Hygiene: lokaler Snapshot-Manager (save/restore/delete) hat jetzt eine eigene Klasse mit Host-Interface. main.ts wird kleiner; Verhalten identisch.",
@@ -80,19 +93,6 @@
         "pl": "Krytyczna poprawka: koniec restart-loopa po wpisaniu kodu weryfikacji. Zapis konfiguracji adaptera znow dziala. Uczciwe komunikaty startu — gdy MQTT nie laczy, log mowi dlaczego.",
         "uk": "Критичний фікс: більше немає циклу рестартів після вводу коду верифікації. Збереження даних у конфігу знову працює. Чесні стартові повідомлення — якщо MQTT не підключається, у лозі видно чому.",
         "zh-cn": "关键修复：输入验证码后不再陷入重启循环。在适配器配置中保存账号又能正常工作。诚实的启动消息——MQTT 连不上时日志会说明原因。"
-      },
-      "2.1.2": {
-        "en": "Verification message no longer claims your account has 2FA when it doesn't. Stale credentials from v2.1.0 are cleared on first start. H61D5 added to the catalogue.",
-        "de": "Die Verifizierungs-Meldung behauptet nicht mehr 2FA bei Konten ohne 2FA. Alte Credentials aus v2.1.0 werden beim ersten Start aufgeraeumt. H61D5 im Katalog ergaenzt.",
-        "ru": "Сообщение о верификации больше не утверждает, что у аккаунта 2FA, если её нет. Старые креды из v2.1.0 чистятся при первом старте. H61D5 в каталоге.",
-        "pt": "A mensagem de verificacao nao afirma mais que sua conta tem 2FA quando nao tem. Credenciais antigas de v2.1.0 sao limpas no primeiro start. H61D5 adicionado ao catalogo.",
-        "nl": "De verificatie-melding claimt niet meer dat je account 2FA heeft als dat niet zo is. Oude credentials uit v2.1.0 worden bij de eerste start opgeruimd. H61D5 toegevoegd.",
-        "fr": "Le message de verification ne pretend plus que ton compte a la 2FA s'il ne l'a pas. Les anciens identifiants de v2.1.0 sont nettoyes au premier demarrage. H61D5 ajoute.",
-        "it": "Il messaggio di verifica non afferma piu che l'account ha la 2FA quando non l'ha. Le credenziali residue di v2.1.0 vengono pulite al primo avvio. H61D5 aggiunto al catalogo.",
-        "es": "El mensaje de verificacion ya no afirma que tu cuenta tenga 2FA cuando no la tiene. Las credenciales antiguas de v2.1.0 se limpian al primer arranque. H61D5 anadido.",
-        "pl": "Komunikat weryfikacji nie twierdzi juz, ze konto ma 2FA, gdy nie ma. Stare dane z v2.1.0 sa czyszczone przy pierwszym starcie. H61D5 dodano do katalogu.",
-        "uk": "Повідомлення верифікації більше не стверджує, що у акаунта 2FA, якщо її немає. Старі креди з v2.1.0 чистяться при першому старті. H61D5 у каталозі.",
-        "zh-cn": "验证消息不再误称账户开启了 2FA。来自 v2.1.0 的旧凭据在首次启动时清理。H61D5 加入支持目录。"
       }
     },
     "titleLang": {

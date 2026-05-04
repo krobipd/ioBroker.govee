@@ -1,4 +1,8 @@
 # Older Changes
+## 2.1.4 (2026-05-03)
+
+- Online status correct again after adapter restart — lights flip to online with the first LAN scan, sensors with the first cloud poll (5 s after start instead of 2 minutes).
+
 ## 2.1.3 (2026-05-03)
 
 - Critical fix: no more restart-loop after entering the verification code. The cached login is now stored in a state, not in the adapter config — saving the config doesn't trigger a restart anymore.
