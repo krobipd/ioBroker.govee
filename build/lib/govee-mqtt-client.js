@@ -66,6 +66,7 @@ class GoveeMqttClient {
   log;
   timers;
   httpsRequestImpl;
+  mqttConnectImpl;
   client = null;
   accountTopic = "";
   _bearerToken = "";
@@ -109,13 +110,15 @@ class GoveeMqttClient {
    * @param log ioBroker logger
    * @param timers Timer adapter
    * @param httpsRequestImpl optional DI für Tests — Default ist die echte httpsRequest
+   * @param mqttConnectImpl optional DI für Tests — Default ist die echte mqtt.connect
    */
-  constructor(email, password, log, timers, httpsRequestImpl = import_http_client.httpsRequest) {
+  constructor(email, password, log, timers, httpsRequestImpl = import_http_client.httpsRequest, mqttConnectImpl = mqtt.connect) {
     this.email = email;
     this.password = password;
     this.log = log;
     this.timers = timers;
     this.httpsRequestImpl = httpsRequestImpl;
+    this.mqttConnectImpl = mqttConnectImpl;
     this.clientId = (0, import_govee_constants.deriveGoveeClientId)(email);
   }
   /**
@@ -288,7 +291,7 @@ class GoveeMqttClient {
       });
       this.scheduleProactiveRefresh(expiresAt);
       const clientId = `AP/${this.accountId}/${this.sessionUuid}`;
-      this.client = mqtt.connect(`mqtts://${endpoint}:8883`, {
+      this.client = this.mqttConnectImpl(`mqtts://${endpoint}:8883`, {
         clientId,
         key,
         cert,
@@ -463,7 +466,7 @@ class GoveeMqttClient {
     const clientId = `AP/${creds.accountId}/${this.sessionUuid}`;
     this.log.debug("MQTT: trying cached credentials (no fresh login)");
     this.persistedAttemptInFlight = true;
-    this.client = mqtt.connect(`mqtts://${creds.iotEndpoint}:8883`, {
+    this.client = this.mqttConnectImpl(`mqtts://${creds.iotEndpoint}:8883`, {
       clientId,
       key: extracted.key,
       cert: extracted.cert,

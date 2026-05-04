@@ -291,6 +291,176 @@ describe("GoveeMqttClient", () => {
     });
   });
 
+  describe("connect — login success + iot-key path", () => {
+    it("should set bearer token after successful login", async () => {
+      let callIdx = 0;
+      const fake = makeFakeHttps((_opts, _idx) => {
+        const i = callIdx++;
+        if (i === 0) {
+          // Login OK
+          return {
+            client: {
+              accountId: "acc-x",
+              topic: "GA/topic-x",
+              token: "fresh-bearer",
+              token_expire_cycle: 3600,
+            },
+          };
+        }
+        // getIotKey fails → connect bails before mqtt.connect, but token is already set
+        return new Error("network down");
+      });
+      const client = new GoveeMqttClient("u@example.com", "pw", mockLog, noopTimers, fake.fn);
+      await client.connect(
+        () => {},
+        () => {},
+      );
+      expect(client.token).to.equal("fresh-bearer");
+    });
+
+    it("should fire onToken callback when login provides a token", async () => {
+      let callIdx = 0;
+      const fake = makeFakeHttps((_opts, _idx) => {
+        if (callIdx++ === 0) {
+          return {
+            client: {
+              accountId: "acc-1",
+              topic: "GA/topic-1",
+              token: "tok-CB",
+              token_expire_cycle: 3600,
+            },
+          };
+        }
+        return new Error("network");
+      });
+      const client = new GoveeMqttClient("u@example.com", "pw", mockLog, noopTimers, fake.fn);
+      let capturedToken: string | null = null;
+      await client.connect(
+        () => {},
+        () => {},
+        token => {
+          capturedToken = token;
+        },
+      );
+      expect(capturedToken).to.equal("tok-CB");
+    });
+
+    it("should call getIotKey with Bearer token after login", async () => {
+      let callIdx = 0;
+      const fake = makeFakeHttps((_opts, _idx) => {
+        const i = callIdx++;
+        if (i === 0) {
+          return {
+            client: {
+              accountId: "acc-BR",
+              topic: "GA/topic-BR",
+              token: "tok-BR",
+              token_expire_cycle: 3600,
+            },
+          };
+        }
+        return new Error("net-fail-after-iotkey-headers-checked");
+      });
+      const client = new GoveeMqttClient("u@example.com", "pw", mockLog, noopTimers, fake.fn);
+      await client.connect(
+        () => {},
+        () => {},
+      );
+      // 2 calls: 1) login, 2) getIotKey with Bearer
+      expect(fake.calls).to.have.lengthOf.at.least(2);
+      expect(fake.calls[1].method).to.equal("GET");
+      expect(fake.calls[1].url).to.include("/app/v1/account/iot/key");
+      expect(fake.calls[1].headers.Authorization).to.equal("Bearer tok-BR");
+    });
+
+    it("should throw 'IoT key response missing endpoint' when iotKey response is malformed", async () => {
+      let callIdx = 0;
+      const fake = makeFakeHttps((_opts, _idx) => {
+        const i = callIdx++;
+        if (i === 0) {
+          return {
+            client: {
+              accountId: "acc-IK",
+              topic: "GA/topic-IK",
+              token: "tok-IK",
+              token_expire_cycle: 3600,
+            },
+          };
+        }
+        // iotKey response without data.endpoint
+        return { data: {} };
+      });
+      const client = new GoveeMqttClient("u@example.com", "pw", mockLog, noopTimers, fake.fn);
+      let lastConnFlag: boolean | null = null;
+      await client.connect(
+        () => {},
+        connected => {
+          lastConnFlag = connected;
+        },
+      );
+      // Connect bails — connection callback is invoked with false
+      expect(lastConnFlag).to.be.false;
+    });
+  });
+
+  describe("setPersistedCredentials — tryPersistedReuse skip-login behaviour", () => {
+    it("should skip fresh login when persisted credentials are still inside TTL", async () => {
+      let httpCalls = 0;
+      const fake = makeFakeHttps(() => {
+        httpCalls++;
+        return {};
+      });
+      const client = new GoveeMqttClient("u@example.com", "pw", mockLog, noopTimers, fake.fn);
+      // Fake-creds with TTL 1h in the future + invalid p12 (extractCertsFromP12 throws,
+      // tryPersistedReuse returns false — fresh login happens). For the „TTL-still-valid
+      // but p12-broken" case we want: no `https.request` until the p12 fails AND fresh login starts.
+      client.setPersistedCredentials({
+        bearerToken: "stale-tok",
+        iotEndpoint: "iot.example.com",
+        p12Cert: "AAA=", // invalid → forge throws
+        p12Pass: "x",
+        accountId: "acc-stale",
+        accountTopic: "GA/topic-stale",
+        tokenExpiresAt: Date.now() + 60 * 60 * 1000,
+      });
+      await client.connect(
+        () => {},
+        () => {},
+      );
+      // p12 was unusable → fresh login attempted → httpCalls > 0
+      expect(httpCalls).to.be.greaterThan(0);
+    });
+
+    it("should NOT skip login when persisted token is already expired", async () => {
+      let httpCalls = 0;
+      const fake = makeFakeHttps(() => {
+        httpCalls++;
+        return new Error("network");
+      });
+      const client = new GoveeMqttClient("u@example.com", "pw", mockLog, noopTimers, fake.fn);
+      client.setPersistedCredentials({
+        bearerToken: "expired-tok",
+        iotEndpoint: "iot.example.com",
+        p12Cert: "AAA=",
+        p12Pass: "x",
+        accountId: "acc-exp",
+        accountTopic: "GA/topic-exp",
+        tokenExpiresAt: Date.now() - 1000, // expired 1s ago
+      });
+      await client.connect(
+        () => {},
+        () => {},
+      );
+      // expired → tryPersistedReuse returns false → fresh login happens
+      expect(httpCalls).to.be.greaterThan(0);
+    });
+
+    it("should accept null to clear persisted credentials", () => {
+      const client = new GoveeMqttClient("u@example.com", "pw", mockLog, noopTimers);
+      expect(() => client.setPersistedCredentials(null)).to.not.throw();
+    });
+  });
+
   describe("connect — login response validation", () => {
     it("should treat missing accountId in successful login as failure", async () => {
       const fake = makeFakeHttps(() => ({

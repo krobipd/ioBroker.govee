@@ -43,6 +43,12 @@ o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
 rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----`;
 
+/**
+ * Signature für `mqtt.connect`-Factory — Tests können einen FakeMqttClient
+ * injizieren ohne die echte Network-Lib zu starten. Default = `mqtt.connect`.
+ */
+export type MqttConnectFn = (url: string, opts: mqtt.IClientOptions) => mqtt.MqttClient;
+
 /** Callback for MQTT status updates */
 export type MqttStatusCallback = (update: MqttStatusUpdate) => void;
 
@@ -62,6 +68,7 @@ export class GoveeMqttClient {
   private readonly log: ioBroker.Logger;
   private readonly timers: TimerAdapter;
   private readonly httpsRequestImpl: HttpsRequestFn;
+  private readonly mqttConnectImpl: MqttConnectFn;
   private client: mqtt.MqttClient | null = null;
   private accountTopic = "";
   private _bearerToken = "";
@@ -111,6 +118,7 @@ export class GoveeMqttClient {
    * @param log ioBroker logger
    * @param timers Timer adapter
    * @param httpsRequestImpl optional DI für Tests — Default ist die echte httpsRequest
+   * @param mqttConnectImpl optional DI für Tests — Default ist die echte mqtt.connect
    */
   constructor(
     email: string,
@@ -118,12 +126,14 @@ export class GoveeMqttClient {
     log: ioBroker.Logger,
     timers: TimerAdapter,
     httpsRequestImpl: HttpsRequestFn = httpsRequest,
+    mqttConnectImpl: MqttConnectFn = mqtt.connect,
   ) {
     this.email = email;
     this.password = password;
     this.log = log;
     this.timers = timers;
     this.httpsRequestImpl = httpsRequestImpl;
+    this.mqttConnectImpl = mqttConnectImpl;
     this.clientId = deriveGoveeClientId(email);
   }
 
@@ -341,7 +351,7 @@ export class GoveeMqttClient {
 
       // Step 4: Connect MQTT with mutual TLS
       const clientId = `AP/${this.accountId}/${this.sessionUuid}`;
-      this.client = mqtt.connect(`mqtts://${endpoint}:8883`, {
+      this.client = this.mqttConnectImpl(`mqtts://${endpoint}:8883`, {
         clientId,
         key,
         cert,
@@ -553,7 +563,7 @@ export class GoveeMqttClient {
     const clientId = `AP/${creds.accountId}/${this.sessionUuid}`;
     this.log.debug("MQTT: trying cached credentials (no fresh login)");
     this.persistedAttemptInFlight = true;
-    this.client = mqtt.connect(`mqtts://${creds.iotEndpoint}:8883`, {
+    this.client = this.mqttConnectImpl(`mqtts://${creds.iotEndpoint}:8883`, {
       clientId,
       key: extracted.key,
       cert: extracted.cert,

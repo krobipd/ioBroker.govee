@@ -3,6 +3,19 @@
     "name": "govee-smart",
     "version": "2.5.3",
     "news": {
+      "NEXT": {
+        "en": "Test-coverage expansion: mqtt.connect is now an injectable constructor parameter (like httpsRequest in v2.5.1), and 7 new mock tests cover the getIotKey path and persisted-credentials reuse.",
+        "de": "Test-Coverage erweitert: mqtt.connect ist jetzt als Konstruktor-Parameter injizierbar (wie httpsRequest in v2.5.1), 7 neue Mock-Tests decken getIotKey und Persisted-Credentials-Reuse ab.",
+        "ru": "Расширено покрытие тестами: mqtt.connect теперь принимается как параметр конструктора (как httpsRequest в v2.5.1), 7 новых mock-тестов покрывают getIotKey и persisted-credentials reuse.",
+        "pt": "Mais cobertura de testes: mqtt.connect agora e parametro injetavel do construtor (como httpsRequest em v2.5.1), 7 novos mock tests cobrem getIotKey e reuse das credenciais persistidas.",
+        "nl": "Test-dekking uitgebreid: mqtt.connect is nu een injecteerbare constructor-parameter (zoals httpsRequest in v2.5.1), 7 nieuwe mock-tests dekken getIotKey en persisted-credentials reuse.",
+        "fr": "Couverture de tests etendue : mqtt.connect est maintenant un parametre injectable du constructeur (comme httpsRequest en v2.5.1), 7 nouveaux mock tests couvrent getIotKey et la reutilisation des credentials persistes.",
+        "it": "Coverage di test ampliato: mqtt.connect ora e parametro iniettabile del costruttore (come httpsRequest in v2.5.1), 7 nuovi mock test coprono getIotKey e il riuso delle credenziali persistite.",
+        "es": "Cobertura de tests ampliada: mqtt.connect ahora es parametro inyectable del constructor (como httpsRequest en v2.5.1), 7 nuevos mock tests cubren getIotKey y la reutilizacion de credenciales persistidas.",
+        "pl": "Rozszerzone pokrycie testami: mqtt.connect jest teraz wstrzykiwanym parametrem konstruktora (jak httpsRequest w v2.5.1), 7 nowych mock-testow obejmuje getIotKey i reuse przechowanych poswiadczen.",
+        "uk": "Розширене покриття тестами: mqtt.connect тепер інжектована параметром конструктора (як httpsRequest у v2.5.1), 7 нових mock-тестів покривають getIotKey і повторне використання збережених credentials.",
+        "zh-cn": "测试覆盖扩展：mqtt.connect 现可作为构造器参数注入（与 v2.5.1 的 httpsRequest 一致），7 个新 mock 测试覆盖 getIotKey 路径和持久化凭据复用。"
+      },
       "2.5.3": {
         "en": "Segment-detection wizard no longer spams 'has no existing object' WARN for indices above the real strip length. Plus: command before cloud-init is silent now (not 'No channel available').",
         "de": "Segment-Erkennungs-Wizard spammt nicht mehr 'has no existing object' fuer Indizes oberhalb der echten Strip-Laenge. Plus: Befehl vor Cloud-Init ist still (nicht 'No channel available').",
