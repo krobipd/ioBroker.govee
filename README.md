@@ -124,6 +124,10 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### 2.3.1 (2026-05-04)
+
+- Smoke-Tests für GoveeCloudClient + GoveeMqttClient — Initial-State-Checks für getFailureReason, token, connected, plus Setter-Smoke-Tests (637 → 637+9 Tests). Volle Pfade über https/mqtt-Mocks kommen separat.
+
 ### 2.3.0 (2026-05-04)
 
 - App-Version-Drift-Monitor: täglicher iTunes-Lookup vergleicht die im Adapter hinterlegte Govee-App-Version mit der aktuellen iOS-Version. Bei Drift > 2 Minor wird gewarnt — Govees undokumentierte Endpoints rejecten gelegentlich zu alte Clients.
@@ -148,12 +152,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - Honest startup messages: when MQTT really doesn't connect within the first minute, the log says why ("login rejected", "verification needed", etc.) instead of "still pending".
 - Verification warning shortened. The full step-by-step instructions live in the Wiki, the log only states the action.
 - "MQTT connected to AWS IoT" → "MQTT connected". "OpenAPI MQTT" → "Cloud-events" in user-facing logs.
-
-### 2.1.2 (2026-05-02)
-
-- The verification message no longer claims your account has 2FA when it doesn't. Govee asks for a one-time check the first time it sees this client — same dialog, but the wording matches reality now.
-- Adapters upgrading from v2.1.0 had stored MQTT credentials as plain text by mistake. The corrupted leftover bytes are now cleared on first start, so the verification flow only runs once.
-- New device added to the catalogue: H61D5 (LED Strip).
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

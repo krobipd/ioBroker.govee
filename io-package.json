@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.3.0",
+    "version": "2.3.1",
     "news": {
+      "2.3.1": {
+        "en": "Test coverage: smoke tests for GoveeCloudClient + GoveeMqttClient. Initial-state and setter checks now in place; full mock-based test paths come in a later release.",
+        "de": "Test-Coverage: Smoke-Tests für GoveeCloudClient + GoveeMqttClient. Initial-State + Setter-Checks drin; volle Mock-basierte Test-Pfade kommen separat.",
+        "ru": "Покрытие тестами: smoke-тесты для GoveeCloudClient + GoveeMqttClient. Initial-state и setter-проверки добавлены; полные mock-пути позже.",
+        "pt": "Cobertura de testes: smoke tests para GoveeCloudClient + GoveeMqttClient. Initial-state e setter-checks adicionados; caminhos completos com mock serao em release separado.",
+        "nl": "Test-coverage: smoke tests voor GoveeCloudClient + GoveeMqttClient. Initial-state en setter-checks toegevoegd; volle mock-paths komen apart.",
+        "fr": "Couverture de tests : smoke tests pour GoveeCloudClient + GoveeMqttClient. Initial-state et setter-checks ajoutes; chemins complets avec mocks plus tard.",
+        "it": "Test coverage: smoke tests per GoveeCloudClient + GoveeMqttClient. Controlli initial-state e setter aggiunti; percorsi completi con mock separati.",
+        "es": "Cobertura de tests: smoke tests para GoveeCloudClient + GoveeMqttClient. Initial-state y setter-checks agregados; rutas completas con mocks por separado.",
+        "pl": "Pokrycie testami: smoke testy dla GoveeCloudClient + GoveeMqttClient. Initial-state i setter-checks dodane; pelne sciezki mock w osobnym release.",
+        "uk": "Покриття тестами: smoke-тести для GoveeCloudClient + GoveeMqttClient. Initial-state та setter-перевірки додані; повні mock-шляхи окремо.",
+        "zh-cn": "测试覆盖：GoveeCloudClient + GoveeMqttClient 的 smoke 测试。初始状态和 setter 检查已加入；完整 mock 路径将在后续发布。"
+      },
       "2.3.0": {
         "en": "App-version drift monitor: daily iTunes lookup warns when local Govee-App-Version constant gets too stale. Plus code-hygiene: onStateChange handlers split out, timing-constants module.",
         "de": "App-Version-Drift-Monitor: täglicher iTunes-Lookup warnt wenn lokale Govee-App-Version zu alt ist. Plus Code-Hygiene: onStateChange-Handler aufgeteilt, timing-constants-Modul.",
@@ -80,19 +93,6 @@
         "pl": "Fix bezpieczenstwa: w v2.1.0 logowanie MQTT bylo bez szyfrowania przez pomylke — teraz szyfrowane. Diagnostyka przemianowana na diag.*. Ostrzezenie 2FA nie powtarza sie juz.",
         "uk": "Фікс безпеки: у v2.1.0 MQTT-логін помилково зберігався незашифрованим — тепер шифрується. Діагностика перейменована на diag.export/result/tier. 2FA-warn не повторюється при кожному реконекті.",
         "zh-cn": "安全修复：v2.1.0 中 MQTT 登录信息因错误而未加密保存 — 现已加密。诊断数据点改名为 diag.export/result/tier。2FA 警告不再在每次重连时重复。"
-      },
-      "2.1.0": {
-        "en": "Govee accounts that need email verification can now be used. Sensors no longer stuck offline (e.g. H5179 thermometer). Scene dropdowns visible from the first start. New diag.tier per device.",
-        "de": "Govee-Konten mit Mail-Verifizierung lassen sich jetzt nutzen. Sensoren bleiben nicht mehr offline (z.B. H5179). Szenen-Dropdown ab erstem Start sichtbar. Neuer diag.tier pro Geraet.",
-        "ru": "Аккаунты Govee с email-верификацией теперь работают. Сенсоры не зависают как offline (напр. H5179). Дропдауны сцен видны с первого старта. Новый diag.tier на устройство.",
-        "pt": "Contas Govee com verificacao por email agora funcionam. Sensores nao ficam offline por engano (ex. H5179). Dropdowns de cenas visiveis no primeiro start. Novo diag.tier por dispositivo.",
-        "nl": "Govee-accounts met e-mailverificatie werken nu. Sensoren blijven niet meer ten onrechte offline (bv. H5179). Scene-dropdowns zichtbaar vanaf de eerste start. Nieuwe diag.tier per apparaat.",
-        "fr": "Les comptes Govee avec verification email fonctionnent maintenant. Capteurs plus bloques offline (ex. H5179). Listes de scenes visibles au premier demarrage. Nouveau diag.tier par appareil.",
-        "it": "Gli account Govee con verifica email ora funzionano. Sensori non restano piu offline per errore (es. H5179). Dropdown scene visibili al primo avvio. Nuovo diag.tier per dispositivo.",
-        "es": "Cuentas Govee con verificacion email ya funcionan. Sensores ya no se quedan offline por error (p.ej. H5179). Desplegables de escenas visibles al primer arranque. Nuevo diag.tier por dispositivo.",
-        "pl": "Konta Govee z weryfikacja email mozna teraz uzywac. Czujniki nie zostaja juz blednie offline (np. termometr H5179). Dropdowny scen widoczne od pierwszego startu. Nowy diag.tier na urzadzenie.",
-        "uk": "Облікові записи Govee з email-верифікацією тепер працюють. Сенсори не залишаються офлайн помилково (напр. H5179). Випадаючі списки сцен видно з першого старту. Новий diag.tier на пристрій.",
-        "zh-cn": "需要邮件验证的 Govee 账户现在可以使用。传感器不再错误地卡在离线状态（如 H5179 温度计）。场景下拉菜单从首次启动起就可见。每设备新增 diag.tier。"
       }
     },
     "titleLang": {
