@@ -124,7 +124,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 2.5.1 (2026-05-04)
 
 - Cloud-Rate-Limit-Hinweis zeigt bei 429 jetzt „rate-limited by Govee" statt der generischen Cloud-Fehlermeldung. Plus 33 Mock-Tests für Cloud + MQTT-Login.
 
@@ -143,11 +143,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ### 2.3.1 (2026-05-04)
 
 - Smoke-Tests für GoveeCloudClient + GoveeMqttClient — Initial-State-Checks für getFailureReason, token, connected, plus Setter-Smoke-Tests (637 → 637+9 Tests). Volle Pfade über https/mqtt-Mocks kommen separat.
-
-### 2.3.0 (2026-05-04)
-
-- App-Version-Drift-Monitor: täglicher iTunes-Lookup vergleicht die im Adapter hinterlegte Govee-App-Version mit der aktuellen iOS-Version. Bei Drift > 2 Minor wird gewarnt — Govees undokumentierte Endpoints rejecten gelegentlich zu alte Clients.
-- Code-Hygiene: `onStateChange`-Handler in eigene Methoden für Diagnostics-Export und Generic-Capability-Routing aufgeteilt. Magic-Numbers durch `timing-constants.ts` ersetzt. Lifecycle-Flags besser dokumentiert.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

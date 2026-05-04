@@ -1,4 +1,9 @@
 # Older Changes
+## 2.3.0 (2026-05-04)
+
+- App-Version-Drift-Monitor: täglicher iTunes-Lookup vergleicht die im Adapter hinterlegte Govee-App-Version mit der aktuellen iOS-Version. Bei Drift > 2 Minor wird gewarnt — Govees undokumentierte Endpoints rejecten gelegentlich zu alte Clients.
+- Code-Hygiene: `onStateChange`-Handler in eigene Methoden für Diagnostics-Export und Generic-Capability-Routing aufgeteilt. Magic-Numbers durch `timing-constants.ts` ersetzt. Lifecycle-Flags besser dokumentiert.
+
 ## 2.2.0 (2026-05-04)
 
 - 2FA-Verifizierung triggert keinen Restart mehr. MQTT-Pushes typsicher, Sensor-Datenpunkte im richtigen Kanal (`sensor/`, `events/` statt `control/`).
