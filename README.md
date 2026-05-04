@@ -124,6 +124,11 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### **WORK IN PROGRESS**
+
+- Segment-Erkennungs-Wizard: kein „has no existing object"-Spam mehr für Indizes oberhalb der echten Strip-Länge — Echo-Pakete werden defensiv gegen `segmentCount` gefiltert (Issue #8).
+- Adapter-Init nach Restart: Befehle gegen ein noch-nicht-geladenes Cloud-Backend werden still verworfen statt mit „No channel available" zu warnen — der Befehl ist eh hin, der WARN war irreführend.
+
 ### 2.5.2 (2026-05-04)
 
 - WARN-Spam alle 2 Min behoben: `groups.*.info.membersUnreachable` bleibt bei vollständig erreichbaren Gruppen mit leerem Wert vorhanden statt gelöscht zu werden.

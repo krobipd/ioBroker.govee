@@ -209,7 +209,11 @@ class GoveeAdapter extends utils.Adapter {
     };
     this.deviceManager.onSegmentBatchUpdate = (device, batch) => {
       const prefix = this.stateManager.devicePrefix(device);
+      const cap = typeof device.segmentCount === "number" && device.segmentCount > 0 ? device.segmentCount : 0;
       for (const idx of batch.segments) {
+        if (cap === 0 || idx >= cap) {
+          continue;
+        }
         if (batch.color !== void 0) {
           const hex = (0, import_types.rgbIntToHex)(batch.color);
           this.setStateAsync(`${prefix}.segments.${idx}.color`, {
@@ -229,7 +233,11 @@ class GoveeAdapter extends utils.Adapter {
     };
     this.deviceManager.onMqttSegmentUpdate = (device, segments) => {
       const prefix = this.stateManager.devicePrefix(device);
+      const cap = typeof device.segmentCount === "number" && device.segmentCount > 0 ? device.segmentCount : 0;
       for (const seg of segments) {
+        if (cap === 0 || seg.index >= cap) {
+          continue;
+        }
         this.setStateAsync(`${prefix}.segments.${seg.index}.color`, {
           val: (0, import_types.rgbToHex)(seg.r, seg.g, seg.b),
           ack: true

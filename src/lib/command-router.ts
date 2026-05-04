@@ -201,6 +201,16 @@ export class CommandRouter {
       return;
     }
 
+    // Cloud-fähig aber Client noch nicht ready (Init-Phase nach Restart):
+    // typischer Race-Fall, wenn der User sofort einen Befehl schickt während
+    // der Adapter Cloud-Login + IoT-Key noch erledigt. Kein WARN, nur debug —
+    // der Befehl ist verloren, aber der User sieht eh wenige Sekunden später
+    // dass alles läuft. WARN war hier ein false alarm.
+    if (device.channels.cloud && !this.cloudClient) {
+      this.log.debug(`Command for ${device.name} dropped: Cloud client not ready yet`);
+      return;
+    }
+
     this.log.warn(`No channel available for ${device.name} (${device.sku})`);
   }
 

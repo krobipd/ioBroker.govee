@@ -3,6 +3,19 @@
     "name": "govee-smart",
     "version": "2.5.2",
     "news": {
+      "NEXT": {
+        "en": "Segment-detection wizard no longer spams 'has no existing object' WARN for indices above the real strip length. Plus: command before cloud-init is silent now (not 'No channel available').",
+        "de": "Segment-Erkennungs-Wizard spammt nicht mehr 'has no existing object' fuer Indizes oberhalb der echten Strip-Laenge. Plus: Befehl vor Cloud-Init ist still (nicht 'No channel available').",
+        "ru": "Wizard сегментов больше не спамит 'has no existing object' для индексов выше реальной длины ленты. Плюс: команда до cloud-init теперь без WARN.",
+        "pt": "O wizard de segmentos nao gera mais o WARN 'has no existing object' para indices acima do comprimento real da fita. Plus: comando antes do cloud-init agora silencioso.",
+        "nl": "Segment-detectie wizard spamt 'has no existing object' niet meer voor indices boven de echte strip-lengte. Plus: commando voor cloud-init is nu stil.",
+        "fr": "L'assistant de detection de segments ne genere plus le WARN 'has no existing object' pour les indices au-dela de la longueur reelle. Plus : commande avant cloud-init silencieuse.",
+        "it": "Il wizard di rilevamento segmenti non spamma piu 'has no existing object' per indici oltre la lunghezza reale. Plus: comando prima di cloud-init ora silenzioso.",
+        "es": "El asistente de deteccion de segmentos ya no genera 'has no existing object' WARN para indices fuera del largo real. Plus: comando antes de cloud-init ahora silencioso.",
+        "pl": "Wizard wykrywania segmentow nie spamuje juz 'has no existing object' dla indeksow powyzej rzeczywistej dlugosci tasmy. Plus: polecenie przed cloud-init jest teraz ciche.",
+        "uk": "Wizard виявлення сегментів більше не спамить 'has no existing object' для індексів понад реальну довжину стрічки. Плюс: команда до cloud-init тепер тиха.",
+        "zh-cn": "段检测向导不再为超出真实灯带长度的索引刷 'has no existing object' 警告。加上：cloud-init 完成前的命令现在不再产生 'No channel available' 警告。"
+      },
       "2.5.2": {
         "en": "Stops the 'membersUnreachable has no existing object' WARN spam every 2 min — group state stays present with empty value. Plus verified H61A8 Outdoor Neon LED Strip 10m.",
         "de": "Behebt WARN-Spam 'membersUnreachable has no existing object' alle 2 Min — Gruppen-State bleibt existent mit leerem Wert. Plus verifiziert: H61A8 Outdoor Neon LED Strip 10m.",
