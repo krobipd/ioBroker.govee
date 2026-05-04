@@ -124,7 +124,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 2.5.2 (2026-05-04)
 
 - WARN-Spam alle 2 Min behoben: `groups.*.info.membersUnreachable` bleibt bei vollständig erreichbaren Gruppen mit leerem Wert vorhanden statt gelöscht zu werden.
 - Neu verifiziert: H61A8 Outdoor Neon LED Strip 10m (gemeldet von tukey42 in Issue #11).
@@ -144,10 +144,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ### 2.4.0 (2026-05-04)
 
 - Lokaler Snapshot-Manager (Save/Restore/Delete) ist jetzt eine eigene Klasse mit Host-Interface — `main.ts` ist kleiner und der Snapshot-Pfad ist isoliert testbar. Verhalten identisch.
-
-### 2.3.1 (2026-05-04)
-
-- Smoke-Tests für GoveeCloudClient + GoveeMqttClient — Initial-State-Checks für getFailureReason, token, connected, plus Setter-Smoke-Tests (637 → 637+9 Tests). Volle Pfade über https/mqtt-Mocks kommen separat.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

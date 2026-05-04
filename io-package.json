@@ -1,9 +1,9 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.5.1",
+    "version": "2.5.2",
     "news": {
-      "NEXT": {
+      "2.5.2": {
         "en": "Stops the 'membersUnreachable has no existing object' WARN spam every 2 min — group state stays present with empty value. Plus verified H61A8 Outdoor Neon LED Strip 10m.",
         "de": "Behebt WARN-Spam 'membersUnreachable has no existing object' alle 2 Min — Gruppen-State bleibt existent mit leerem Wert. Plus verifiziert: H61A8 Outdoor Neon LED Strip 10m.",
         "ru": "Устраняет WARN-спам 'membersUnreachable has no existing object' каждые 2 мин — state группы остается с пустым значением. Плюс H61A8 Outdoor Neon LED Strip 10m verified.",
@@ -93,19 +93,6 @@
         "pl": "Monitor driftu App-version: codzienny lookup iTunes ostrzega gdy lokalna Govee-App-Version jest przestarzala. Plus higiena kodu: onStateChange handlers wydzielone.",
         "uk": "Монітор дрейфу App-версії: щоденний iTunes-лукап попереджає коли локальна Govee-App-Version застаріла. Плюс гігієна коду: onStateChange handlers виділені.",
         "zh-cn": "App 版本漂移监控：每日 iTunes 查询，本地 Govee 应用版本过旧时发出警告。代码卫生：onStateChange handlers 拆分。"
-      },
-      "2.2.0": {
-        "en": "Quality release: 2FA no longer restarts, MQTT pushes type-safe, sensors in right channel. Ready-log shows channel status, persistent UDP sockets, abortable HTTP, no more group-WARN spam.",
-        "de": "Quality-Release: 2FA ohne Restart, MQTT-Pushes typsicher, Sensoren im richtigen Kanal. Ready-Log mit Channel-Status, persistente UDP-Sockets, abbrechbares HTTP, kein Group-WARN-Spam.",
-        "ru": "Quality-релиз: 2FA-верификация без рестарта, MQTT-пуши типобезопасны, сенсоры в правильном канале. Новый ready-лог со статусом каналов, постоянные UDP-сокеты, прерываемые HTTP, без group-WARN-спама.",
-        "pt": "Release quality: verificacao 2FA sem reinicio, MQTT type-safe, sensores no canal certo. Novo log ready com status de canais, sockets UDP persistentes, HTTP cancelavel, sem mais spam group-WARN.",
-        "nl": "Quality release: 2FA-verificatie geen restart meer, MQTT type-safe, sensors in juiste kanaal. Nieuw ready-log, persistente UDP-sockets, afbreekbare HTTP, geen group-WARN spam.",
-        "fr": "Release qualite : verification 2FA sans redemarrage, MQTT type-safe, capteurs dans le bon canal. Nouveau ready-log avec statut canaux, sockets UDP persistants, HTTP annulable, plus de group-WARN spam.",
-        "it": "Release quality: verifica 2FA senza riavvio, MQTT type-safe, sensori nel canale giusto. Nuovo ready-log con stato canali, socket UDP persistenti, HTTP annullabile, niente piu group-WARN spam.",
-        "es": "Release de calidad: verificacion 2FA sin reinicio, MQTT type-safe, sensores al canal correcto. Nuevo ready-log con estado de canales, sockets UDP persistentes, HTTP cancelable, sin spam group-WARN.",
-        "pl": "Quality release: weryfikacja 2FA bez restartu, MQTT type-safe, sensory we wlasciwym kanale. Nowy ready-log ze statusem kanalow, persistentne UDP, anulowalne HTTP, bez spamu group-WARN.",
-        "uk": "Quality-реліз: 2FA-верифікація без рестарту, MQTT типобезпечно, сенсори у правильному каналі. Новий ready-лог зі статусом каналів, постійні UDP-сокети, переривані HTTP, без group-WARN-спаму.",
-        "zh-cn": "质量发布：2FA 验证不再重启；MQTT 推送类型安全；传感器进入正确通道。新 ready 日志带通道状态、持久 UDP socket、可中断 HTTP、不再有 group-WARN 刷屏。"
       }
     },
     "titleLang": {

@@ -1,4 +1,8 @@
 # Older Changes
+## 2.3.1 (2026-05-04)
+
+- Smoke-Tests für GoveeCloudClient + GoveeMqttClient — Initial-State-Checks für getFailureReason, token, connected, plus Setter-Smoke-Tests (637 → 637+9 Tests). Volle Pfade über https/mqtt-Mocks kommen separat.
+
 ## 2.3.0 (2026-05-04)
 
 - App-Version-Drift-Monitor: täglicher iTunes-Lookup vergleicht die im Adapter hinterlegte Govee-App-Version mit der aktuellen iOS-Version. Bei Drift > 2 Minor wird gewarnt — Govees undokumentierte Endpoints rejecten gelegentlich zu alte Clients.
