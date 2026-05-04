@@ -12,7 +12,8 @@ import { GoveeCloudClient } from "./lib/govee-cloud-client";
 import { GoveeLanClient } from "./lib/govee-lan-client";
 import { GoveeMqttClient } from "./lib/govee-mqtt-client";
 import { GoveeOpenapiMqttClient } from "./lib/govee-openapi-mqtt-client";
-import { LocalSnapshotStore, type LocalSnapshot, type SnapshotSegment } from "./lib/local-snapshots";
+import { LocalSnapshotStore } from "./lib/local-snapshots";
+import { SnapshotHandler, type SnapshotHandlerHost } from "./lib/snapshot-handler";
 import { CloudRetryLoop, type CloudRetryHost } from "./lib/cloud-retry";
 import { RateLimiter } from "./lib/rate-limiter";
 import { SegmentWizard, wizardIdleText, type WizardHost, type WizardResult } from "./lib/segment-wizard";
@@ -116,6 +117,7 @@ class GoveeAdapter extends utils.Adapter {
   // === Sub-Komponenten ===
   private skuCache: SkuCache | null = null;
   private localSnapshots: LocalSnapshotStore | null = null;
+  private snapshotHandler: SnapshotHandler | null = null;
   private stateCreationQueue: Promise<void>[] = [];
   private lanScanTimer: ioBroker.Timeout | undefined;
   private cleanupTimer: ioBroker.Timeout | undefined;
@@ -211,6 +213,7 @@ class GoveeAdapter extends utils.Adapter {
     });
     this.skuCache = new SkuCache(dataDir, this.log);
     this.localSnapshots = new LocalSnapshotStore(dataDir, this.log);
+    this.snapshotHandler = new SnapshotHandler(this.buildSnapshotHost());
     this.deviceManager.setSkuCache(this.skuCache);
 
     // API client for undocumented scene/music/DIY libraries (always available)
@@ -730,20 +733,20 @@ class GoveeAdapter extends utils.Adapter {
 
     // Handle local snapshot commands (no Cloud/MQTT needed)
     if (stateSuffix === "snapshots.snapshot_save" && typeof val === "string" && val.trim()) {
-      await this.handleSnapshotSave(device, val.trim());
+      await this.snapshotHandler!.save(device, val.trim());
       await this.setStateAsync(id, { val: "", ack: true });
       return;
     }
     if (stateSuffix === "snapshots.snapshot_local") {
       if (val !== "0" && val !== 0) {
-        await this.handleSnapshotRestore(device, val);
+        await this.snapshotHandler!.restore(device, val);
         await this.resetRelatedDropdowns(prefix, "snapshotLocal");
       }
       await this.setStateAsync(id, { val, ack: true });
       return;
     }
     if (stateSuffix === "snapshots.snapshot_delete" && typeof val === "string" && val.trim()) {
-      this.handleSnapshotDelete(device, val.trim());
+      this.snapshotHandler!.delete(device, val.trim());
       await this.setStateAsync(id, { val: "", ack: true });
       return;
     }
@@ -1997,130 +2000,21 @@ class GoveeAdapter extends utils.Adapter {
     return response;
   }
 
-  /**
-   * Save current device state as a local snapshot.
-   *
-   * @param device Target device
-   * @param name Snapshot name
-   */
-  private async handleSnapshotSave(device: GoveeDevice, name: string): Promise<void> {
-    if (!this.localSnapshots || !this.stateManager) {
-      return;
-    }
-
-    const prefix = this.stateManager.devicePrefix(device);
-    const ns = this.namespace;
-
-    // Read device-level state in parallel
-    const [powerState, brightState, colorState, ctState] = await Promise.all([
-      this.getStateAsync(`${ns}.${prefix}.control.power`),
-      this.getStateAsync(`${ns}.${prefix}.control.brightness`),
-      this.getStateAsync(`${ns}.${prefix}.control.colorRgb`),
-      this.getStateAsync(`${ns}.${prefix}.control.colorTemperature`),
-    ]);
-
-    // Read per-segment states in parallel — 20 segments × 2 reads used to run
-    // sequentially (~80ms), parallel completes in a single round-trip.
-    let segments: SnapshotSegment[] | undefined;
-    const segCount = device.segmentCount ?? 0;
-    if (segCount > 0) {
-      const segReads: Promise<[ioBroker.State | null | undefined, ioBroker.State | null | undefined]>[] = [];
-      for (let i = 0; i < segCount; i++) {
-        segReads.push(
-          Promise.all([
-            this.getStateAsync(`${ns}.${prefix}.segments.${i}.color`),
-            this.getStateAsync(`${ns}.${prefix}.segments.${i}.brightness`),
-          ]),
-        );
-      }
-      const segResults = await Promise.all(segReads);
-      segments = segResults.map(([segColor, segBright]) => ({
-        color: typeof segColor?.val === "string" ? segColor.val : "#000000",
-        brightness: typeof segBright?.val === "number" ? segBright.val : 100,
-      }));
-    }
-
-    const snapshot: LocalSnapshot = {
-      name,
-      power: powerState?.val === true,
-      brightness: typeof brightState?.val === "number" ? brightState.val : 0,
-      colorRgb: typeof colorState?.val === "string" ? colorState.val : "#000000",
-      colorTemperature: typeof ctState?.val === "number" ? ctState.val : 0,
-      segments,
-      savedAt: Date.now(),
+  /** Construct host object for SnapshotHandler — adapter dependencies injected. */
+  private buildSnapshotHost(): SnapshotHandlerHost {
+    return {
+      log: this.log,
+      store: this.localSnapshots!,
+      namespace: this.namespace,
+      devicePrefix: device => this.stateManager?.devicePrefix(device) ?? "",
+      getState: id => this.getStateAsync(id),
+      sendCommand: async (device, command, value) => {
+        await this.deviceManager?.sendCommand(device, command, value);
+      },
+      refreshDeviceStates: device => {
+        this.refreshDeviceStates(device, this.deviceManager?.getDevices() ?? []);
+      },
     };
-
-    this.localSnapshots.saveSnapshot(device.sku, device.deviceId, snapshot);
-    this.log.info(`Local snapshot saved: "${name}" for ${device.name}`);
-
-    // Targeted refresh — only this device's snapshot_local dropdown changed.
-    this.refreshDeviceStates(device, this.deviceManager!.getDevices());
-  }
-
-  /**
-   * Restore a local snapshot by index.
-   *
-   * @param device Target device
-   * @param val Dropdown index value
-   */
-  private async handleSnapshotRestore(device: GoveeDevice, val: ioBroker.StateValue): Promise<void> {
-    if (!this.localSnapshots || !this.deviceManager) {
-      return;
-    }
-
-    const idx = parseInt(String(val), 10);
-    if (idx < 1) {
-      return;
-    }
-
-    const snaps = this.localSnapshots.getSnapshots(device.sku, device.deviceId);
-    const snap = snaps[idx - 1];
-    if (!snap) {
-      this.log.warn(`Local snapshot index ${idx} not found for ${device.name}`);
-      return;
-    }
-
-    this.log.info(`Restoring local snapshot "${snap.name}" for ${device.name}`);
-
-    // Send each state via LAN → Cloud routing
-    await this.deviceManager.sendCommand(device, "power", snap.power);
-    if (snap.power) {
-      await this.deviceManager.sendCommand(device, "brightness", snap.brightness);
-      if (snap.colorTemperature > 0) {
-        await this.deviceManager.sendCommand(device, "colorTemperature", snap.colorTemperature);
-      } else {
-        await this.deviceManager.sendCommand(device, "colorRgb", snap.colorRgb);
-      }
-
-      // Restore per-segment states via ptReal
-      if (snap.segments && snap.segments.length > 0) {
-        for (let i = 0; i < snap.segments.length; i++) {
-          const seg = snap.segments[i];
-          await this.deviceManager.sendCommand(device, `segmentColor:${i}`, seg.color);
-          await this.deviceManager.sendCommand(device, `segmentBrightness:${i}`, seg.brightness);
-        }
-      }
-    }
-  }
-
-  /**
-   * Delete a local snapshot by name.
-   *
-   * @param device Target device
-   * @param name Snapshot name to delete
-   */
-  private handleSnapshotDelete(device: GoveeDevice, name: string): void {
-    if (!this.localSnapshots) {
-      return;
-    }
-
-    if (this.localSnapshots.deleteSnapshot(device.sku, device.deviceId, name)) {
-      this.log.info(`Local snapshot deleted: "${name}" for ${device.name}`);
-      // Targeted refresh — only this device's snapshot_local dropdown changed.
-      this.refreshDeviceStates(device, this.deviceManager!.getDevices());
-    } else {
-      this.log.warn(`Local snapshot "${name}" not found for ${device.name}`);
-    }
   }
 
   /** Dropdowns whose value is a mode-selection — reset to "---" (0) when the mode stops. */
