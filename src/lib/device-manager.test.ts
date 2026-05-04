@@ -14,13 +14,17 @@ import type { CloudCapability, DeviceState, GoveeDevice, LanDevice, MqttStatusUp
  * Quirk-dependent tests (e.g. generateDiagnostics for H6141) need the
  * seed-status entries to be active. Real-world default has them off.
  * beforeEach so other test files cannot leak a reset between cases.
+ *
+ * NOTE: Diese Helpers sind ABSICHTLICH inline statt aus `./test-helpers`
+ * importiert. Mocha's ESM-Loader bricht reproduzierbar wenn dieser
+ * test-file (alphabetisch der erste der test-helpers.ts importieren
+ * würde) den Import macht — `device-manager` ohne Extension wird dann
+ * als ESM-URL angesehen und Cannot-find-module geworfen. Solange die
+ * test-suite noch CJS+ts-node nutzt, bleiben die DM-helpers inline.
  */
 const QUIRK_TEST_REGISTRY = {
   devices: {
     H6141: { name: "LED Strip", type: "light", status: "seed", quirks: { brokenPlatformApi: true } },
-    // Verified entries for the SKUs that show up in DeviceManager tests so
-    // the v2.1.0 tier-based unknown-SKU warning doesn't fire and pollute
-    // the warn-counter assertions in the pollAppApi test suite.
     H5179: { name: "Thermometer", type: "sensor", status: "verified" },
     H61BE: { name: "LED Strip", type: "light", status: "verified" },
     H6056: { name: "LED Strip", type: "light", status: "verified" },
@@ -28,7 +32,6 @@ const QUIRK_TEST_REGISTRY = {
   },
 };
 
-/** Minimal mock logger */
 const mockLog: ioBroker.Logger = {
   debug: () => {},
   info: () => {},
@@ -38,8 +41,6 @@ const mockLog: ioBroker.Logger = {
   level: "debug",
 };
 
-/** Mock timer adapter — setTimeout fires immediately so async-await paths
- *  (forceColorMode → 150 ms delay) don't stall the test runner. */
 const mockTimers = {
   setInterval: () => undefined,
   clearInterval: () => undefined,
@@ -50,7 +51,6 @@ const mockTimers = {
   clearTimeout: () => undefined,
 } as never;
 
-/** Standard light capabilities for testing */
 function lightCapabilities(): CloudCapability[] {
   return [
     { type: "devices.capabilities.on_off", instance: "powerSwitch", parameters: { dataType: "ENUM" } },
@@ -81,7 +81,6 @@ function lightCapabilities(): CloudCapability[] {
   ];
 }
 
-/** Create a test device with all channels available */
 function createTestDevice(overrides: Partial<GoveeDevice> = {}): GoveeDevice {
   return {
     sku: "H6160",
@@ -110,7 +109,6 @@ function createTestDevice(overrides: Partial<GoveeDevice> = {}): GoveeDevice {
   };
 }
 
-/** Simple call tracker for mock methods */
 interface CallRecord {
   method: string;
   args: unknown[];
@@ -124,7 +122,7 @@ function createCallTracker(): { calls: CallRecord[]; track: (method: string) => 
       (method: string) =>
       (...args: unknown[]) => {
         calls.push({ method, args });
-        return true; // MQTT methods return boolean
+        return true;
       },
   };
 }
