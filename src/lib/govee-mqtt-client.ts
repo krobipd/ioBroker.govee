@@ -12,6 +12,7 @@ import {
   type MqttStatusUpdate,
   type PersistedMqttCredentials,
   type TimerAdapter,
+  errMessage,
 } from "./types";
 
 /** Max consecutive auth failures before giving up */
@@ -345,7 +346,7 @@ export class GoveeMqttClient {
       this.attachClientHandlers();
     } catch (err) {
       const category = classifyError(err);
-      const msg = `MQTT connection failed: ${err instanceof Error ? err.message : String(err)}`;
+      const msg = `MQTT connection failed: ${errMessage(err)}`;
 
       // State-Sync: connect() throw = not connected, unabhängig von Fehlertyp
       this.onConnection?.(false);
@@ -533,9 +534,7 @@ export class GoveeMqttClient {
     try {
       extracted = this.extractCertsFromP12(creds.p12Cert, creds.p12Pass);
     } catch (e) {
-      this.log.debug(
-        `Persisted P12 cert unusable: ${e instanceof Error ? e.message : String(e)} — falling back to fresh login`,
-      );
+      this.log.debug(`Persisted P12 cert unusable: ${errMessage(e)} — falling back to fresh login`);
       return false;
     }
     this._bearerToken = creds.bearerToken;
@@ -694,16 +693,14 @@ export class GoveeMqttClient {
           });
         }
       } catch (e) {
-        this.log.debug(`Silent IoT-key refresh failed: ${e instanceof Error ? e.message : String(e)}`);
+        this.log.debug(`Silent IoT-key refresh failed: ${errMessage(e)}`);
       }
       this.scheduleProactiveRefresh(newExpiresAt);
     } catch (e) {
       // Network error / 5xx — not a release-blocker. The live MQTT
       // session continues; the next reconnect-cycle (if needed) will
       // try a full login.
-      this.log.debug(
-        `Silent bearer refresh failed: ${e instanceof Error ? e.message : String(e)} — current session kept`,
-      );
+      this.log.debug(`Silent bearer refresh failed: ${errMessage(e)} — current session kept`);
     }
   }
 

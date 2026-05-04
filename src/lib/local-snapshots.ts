@@ -1,3 +1,4 @@
+import { errMessage } from "./types";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -56,7 +57,7 @@ export class LocalSnapshotStore {
       this.dataAvailable = true;
     } catch (e) {
       this.dataAvailable = false;
-      this.log.warn(`Snapshot directory not writable (${this.dir}): ${e instanceof Error ? e.message : String(e)}`);
+      this.log.warn(`Snapshot directory not writable (${this.dir}): ${errMessage(e)}`);
     }
   }
 
@@ -79,7 +80,7 @@ export class LocalSnapshotStore {
         return Array.isArray(data?.snapshots) ? data.snapshots : [];
       }
     } catch (e) {
-      this.log.debug(`Snapshot read failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.debug(`Snapshot read failed for ${sku}: ${errMessage(e)}`);
     }
     return [];
   }
@@ -146,7 +147,7 @@ export class LocalSnapshotStore {
         fs.closeSync(fd);
       }
     } catch (e) {
-      this.log.warn(`Snapshot write failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.warn(`Snapshot write failed for ${sku}: ${errMessage(e)}`);
     }
   }
 

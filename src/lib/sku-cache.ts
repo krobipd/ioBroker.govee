@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { CloudCapability, CloudScene } from "./types";
+import { errMessage, type CloudCapability, type CloudScene } from "./types";
 
 /** Data persisted per device in the SKU cache */
 export interface CachedDeviceData {
@@ -98,9 +98,7 @@ export class SkuCache {
       this.dataAvailable = true;
     } catch (e) {
       this.dataAvailable = false;
-      this.log.warn(
-        `SKU cache directory not writable (${this.cacheDir}): ${e instanceof Error ? e.message : String(e)}`,
-      );
+      this.log.warn(`SKU cache directory not writable (${this.cacheDir}): ${errMessage(e)}`);
     }
   }
 
@@ -129,7 +127,7 @@ export class SkuCache {
       }
       this.log.debug(`Cache saved for ${data.sku}`);
     } catch (e) {
-      this.log.warn(`Cache write failed for ${data.sku}: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.warn(`Cache write failed for ${data.sku}: ${errMessage(e)}`);
     }
   }
 
@@ -214,7 +212,7 @@ export class SkuCache {
       }
       this.log.debug("Cache cleared");
     } catch (e) {
-      this.log.debug(`Cache clear failed: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.debug(`Cache clear failed: ${errMessage(e)}`);
     }
   }
 

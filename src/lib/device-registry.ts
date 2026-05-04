@@ -1,3 +1,4 @@
+import { errMessage } from "./types";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -126,7 +127,7 @@ export class DeviceRegistry {
     try {
       raw = fs.readFileSync(filePath, "utf-8");
     } catch (err) {
-      this.log?.warn(`device-registry: cannot read ${filePath}: ${err instanceof Error ? err.message : String(err)}`);
+      this.log?.warn(`device-registry: cannot read ${filePath}: ${errMessage(err)}`);
       return;
     }
 
@@ -134,9 +135,7 @@ export class DeviceRegistry {
     try {
       parsed = JSON.parse(raw) as DevicesFile;
     } catch (err) {
-      this.log?.warn(
-        `device-registry: invalid JSON in ${filePath}: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      this.log?.warn(`device-registry: invalid JSON in ${filePath}: ${errMessage(err)}`);
       return;
     }
 

@@ -21,6 +21,7 @@ import {
   type LanDevice,
   type MqttStatusUpdate,
   type TimerAdapter,
+  errMessage,
 } from "./types";
 import { HttpError } from "./http-client";
 
@@ -649,7 +650,7 @@ export class DeviceManager {
         }
       } catch (e) {
         this.diagnostics.recordApiFailure(cd.device, "/router/api/v1/device/scenes", e, this.extractStatus(e));
-        this.log.debug(`Could not load scenes for ${cd.sku}: ${e instanceof Error ? e.message : String(e)}`);
+        this.log.debug(`Could not load scenes for ${cd.sku}: ${errMessage(e)}`);
       }
     };
     await this.commandRouter.executeRateLimited(loadScenes, 2);
@@ -664,7 +665,7 @@ export class DeviceManager {
           }
         } catch (e) {
           this.diagnostics.recordApiFailure(cd.device, "/router/api/v1/device/diy-scenes", e, this.extractStatus(e));
-          this.log.debug(`Could not load DIY scenes for ${cd.sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load DIY scenes for ${cd.sku}: ${errMessage(e)}`);
         }
       };
       await this.commandRouter.executeRateLimited(loadDiy, 2);
@@ -739,7 +740,7 @@ export class DeviceManager {
           }
         } catch (e) {
           this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
-          this.log.debug(`Could not load scene library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load scene library for ${sku}: ${errMessage(e)}`);
         }
       });
     }
@@ -757,7 +758,7 @@ export class DeviceManager {
           }
         } catch (e) {
           this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
-          this.log.debug(`Could not load music library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load music library for ${sku}: ${errMessage(e)}`);
         }
       });
     }
@@ -775,7 +776,7 @@ export class DeviceManager {
           }
         } catch (e) {
           this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
-          this.log.debug(`Could not load DIY library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load DIY library for ${sku}: ${errMessage(e)}`);
         }
       });
     }
@@ -793,7 +794,7 @@ export class DeviceManager {
           }
         } catch (e) {
           this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
-          this.log.debug(`Could not load SKU features for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load SKU features for ${sku}: ${errMessage(e)}`);
         }
       });
     }
@@ -812,7 +813,7 @@ export class DeviceManager {
             this.log.debug(`Snapshot BLE for ${sku}: ${snaps.length} snapshots with local data`);
           }
         } catch (e) {
-          this.log.debug(`Could not load snapshot BLE for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load snapshot BLE for ${sku}: ${errMessage(e)}`);
         }
       });
     }
@@ -876,7 +877,7 @@ export class DeviceManager {
       }
       return changed;
     } catch (e) {
-      this.log.debug(`Could not load group members: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.debug(`Could not load group members: ${errMessage(e)}`);
       return false;
     }
   }
@@ -1290,7 +1291,7 @@ export class DeviceManager {
    */
   private logDedup(context: string, err: unknown): void {
     const category = classifyError(err);
-    const msg = `${context}: ${err instanceof Error ? err.message : String(err)}`;
+    const msg = `${context}: ${errMessage(err)}`;
     if (category !== this.lastErrorCategory) {
       this.lastErrorCategory = category;
       this.log.warn(msg);
@@ -1436,7 +1437,7 @@ export class DeviceManager {
       entries = await this.apiClient.fetchDeviceList();
     } catch (err) {
       const category = classifyError(err);
-      const msg = `App API fetch failed: ${err instanceof Error ? err.message : String(err)}`;
+      const msg = `App API fetch failed: ${errMessage(err)}`;
       if (category !== this.lastAppApiErrorCategory) {
         this.lastAppApiErrorCategory = category;
         this.log.warn(msg);
@@ -1537,7 +1538,12 @@ export class DeviceManager {
    * readings (sensors, appliances). Used to skip the App-API poll on
    * Lights-only installations.
    */
-  private hasDeviceNeedingAppApi(): boolean {
+  /**
+   * True wenn mindestens ein Device App-API-Werte konsumiert (Sensoren,
+   * Appliances). Adapter-checkAllReady wartet darauf damit „ready" erst
+   * geloggt wird wenn Sensor-Werte tatsächlich da sind.
+   */
+  public hasDeviceNeedingAppApi(): boolean {
     for (const dev of this.devices.values()) {
       if (dev.type !== "devices.types.light" && dev.sku !== "BaseGroup") {
         return true;

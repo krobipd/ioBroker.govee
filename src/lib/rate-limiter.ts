@@ -1,4 +1,4 @@
-import type { TimerAdapter } from "./types";
+import { errMessage, type TimerAdapter } from "./types";
 
 /** A queued API call */
 interface QueuedCall {
@@ -162,7 +162,7 @@ export class RateLimiter {
         this.callsThisMinute++;
         this.callsToday++;
         call.execute().catch(err => {
-          this.log.debug(`Queued call failed: ${err instanceof Error ? err.message : String(err)}`);
+          this.log.debug(`Queued call failed: ${errMessage(err)}`);
         });
       }
     }

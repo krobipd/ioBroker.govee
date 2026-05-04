@@ -37,6 +37,7 @@ __export(device_registry_exports, {
   isSeedAndDormant: () => isSeedAndDormant
 });
 module.exports = __toCommonJS(device_registry_exports);
+var import_types = require("./types");
 var fs = __toESM(require("node:fs"));
 var path = __toESM(require("node:path"));
 class DeviceRegistry {
@@ -79,7 +80,7 @@ class DeviceRegistry {
     try {
       raw = fs.readFileSync(filePath, "utf-8");
     } catch (err) {
-      (_a = this.log) == null ? void 0 : _a.warn(`device-registry: cannot read ${filePath}: ${err instanceof Error ? err.message : String(err)}`);
+      (_a = this.log) == null ? void 0 : _a.warn(`device-registry: cannot read ${filePath}: ${(0, import_types.errMessage)(err)}`);
       return;
     }
     let parsed;
@@ -87,7 +88,7 @@ class DeviceRegistry {
       parsed = JSON.parse(raw);
     } catch (err) {
       (_b = this.log) == null ? void 0 : _b.warn(
-        `device-registry: invalid JSON in ${filePath}: ${err instanceof Error ? err.message : String(err)}`
+        `device-registry: invalid JSON in ${filePath}: ${(0, import_types.errMessage)(err)}`
       );
       return;
     }

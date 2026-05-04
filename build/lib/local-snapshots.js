@@ -31,6 +31,7 @@ __export(local_snapshots_exports, {
   LocalSnapshotStore: () => LocalSnapshotStore
 });
 module.exports = __toCommonJS(local_snapshots_exports);
+var import_types = require("./types");
 var fs = __toESM(require("node:fs"));
 var path = __toESM(require("node:path"));
 class LocalSnapshotStore {
@@ -50,7 +51,7 @@ class LocalSnapshotStore {
       this.dataAvailable = true;
     } catch (e) {
       this.dataAvailable = false;
-      this.log.warn(`Snapshot directory not writable (${this.dir}): ${e instanceof Error ? e.message : String(e)}`);
+      this.log.warn(`Snapshot directory not writable (${this.dir}): ${(0, import_types.errMessage)(e)}`);
     }
   }
   /** False wenn Snapshot-Dir nicht zugreifbar ist — save/load skipt dann. */
@@ -69,7 +70,7 @@ class LocalSnapshotStore {
         return Array.isArray(data == null ? void 0 : data.snapshots) ? data.snapshots : [];
       }
     } catch (e) {
-      this.log.debug(`Snapshot read failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.debug(`Snapshot read failed for ${sku}: ${(0, import_types.errMessage)(e)}`);
     }
     return [];
   }
@@ -133,7 +134,7 @@ class LocalSnapshotStore {
         fs.closeSync(fd);
       }
     } catch (e) {
-      this.log.warn(`Snapshot write failed for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.warn(`Snapshot write failed for ${sku}: ${(0, import_types.errMessage)(e)}`);
     }
   }
   /**

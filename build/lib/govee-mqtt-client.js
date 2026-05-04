@@ -299,7 +299,7 @@ class GoveeMqttClient {
       this.attachClientHandlers();
     } catch (err) {
       const category = (0, import_types.classifyError)(err);
-      const msg = `MQTT connection failed: ${err instanceof Error ? err.message : String(err)}`;
+      const msg = `MQTT connection failed: ${(0, import_types.errMessage)(err)}`;
       (_j = this.onConnection) == null ? void 0 : _j.call(this, false);
       if (category === "VERIFICATION_PENDING") {
         const isNew = this.lastErrorCategory !== category;
@@ -451,7 +451,7 @@ class GoveeMqttClient {
       extracted = this.extractCertsFromP12(creds.p12Cert, creds.p12Pass);
     } catch (e) {
       this.log.debug(
-        `Persisted P12 cert unusable: ${e instanceof Error ? e.message : String(e)} \u2014 falling back to fresh login`
+        `Persisted P12 cert unusable: ${(0, import_types.errMessage)(e)} \u2014 falling back to fresh login`
       );
       return false;
     }
@@ -596,12 +596,12 @@ class GoveeMqttClient {
           });
         }
       } catch (e) {
-        this.log.debug(`Silent IoT-key refresh failed: ${e instanceof Error ? e.message : String(e)}`);
+        this.log.debug(`Silent IoT-key refresh failed: ${(0, import_types.errMessage)(e)}`);
       }
       this.scheduleProactiveRefresh(newExpiresAt);
     } catch (e) {
       this.log.debug(
-        `Silent bearer refresh failed: ${e instanceof Error ? e.message : String(e)} \u2014 current session kept`
+        `Silent bearer refresh failed: ${(0, import_types.errMessage)(e)} \u2014 current session kept`
       );
     }
   }

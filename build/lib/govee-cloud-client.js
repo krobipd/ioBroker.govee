@@ -22,6 +22,7 @@ __export(govee_cloud_client_exports, {
 });
 module.exports = __toCommonJS(govee_cloud_client_exports);
 var import_http_client = require("./http-client");
+var import_types = require("./types");
 const BASE_URL = "https://openapi.api.govee.com";
 class GoveeCloudClient {
   apiKey;
@@ -33,12 +34,40 @@ class GoveeCloudClient {
    */
   onResponse = null;
   /**
+   * Letzte Fehler-Kategorie für getFailureReason() — gesetzt bei jedem
+   * HTTP-Fehler im request-Pfad.
+   */
+  lastErrorCategory = null;
+  /**
    * @param apiKey Govee API key
    * @param log ioBroker logger
    */
   constructor(apiKey, log) {
     this.apiKey = apiKey;
     this.log = log;
+  }
+  /**
+   * Short user-facing reason for "Cloud not connected", or null wenn der
+   * Client noch keinen Fehler gesehen hat. Analog zu mqtt-client —
+   * `logDeviceSummary` nutzt das damit der Adapter klare Diagnose-Texte
+   * statt „see earlier errors" loggen kann.
+   */
+  getFailureReason() {
+    switch (this.lastErrorCategory) {
+      case "AUTH":
+        return "API key rejected \u2014 check Govee API key";
+      case "RATE_LIMIT":
+        return "rate-limited by Govee \u2014 will retry";
+      case "NETWORK":
+        return "cannot reach Govee servers \u2014 will retry";
+      case "TIMEOUT":
+        return "Cloud request timeout";
+      case "UNKNOWN":
+        return "Cloud request failed \u2014 see earlier log";
+      case null:
+      default:
+        return null;
+    }
   }
   /**
    * Register a hook called after every successful Cloud API response.
@@ -176,13 +205,16 @@ class GoveeCloudClient {
     var _a;
     this.log.debug(`Cloud API: ${method} ${path}`);
     try {
-      return await (0, import_http_client.httpsRequest)({
+      const result = await (0, import_http_client.httpsRequest)({
         method,
         url: new URL(path, BASE_URL).toString(),
         headers: { "Govee-API-Key": this.apiKey },
         body
       });
+      this.lastErrorCategory = null;
+      return result;
     } catch (err) {
+      this.lastErrorCategory = (0, import_types.classifyError)(err);
       if (err instanceof import_http_client.HttpError && err.statusCode === 429) {
         const retryAfter = String((_a = err.headers["retry-after"]) != null ? _a : "unknown");
         throw new import_http_client.HttpError(`Rate limited \u2014 retry after ${retryAfter}s`, 429, err.headers);

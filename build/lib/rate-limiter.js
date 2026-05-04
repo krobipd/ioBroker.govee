@@ -21,6 +21,7 @@ __export(rate_limiter_exports, {
   RateLimiter: () => RateLimiter
 });
 module.exports = __toCommonJS(rate_limiter_exports);
+var import_types = require("./types");
 class RateLimiter {
   log;
   timers;
@@ -149,7 +150,7 @@ class RateLimiter {
         this.callsThisMinute++;
         this.callsToday++;
         call.execute().catch((err) => {
-          this.log.debug(`Queued call failed: ${err instanceof Error ? err.message : String(err)}`);
+          this.log.debug(`Queued call failed: ${(0, import_types.errMessage)(err)}`);
         });
       }
     }

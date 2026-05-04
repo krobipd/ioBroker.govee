@@ -1,4 +1,4 @@
-import type { CloudLoadResult } from "./types";
+import { errMessage, type CloudLoadResult } from "./types";
 
 /** Fallback delay when Cloud fails transiently (network/timeout). */
 const TRANSIENT_RETRY_MS = 5 * 60_000;
@@ -130,9 +130,7 @@ export class CloudRetryLoop {
     }
     this.retryTimer = this.host.setTimeout(() => {
       this.retryTimer = undefined;
-      this.runAttempt().catch(e =>
-        this.host.log.debug(`Cloud retry failed: ${e instanceof Error ? e.message : String(e)}`),
-      );
+      this.runAttempt().catch(e => this.host.log.debug(`Cloud retry failed: ${errMessage(e)}`));
     }, delayMs);
   }
 

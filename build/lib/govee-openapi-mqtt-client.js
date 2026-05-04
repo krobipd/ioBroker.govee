@@ -135,7 +135,7 @@ class GoveeOpenapiMqttClient {
       });
     } catch (err) {
       const category = (0, import_types.classifyError)(err);
-      const msg = `Cloud-events connection failed: ${err instanceof Error ? err.message : String(err)}`;
+      const msg = `Cloud-events connection failed: ${(0, import_types.errMessage)(err)}`;
       if (category !== this.lastErrorCategory) {
         this.lastErrorCategory = category;
         this.log.warn(msg);

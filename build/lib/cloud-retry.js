@@ -21,6 +21,7 @@ __export(cloud_retry_exports, {
   CloudRetryLoop: () => CloudRetryLoop
 });
 module.exports = __toCommonJS(cloud_retry_exports);
+var import_types = require("./types");
 const TRANSIENT_RETRY_MS = 5 * 6e4;
 class CloudRetryLoop {
   /** @param host Host interface wired up to the adapter. */
@@ -108,7 +109,7 @@ class CloudRetryLoop {
     this.retryTimer = this.host.setTimeout(() => {
       this.retryTimer = void 0;
       this.runAttempt().catch(
-        (e) => this.host.log.debug(`Cloud retry failed: ${e instanceof Error ? e.message : String(e)}`)
+        (e) => this.host.log.debug(`Cloud retry failed: ${(0, import_types.errMessage)(e)}`)
       );
     }, delayMs);
   }

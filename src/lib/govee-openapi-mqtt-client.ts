@@ -6,6 +6,7 @@ import {
   type OpenApiMqttEvent,
   type CloudStateCapability,
   type TimerAdapter,
+  errMessage,
 } from "./types";
 
 /** Max consecutive connection failures before giving up */
@@ -135,7 +136,7 @@ export class GoveeOpenapiMqttClient {
       });
     } catch (err) {
       const category = classifyError(err);
-      const msg = `Cloud-events connection failed: ${err instanceof Error ? err.message : String(err)}`;
+      const msg = `Cloud-events connection failed: ${errMessage(err)}`;
 
       if (category !== this.lastErrorCategory) {
         this.lastErrorCategory = category;

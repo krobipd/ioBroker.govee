@@ -33,6 +33,7 @@ __export(sku_cache_exports, {
 module.exports = __toCommonJS(sku_cache_exports);
 var fs = __toESM(require("node:fs"));
 var path = __toESM(require("node:path"));
+var import_types = require("./types");
 class SkuCache {
   cacheDir;
   log;
@@ -51,7 +52,7 @@ class SkuCache {
     } catch (e) {
       this.dataAvailable = false;
       this.log.warn(
-        `SKU cache directory not writable (${this.cacheDir}): ${e instanceof Error ? e.message : String(e)}`
+        `SKU cache directory not writable (${this.cacheDir}): ${(0, import_types.errMessage)(e)}`
       );
     }
   }
@@ -74,7 +75,7 @@ class SkuCache {
       }
       this.log.debug(`Cache saved for ${data.sku}`);
     } catch (e) {
-      this.log.warn(`Cache write failed for ${data.sku}: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.warn(`Cache write failed for ${data.sku}: ${(0, import_types.errMessage)(e)}`);
     }
   }
   /** Load all cached devices. */
@@ -151,7 +152,7 @@ class SkuCache {
       }
       this.log.debug("Cache cleared");
     } catch (e) {
-      this.log.debug(`Cache clear failed: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.debug(`Cache clear failed: ${(0, import_types.errMessage)(e)}`);
     }
   }
   /**

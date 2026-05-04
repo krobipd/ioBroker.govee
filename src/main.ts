@@ -87,6 +87,16 @@ class GoveeAdapter extends utils.Adapter {
   private appApiInitialTimer: ioBroker.Timeout | undefined;
   /** One-shot timer for cloud-init 60s safety timeout — gleiches Pattern. */
   private cloudInitTimer: ioBroker.Timeout | undefined;
+  /**
+   * Letzter info.connection-Wert — Cache damit nicht jeder device-update
+   *  einen unnötigen setStateAsync macht (H4).
+   */
+  private lastConnectionState: boolean | null = null;
+  /**
+   * True nach dem ersten erfolgreichen App-API-Poll. checkAllReady wartet
+   * darauf wenn Sensor-Devices angemeldet sind (H2).
+   */
+  private appApiInitialPollDone = false;
   private skuCache: SkuCache | null = null;
   private localSnapshots: LocalSnapshotStore | null = null;
   private cloudWasConnected = false;
@@ -120,9 +130,7 @@ class GoveeAdapter extends utils.Adapter {
       ),
     );
     this.on("stateChange", (id, state) =>
-      this.onStateChange(id, state).catch(e =>
-        this.log.warn(`onStateChange crashed for ${id}: ${e instanceof Error ? e.message : String(e)}`),
-      ),
+      this.onStateChange(id, state).catch(e => this.log.warn(`onStateChange crashed for ${id}: ${errMessage(e)}`)),
     );
     this.on("message", obj => this.onMessage(obj));
     this.on("unload", callback => this.onUnload(callback));
@@ -251,9 +259,7 @@ class GoveeAdapter extends utils.Adapter {
         return;
       }
       this.stateManager.createSegmentStates(device).catch(e => {
-        this.log.warn(
-          `Failed to rebuild segment tree for ${device.name} after count growth: ${e instanceof Error ? e.message : String(e)}`,
-        );
+        this.log.warn(`Failed to rebuild segment tree for ${device.name} after count growth: ${errMessage(e)}`);
       });
     };
 
@@ -310,7 +316,7 @@ class GoveeAdapter extends utils.Adapter {
       this.mqttClient.setVerificationCode(config.mqttVerificationCode ?? "");
       this.mqttClient.setOnVerificationConsumed(() => {
         this.clearVerificationCodeSetting().catch(e => {
-          this.log.warn(`Could not clear mqttVerificationCode: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.warn(`Could not clear mqttVerificationCode: ${errMessage(e)}`);
         });
       });
       this.mqttClient.setOnVerificationFailed(reason => {
@@ -337,7 +343,7 @@ class GoveeAdapter extends utils.Adapter {
       }
       this.mqttClient.setOnCredentialsRefresh(creds => {
         this.persistCredsToState(creds).catch(e => {
-          this.log.warn(`Could not persist MQTT credentials: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.warn(`Could not persist MQTT credentials: ${errMessage(e)}`);
         });
       });
 
@@ -376,9 +382,7 @@ class GoveeAdapter extends utils.Adapter {
       // as the single source of truth for value coercion + state-id resolution.
       this.deviceManager.setOnCloudCapabilities((device, caps) => {
         this.applyCloudCapabilities(device, caps).catch(e =>
-          this.log.warn(
-            `applyCloudCapabilities failed for ${device.sku}: ${e instanceof Error ? e.message : String(e)}`,
-          ),
+          this.log.warn(`applyCloudCapabilities failed for ${device.sku}: ${errMessage(e)}`),
         );
       });
 
@@ -407,7 +411,15 @@ class GoveeAdapter extends utils.Adapter {
       const triggerAppApiPoll = (): void => {
         this.deviceManager
           ?.pollAppApi()
-          .catch(e => this.log.debug(`pollAppApi failed: ${e instanceof Error ? e.message : String(e)}`));
+          .then(() => {
+            // H2 — Mark initial-poll-done und re-check Ready damit der
+            // Adapter „ready" loggen kann sobald Sensor-Werte da sind.
+            if (!this.appApiInitialPollDone) {
+              this.appApiInitialPollDone = true;
+              this.checkAllReady();
+            }
+          })
+          .catch(e => this.log.debug(`pollAppApi failed: ${errMessage(e)}`));
       };
       this.appApiPollTimer = this.setInterval(triggerAppApiPoll, 2 * 60 * 1000);
       // Initial poll 5s nach Start — gibt MQTT Zeit für den Bearer-Login.
@@ -471,9 +483,7 @@ class GoveeAdapter extends utils.Adapter {
     // Reaps devices from every adapter-level map that was keyed on them so the
     // process doesn't leak memory across Cloud-side device turnover.
     this.cleanupTimer = this.setTimeout(() => {
-      this.reapStaleDevices().catch(e =>
-        this.log.debug(`Device cleanup failed: ${e instanceof Error ? e.message : String(e)}`),
-      );
+      this.reapStaleDevices().catch(e => this.log.debug(`Device cleanup failed: ${errMessage(e)}`));
     }, 30_000);
 
     this.updateConnectionState();
@@ -563,9 +573,11 @@ class GoveeAdapter extends utils.Adapter {
       if (changed) {
         await this.loadCloudStates();
       }
-      this.log.info("Refresh cloud data: done");
+      // G2 — kein „done"-Log: User hat den Button gedrückt, sieht das
+      // Ergebnis am Adapter-Verhalten. „done" auf info-level wäre bei
+      // Erfolg redundant (Fehler-Pfad direkt darunter ist warn).
     } catch (e) {
-      this.log.warn(`Refresh cloud data failed: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.warn(`Refresh cloud data failed: ${errMessage(e)}`);
     }
   }
 
@@ -747,7 +759,7 @@ class GoveeAdapter extends utils.Adapter {
           await this.deviceManager.sendCapabilityCommand(device, capType, capInstance, val);
           await this.setStateAsync(id, { val, ack: true });
         } catch (err) {
-          this.log.warn(`Command failed for ${device.name}: ${err instanceof Error ? err.message : String(err)}`);
+          this.log.warn(`Command failed for ${device.name}: ${errMessage(err)}`);
         }
       } else {
         this.log.debug(`Unknown writable state: ${stateSuffix}`);
@@ -803,7 +815,7 @@ class GoveeAdapter extends utils.Adapter {
         await this.resetRelatedDropdowns(prefix, command);
       }
     } catch (err) {
-      this.log.warn(`Command failed for ${device.name}: ${err instanceof Error ? err.message : String(err)}`);
+      this.log.warn(`Command failed for ${device.name}: ${errMessage(err)}`);
     }
   }
 
@@ -986,7 +998,7 @@ class GoveeAdapter extends utils.Adapter {
           await this.deviceManager.sendCommand(member, command, value);
         }
       } catch (err) {
-        this.log.debug(`Group fan-out to ${member.name}: ${err instanceof Error ? err.message : String(err)}`);
+        this.log.debug(`Group fan-out to ${member.name}: ${errMessage(err)}`);
       }
     }
   }
@@ -1123,7 +1135,7 @@ class GoveeAdapter extends utils.Adapter {
         await this.stateManager?.updateDeviceTier(device, getDeviceTier(device.sku));
       })
       .catch(e => {
-        this.log.error(`createDeviceStates failed for ${device.name}: ${e instanceof Error ? e.message : String(e)}`);
+        this.log.error(`createDeviceStates failed for ${device.name}: ${errMessage(e)}`);
       });
     // Until ready, collect so onReady can await the whole initial batch.
     // After ready, fire-and-forget — the queue would otherwise keep growing
@@ -1163,14 +1175,30 @@ class GoveeAdapter extends utils.Adapter {
     }
   }
 
-  /** Update global info.connection */
+  /**
+   * Update global `info.connection` — der ioBroker-IDC-Indikator.
+   *
+   * Semantik:
+   * - Mit Devices: `connected = true` wenn MIND. ein Device online ist.
+   *   Wenn alle offline → false (User sieht: kein Device antwortet).
+   * - Ohne Devices: `connected = true` wenn der LAN-Stack läuft. Sonst
+   *   false (z.B. EADDRINUSE oder bind-Fehler).
+   *
+   * H4 (geplant für Phase H): nur bei tatsächlichem Wechsel schreiben
+   * (cache lastConnectedValue). Aktuell läuft updateConnectionState bei
+   * jedem device-state-update — fire-and-forget setStateAsync, nur leichter
+   * Overhead.
+   */
   private updateConnectionState(): void {
     const devices = this.deviceManager?.getDevices() ?? [];
     const hasDevices = devices.length > 0;
     const anyOnline = devices.some(d => d.state.online);
     const lanRunning = this.lanClient !== null;
     const connected = hasDevices ? anyOnline : lanRunning;
-    this.setStateAsync("info.connection", { val: connected, ack: true }).catch(() => {});
+    if (connected !== this.lastConnectionState) {
+      this.lastConnectionState = connected;
+      this.setStateAsync("info.connection", { val: connected, ack: true }).catch(() => {});
+    }
   }
 
   /**
@@ -1237,6 +1265,19 @@ class GoveeAdapter extends utils.Adapter {
     if (this.mqttClient && !this.mqttClient.connected) {
       return;
     }
+    // H1 — Wait for OpenAPI-MQTT (Cloud-events for sensors/appliances)
+    // wenn konfiguriert. Vorher fehlte das — Adapter war "ready" obwohl
+    // Sensor-Events-Channel nicht connected war.
+    if (this.openapiMqttClient && !this.openapiMqttClient.connected) {
+      return;
+    }
+    // H2 — Wait for first App-API-Poll wenn ein Sensor-Device angemeldet
+    // ist. App-API liefert die Sensor-Werte (H5179 Temp/Humidity/Battery).
+    // Ohne diesen Check wäre der Adapter "ready" mit leeren Sensor-Werten
+    // für ~2 Minuten.
+    if (this.deviceManager?.hasDeviceNeedingAppApi() && !this.appApiInitialPollDone) {
+      return;
+    }
     this.readyLogged = true;
     this.logDeviceSummary();
     // Persist any learned changes from the initial load (e.g. resolveSegmentCount
@@ -1256,6 +1297,9 @@ class GoveeAdapter extends utils.Adapter {
     const devices = all.filter(d => d.sku !== "BaseGroup");
     const groups = all.filter(d => d.sku === "BaseGroup");
 
+    // H5 — Ready-Log expliziter: Channel-Status (LAN+Cloud+MQTT+Cloud-events)
+    // plus Devices-Online-Count plus Sensor-Initial-Poll-Marker. User soll
+    // EINEN Blick auf den Log werfen und sehen was wirklich operational ist.
     const channels: string[] = ["LAN"];
     if (this.cloudWasConnected) {
       channels.push("Cloud");
@@ -1263,22 +1307,41 @@ class GoveeAdapter extends utils.Adapter {
     if (this.mqttClient?.connected) {
       channels.push("MQTT");
     }
+    if (this.openapiMqttClient?.connected) {
+      channels.push("Cloud-events");
+    }
 
-    // Build the device summary
+    // Device-summary mit Online-Count
+    const lightDevices = devices.filter(d => d.type === "devices.types.light");
+    const onlineDevices = devices.filter(d => d.state.online === true);
     const parts: string[] = [];
     if (devices.length > 0) {
-      parts.push(`${devices.length} device${devices.length > 1 ? "s" : ""}`);
+      const onlineLights = lightDevices.filter(d => d.state.online === true).length;
+      const totalLights = lightDevices.length;
+      if (totalLights > 0) {
+        parts.push(
+          totalLights === onlineLights
+            ? `${totalLights} light${totalLights > 1 ? "s" : ""} online`
+            : `${totalLights} light${totalLights > 1 ? "s" : ""} (${onlineLights} online, ${totalLights - onlineLights} offline)`,
+        );
+      }
+      const sensors = devices.length - lightDevices.length;
+      if (sensors > 0) {
+        const onlineSensors = onlineDevices.filter(d => d.type !== "devices.types.light").length;
+        parts.push(`${sensors} sensor${sensors > 1 ? "s" : ""} (${onlineSensors} with data)`);
+      }
     }
     if (groups.length > 0) {
       parts.push(`${groups.length} group${groups.length > 1 ? "s" : ""}`);
     }
     const summary = parts.length > 0 ? parts.join(", ") : "no devices found";
-    this.log.info(`Govee adapter ready — ${summary} (${channels.join("+")})`);
+    this.log.info(`Govee adapter ready — ${summary} — channels: ${channels.join("+")}`);
 
     // Surface configured-but-not-connected channels with a concrete reason.
     // Truthful — never claim "still pending" when the channel actually failed.
     if (this.cloudClient && !this.cloudWasConnected) {
-      this.log.warn("Cloud not connected — see earlier errors");
+      const reason = this.cloudClient.getFailureReason();
+      this.log.warn(reason ? `Cloud not connected: ${reason}` : "Cloud not connected — see earlier errors");
     }
     if (this.mqttClient && !this.mqttClient.connected) {
       const reason = this.mqttClient.getFailureReason();
@@ -1498,7 +1561,7 @@ class GoveeAdapter extends utils.Adapter {
     // Never let a rejection bubble up from the event handler — the ioBroker
     // event emitter doesn't catch it, which would crash the adapter.
     this.handleMessage(obj).catch(e => {
-      this.log.warn(`onMessage handler crashed for ${obj.command}: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.warn(`onMessage handler crashed for ${obj.command}: ${errMessage(e)}`);
       this.sendMessageResponse(obj, {
         error: e instanceof Error ? e.message : String(e),
       });
@@ -1538,7 +1601,7 @@ class GoveeAdapter extends utils.Adapter {
         return;
       }
     } catch (e) {
-      this.log.warn(`onMessage failed for ${obj.command}: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.warn(`onMessage failed for ${obj.command}: ${errMessage(e)}`);
       this.sendMessageResponse(obj, {
         error: e instanceof Error ? e.message : String(e),
       });

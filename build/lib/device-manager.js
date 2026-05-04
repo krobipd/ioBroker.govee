@@ -497,7 +497,7 @@ class DeviceManager {
         }
       } catch (e) {
         this.diagnostics.recordApiFailure(cd.device, "/router/api/v1/device/scenes", e, this.extractStatus(e));
-        this.log.debug(`Could not load scenes for ${cd.sku}: ${e instanceof Error ? e.message : String(e)}`);
+        this.log.debug(`Could not load scenes for ${cd.sku}: ${(0, import_types.errMessage)(e)}`);
       }
     };
     await this.commandRouter.executeRateLimited(loadScenes, 2);
@@ -510,7 +510,7 @@ class DeviceManager {
           }
         } catch (e) {
           this.diagnostics.recordApiFailure(cd.device, "/router/api/v1/device/diy-scenes", e, this.extractStatus(e));
-          this.log.debug(`Could not load DIY scenes for ${cd.sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load DIY scenes for ${cd.sku}: ${(0, import_types.errMessage)(e)}`);
         }
       };
       await this.commandRouter.executeRateLimited(loadDiy, 2);
@@ -570,7 +570,7 @@ class DeviceManager {
           }
         } catch (e) {
           this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
-          this.log.debug(`Could not load scene library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load scene library for ${sku}: ${(0, import_types.errMessage)(e)}`);
         }
       });
     }
@@ -587,7 +587,7 @@ class DeviceManager {
           }
         } catch (e) {
           this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
-          this.log.debug(`Could not load music library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load music library for ${sku}: ${(0, import_types.errMessage)(e)}`);
         }
       });
     }
@@ -604,7 +604,7 @@ class DeviceManager {
           }
         } catch (e) {
           this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
-          this.log.debug(`Could not load DIY library for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load DIY library for ${sku}: ${(0, import_types.errMessage)(e)}`);
         }
       });
     }
@@ -621,7 +621,7 @@ class DeviceManager {
           }
         } catch (e) {
           this.diagnostics.recordApiFailure(device.deviceId, ep, e, this.extractStatus(e));
-          this.log.debug(`Could not load SKU features for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load SKU features for ${sku}: ${(0, import_types.errMessage)(e)}`);
         }
       });
     }
@@ -639,7 +639,7 @@ class DeviceManager {
             this.log.debug(`Snapshot BLE for ${sku}: ${snaps.length} snapshots with local data`);
           }
         } catch (e) {
-          this.log.debug(`Could not load snapshot BLE for ${sku}: ${e instanceof Error ? e.message : String(e)}`);
+          this.log.debug(`Could not load snapshot BLE for ${sku}: ${(0, import_types.errMessage)(e)}`);
         }
       });
     }
@@ -695,7 +695,7 @@ class DeviceManager {
       }
       return changed;
     } catch (e) {
-      this.log.debug(`Could not load group members: ${e instanceof Error ? e.message : String(e)}`);
+      this.log.debug(`Could not load group members: ${(0, import_types.errMessage)(e)}`);
       return false;
     }
   }
@@ -1030,7 +1030,7 @@ class DeviceManager {
    */
   logDedup(context, err) {
     const category = (0, import_types.classifyError)(err);
-    const msg = `${context}: ${err instanceof Error ? err.message : String(err)}`;
+    const msg = `${context}: ${(0, import_types.errMessage)(err)}`;
     if (category !== this.lastErrorCategory) {
       this.lastErrorCategory = category;
       this.log.warn(msg);
@@ -1163,7 +1163,7 @@ class DeviceManager {
       entries = await this.apiClient.fetchDeviceList();
     } catch (err) {
       const category = (0, import_types.classifyError)(err);
-      const msg = `App API fetch failed: ${err instanceof Error ? err.message : String(err)}`;
+      const msg = `App API fetch failed: ${(0, import_types.errMessage)(err)}`;
       if (category !== this.lastAppApiErrorCategory) {
         this.lastAppApiErrorCategory = category;
         this.log.warn(msg);
@@ -1241,6 +1241,11 @@ class DeviceManager {
    * Whether at least one device in the registry would consume App-API
    * readings (sensors, appliances). Used to skip the App-API poll on
    * Lights-only installations.
+   */
+  /**
+   * True wenn mindestens ein Device App-API-Werte konsumiert (Sensoren,
+   * Appliances). Adapter-checkAllReady wartet darauf damit „ready" erst
+   * geloggt wird wenn Sensor-Werte tatsächlich da sind.
    */
   hasDeviceNeedingAppApi() {
     for (const dev of this.devices.values()) {

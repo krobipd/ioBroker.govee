@@ -1,11 +1,13 @@
 import { httpsRequest, HttpError } from "./http-client";
-import type {
-  CloudDevice,
-  CloudDeviceListResponse,
-  CloudDeviceStateResponse,
-  CloudScene,
-  CloudScenesResponse,
-  CloudStateCapability,
+import {
+  classifyError,
+  type CloudDevice,
+  type CloudDeviceListResponse,
+  type CloudDeviceStateResponse,
+  type CloudScene,
+  type CloudScenesResponse,
+  type CloudStateCapability,
+  type ErrorCategory,
 } from "./types";
 
 const BASE_URL = "https://openapi.api.govee.com";
@@ -25,12 +27,42 @@ export class GoveeCloudClient {
   private onResponse: ((deviceId: string, endpoint: string, body: unknown) => void) | null = null;
 
   /**
+   * Letzte Fehler-Kategorie für getFailureReason() — gesetzt bei jedem
+   * HTTP-Fehler im request-Pfad.
+   */
+  private lastErrorCategory: ErrorCategory | null = null;
+
+  /**
    * @param apiKey Govee API key
    * @param log ioBroker logger
    */
   constructor(apiKey: string, log: ioBroker.Logger) {
     this.apiKey = apiKey;
     this.log = log;
+  }
+
+  /**
+   * Short user-facing reason for "Cloud not connected", or null wenn der
+   * Client noch keinen Fehler gesehen hat. Analog zu mqtt-client —
+   * `logDeviceSummary` nutzt das damit der Adapter klare Diagnose-Texte
+   * statt „see earlier errors" loggen kann.
+   */
+  getFailureReason(): string | null {
+    switch (this.lastErrorCategory) {
+      case "AUTH":
+        return "API key rejected — check Govee API key";
+      case "RATE_LIMIT":
+        return "rate-limited by Govee — will retry";
+      case "NETWORK":
+        return "cannot reach Govee servers — will retry";
+      case "TIMEOUT":
+        return "Cloud request timeout";
+      case "UNKNOWN":
+        return "Cloud request failed — see earlier log";
+      case null:
+      default:
+        return null;
+    }
   }
 
   /**
@@ -196,13 +228,18 @@ export class GoveeCloudClient {
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     this.log.debug(`Cloud API: ${method} ${path}`);
     try {
-      return await httpsRequest<T>({
+      const result = await httpsRequest<T>({
         method: method as "GET" | "POST",
         url: new URL(path, BASE_URL).toString(),
         headers: { "Govee-API-Key": this.apiKey },
         body,
       });
+      // Reset Failure-Kategorie bei Erfolg — getFailureReason() returnt
+      // dann null bis zum nächsten Fehler.
+      this.lastErrorCategory = null;
+      return result;
     } catch (err) {
+      this.lastErrorCategory = classifyError(err);
       // Enhance 429 errors with retry-after info
       if (err instanceof HttpError && err.statusCode === 429) {
         const retryAfter = String(err.headers["retry-after"] ?? "unknown");
