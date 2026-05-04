@@ -32,6 +32,7 @@ var import_govee_mqtt_client = require("./lib/govee-mqtt-client");
 var import_govee_openapi_mqtt_client = require("./lib/govee-openapi-mqtt-client");
 var import_local_snapshots = require("./lib/local-snapshots");
 var import_snapshot_handler = require("./lib/snapshot-handler");
+var import_group_fanout = require("./lib/group-fanout");
 var import_cloud_retry = require("./lib/cloud-retry");
 var import_rate_limiter = require("./lib/rate-limiter");
 var import_segment_wizard = require("./lib/segment-wizard");
@@ -103,6 +104,7 @@ class GoveeAdapter extends utils.Adapter {
   skuCache = null;
   localSnapshots = null;
   snapshotHandler = null;
+  groupFanout = null;
   stateCreationQueue = [];
   lanScanTimer;
   cleanupTimer;
@@ -186,6 +188,7 @@ class GoveeAdapter extends utils.Adapter {
     this.skuCache = new import_sku_cache.SkuCache(dataDir, this.log);
     this.localSnapshots = new import_local_snapshots.LocalSnapshotStore(dataDir, this.log);
     this.snapshotHandler = new import_snapshot_handler.SnapshotHandler(this.buildSnapshotHost());
+    this.groupFanout = new import_group_fanout.GroupFanoutHandler(this.buildGroupFanoutHost());
     this.deviceManager.setSkuCache(this.skuCache);
     const apiClient = new import_govee_api_client.GoveeApiClient();
     apiClient.setEmail(config.goveeEmail);
@@ -592,7 +595,7 @@ class GoveeAdapter extends utils.Adapter {
     }
     const val = resolved.val;
     if (device.sku === "BaseGroup" && device.groupMembers) {
-      await this.handleGroupFanOut(device, stateSuffix, val);
+      await this.groupFanout.fanOut(device, stateSuffix, val);
       await this.setStateAsync(id, { val, ack: true });
       if (stateSuffix === "scenes.light_scene" || stateSuffix === "music.music_mode") {
         await this.resetRelatedDropdowns(prefix, stateSuffix === "scenes.light_scene" ? "lightScene" : "music");
@@ -779,93 +782,35 @@ class GoveeAdapter extends utils.Adapter {
    * @param stateSuffix State path suffix (e.g. "control.power")
    * @param value Command value
    */
-  async handleGroupFanOut(group, stateSuffix, value) {
-    if (!this.deviceManager || !group.groupMembers) {
-      return;
-    }
-    const devices = this.deviceManager.getDevices();
-    const members = this.resolveGroupMembers(group, devices).filter((d) => d.state.online);
-    if (members.length === 0) {
-      this.log.debug(`Group "${group.name}": no reachable members for fan-out`);
-      return;
-    }
-    const command = this.stateToCommand(stateSuffix);
-    if (!command) {
-      return;
-    }
-    if ((command === "lightScene" || command === "music") && (value === "0" || value === 0)) {
-      return;
-    }
-    for (const member of members) {
-      try {
-        if (command === "lightScene") {
-          await this.fanOutScene(group, member, value);
-        } else if (command === "music") {
-          await this.fanOutMusic(group, member, stateSuffix, value);
-        } else {
-          await this.deviceManager.sendCommand(member, command, value);
-        }
-      } catch (err) {
-        this.log.debug(`Group fan-out to ${member.name}: ${(0, import_types.errMessage)(err)}`);
-      }
-    }
-  }
-  /**
-   * Fan out a scene command: match group scene name to member scene index.
-   *
-   * @param group BaseGroup device
-   * @param member Target member device
-   * @param value Dropdown index value
-   */
-  async fanOutScene(group, member, value) {
-    var _a;
-    if (!this.deviceManager || !this.stateManager) {
-      return;
-    }
-    const groupPrefix = this.stateManager.devicePrefix(group);
-    const obj = await this.getObjectAsync(`${this.namespace}.${groupPrefix}.scenes.light_scene`);
-    const groupStates = (_a = obj == null ? void 0 : obj.common) == null ? void 0 : _a.states;
-    const sceneName = groupStates == null ? void 0 : groupStates[String(value)];
-    if (!sceneName) {
-      return;
-    }
-    const memberIdx = member.scenes.findIndex((s) => s.name === sceneName);
-    if (memberIdx >= 0) {
-      await this.deviceManager.sendCommand(member, "lightScene", memberIdx + 1);
-    }
-  }
-  /**
-   * Fan out a music command: match group music name to member music index.
-   *
-   * @param group BaseGroup device
-   * @param member Target member device
-   * @param stateSuffix Music state path suffix
-   * @param value Command value
-   */
-  async fanOutMusic(group, member, stateSuffix, value) {
-    var _a;
-    if (!this.deviceManager || !this.stateManager) {
-      return;
-    }
-    if (stateSuffix !== "music.music_mode") {
-      await this.sendMusicCommand(member, this.stateManager.devicePrefix(member), stateSuffix, value);
-      return;
-    }
-    const groupPrefix = this.stateManager.devicePrefix(group);
-    const obj = await this.getObjectAsync(`${this.namespace}.${groupPrefix}.music.music_mode`);
-    const groupStates = (_a = obj == null ? void 0 : obj.common) == null ? void 0 : _a.states;
-    const musicName = groupStates == null ? void 0 : groupStates[String(value)];
-    if (!musicName) {
-      return;
-    }
-    const memberIdx = member.musicLibrary.findIndex((m) => m.name === musicName);
-    if (memberIdx >= 0) {
-      const memberPrefix = this.stateManager.devicePrefix(member);
-      await this.sendMusicCommand(member, memberPrefix, "music.music_mode", memberIdx + 1);
-    }
+  /** Construct host object for GroupFanoutHandler. */
+  buildGroupFanoutHost() {
+    return {
+      log: this.log,
+      namespace: this.namespace,
+      getDevices: () => {
+        var _a, _b;
+        return (_b = (_a = this.deviceManager) == null ? void 0 : _a.getDevices()) != null ? _b : [];
+      },
+      sendCommand: async (device, command, value) => {
+        var _a;
+        await ((_a = this.deviceManager) == null ? void 0 : _a.sendCommand(device, command, value));
+      },
+      devicePrefix: (device) => {
+        var _a, _b;
+        return (_b = (_a = this.stateManager) == null ? void 0 : _a.devicePrefix(device)) != null ? _b : "";
+      },
+      stateToCommand: (suffix) => {
+        var _a;
+        return (_a = this.stateToCommand(suffix)) != null ? _a : void 0;
+      },
+      getObject: (id) => this.getObjectAsync(id),
+      sendMusicCommand: (device, devicePrefix, stateSuffix, value) => this.sendMusicCommand(device, devicePrefix, stateSuffix, value)
+    };
   }
   /**
    * Resolve group member references to actual device objects.
+   * Bleibt in main.ts weil `updateGroupReachability` (auch in main.ts) das
+   * direkt nutzt — Helper-Pfad ist von der Fan-Out-Klasse unabhängig.
    *
    * @param group BaseGroup device with groupMembers
    * @param devices Full device list to search

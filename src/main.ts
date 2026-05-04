@@ -14,6 +14,7 @@ import { GoveeMqttClient } from "./lib/govee-mqtt-client";
 import { GoveeOpenapiMqttClient } from "./lib/govee-openapi-mqtt-client";
 import { LocalSnapshotStore } from "./lib/local-snapshots";
 import { SnapshotHandler, type SnapshotHandlerHost } from "./lib/snapshot-handler";
+import { GroupFanoutHandler, type GroupFanoutHost } from "./lib/group-fanout";
 import { CloudRetryLoop, type CloudRetryHost } from "./lib/cloud-retry";
 import { RateLimiter } from "./lib/rate-limiter";
 import { SegmentWizard, wizardIdleText, type WizardHost, type WizardResult } from "./lib/segment-wizard";
@@ -118,6 +119,7 @@ class GoveeAdapter extends utils.Adapter {
   private skuCache: SkuCache | null = null;
   private localSnapshots: LocalSnapshotStore | null = null;
   private snapshotHandler: SnapshotHandler | null = null;
+  private groupFanout: GroupFanoutHandler | null = null;
   private stateCreationQueue: Promise<void>[] = [];
   private lanScanTimer: ioBroker.Timeout | undefined;
   private cleanupTimer: ioBroker.Timeout | undefined;
@@ -214,6 +216,7 @@ class GoveeAdapter extends utils.Adapter {
     this.skuCache = new SkuCache(dataDir, this.log);
     this.localSnapshots = new LocalSnapshotStore(dataDir, this.log);
     this.snapshotHandler = new SnapshotHandler(this.buildSnapshotHost());
+    this.groupFanout = new GroupFanoutHandler(this.buildGroupFanoutHost());
     this.deviceManager.setSkuCache(this.skuCache);
 
     // API client for undocumented scene/music/DIY libraries (always available)
@@ -723,7 +726,7 @@ class GoveeAdapter extends utils.Adapter {
 
     // Group fan-out: route commands to each member device
     if (device.sku === "BaseGroup" && device.groupMembers) {
-      await this.handleGroupFanOut(device, stateSuffix, val);
+      await this.groupFanout!.fanOut(device, stateSuffix, val);
       await this.setStateAsync(id, { val, ack: true });
       if (stateSuffix === "scenes.light_scene" || stateSuffix === "music.music_mode") {
         await this.resetRelatedDropdowns(prefix, stateSuffix === "scenes.light_scene" ? "lightScene" : "music");
@@ -969,117 +972,27 @@ class GoveeAdapter extends utils.Adapter {
    * @param stateSuffix State path suffix (e.g. "control.power")
    * @param value Command value
    */
-  private async handleGroupFanOut(group: GoveeDevice, stateSuffix: string, value: ioBroker.StateValue): Promise<void> {
-    if (!this.deviceManager || !group.groupMembers) {
-      return;
-    }
-
-    const devices = this.deviceManager.getDevices();
-    const members = this.resolveGroupMembers(group, devices).filter(d => d.state.online);
-
-    if (members.length === 0) {
-      this.log.debug(`Group "${group.name}": no reachable members for fan-out`);
-      return;
-    }
-
-    const command = this.stateToCommand(stateSuffix);
-    if (!command) {
-      return;
-    }
-
-    // Dropdown reset — no command needed
-    if ((command === "lightScene" || command === "music") && (value === "0" || value === 0)) {
-      return;
-    }
-
-    for (const member of members) {
-      try {
-        if (command === "lightScene") {
-          await this.fanOutScene(group, member, value);
-        } else if (command === "music") {
-          await this.fanOutMusic(group, member, stateSuffix, value);
-        } else {
-          await this.deviceManager.sendCommand(member, command, value);
-        }
-      } catch (err) {
-        this.log.debug(`Group fan-out to ${member.name}: ${errMessage(err)}`);
-      }
-    }
-  }
-
-  /**
-   * Fan out a scene command: match group scene name to member scene index.
-   *
-   * @param group BaseGroup device
-   * @param member Target member device
-   * @param value Dropdown index value
-   */
-  private async fanOutScene(group: GoveeDevice, member: GoveeDevice, value: ioBroker.StateValue): Promise<void> {
-    if (!this.deviceManager || !this.stateManager) {
-      return;
-    }
-
-    // Get group scene name from dropdown value (1-based index)
-    const groupPrefix = this.stateManager.devicePrefix(group);
-    const obj = await this.getObjectAsync(`${this.namespace}.${groupPrefix}.scenes.light_scene`);
-    const groupStates = obj?.common?.states as Record<string, string> | undefined;
-    const sceneName = groupStates?.[String(value)];
-    if (!sceneName) {
-      return;
-    }
-
-    // Find the same scene name in the member's scene list (1-based)
-    const memberIdx = member.scenes.findIndex(s => s.name === sceneName);
-    if (memberIdx >= 0) {
-      await this.deviceManager.sendCommand(member, "lightScene", memberIdx + 1);
-    }
-  }
-
-  /**
-   * Fan out a music command: match group music name to member music index.
-   *
-   * @param group BaseGroup device
-   * @param member Target member device
-   * @param stateSuffix Music state path suffix
-   * @param value Command value
-   */
-  private async fanOutMusic(
-    group: GoveeDevice,
-    member: GoveeDevice,
-    stateSuffix: string,
-    value: ioBroker.StateValue,
-  ): Promise<void> {
-    if (!this.deviceManager || !this.stateManager) {
-      return;
-    }
-
-    // For sensitivity/auto_color, forward directly — these are numeric values
-    if (stateSuffix !== "music.music_mode") {
-      await this.sendMusicCommand(member, this.stateManager.devicePrefix(member), stateSuffix, value);
-      return;
-    }
-
-    // Get group music name from dropdown value (1-based index)
-    const groupPrefix = this.stateManager.devicePrefix(group);
-    const obj = await this.getObjectAsync(`${this.namespace}.${groupPrefix}.music.music_mode`);
-    const groupStates = obj?.common?.states as Record<string, string> | undefined;
-    const musicName = groupStates?.[String(value)];
-    if (!musicName) {
-      return;
-    }
-
-    // Find the same music name in the member's music library (1-based)
-    const memberIdx = member.musicLibrary.findIndex(m => m.name === musicName);
-    if (memberIdx >= 0) {
-      // Build the music command struct for the member
-      const memberPrefix = this.stateManager.devicePrefix(member);
-      // Temporarily write the music mode value to trigger the member's music command
-      await this.sendMusicCommand(member, memberPrefix, "music.music_mode", memberIdx + 1);
-    }
+  /** Construct host object for GroupFanoutHandler. */
+  private buildGroupFanoutHost(): GroupFanoutHost {
+    return {
+      log: this.log,
+      namespace: this.namespace,
+      getDevices: () => this.deviceManager?.getDevices() ?? [],
+      sendCommand: async (device, command, value) => {
+        await this.deviceManager?.sendCommand(device, command, value);
+      },
+      devicePrefix: device => this.stateManager?.devicePrefix(device) ?? "",
+      stateToCommand: suffix => this.stateToCommand(suffix) ?? undefined,
+      getObject: id => this.getObjectAsync(id),
+      sendMusicCommand: (device, devicePrefix, stateSuffix, value) =>
+        this.sendMusicCommand(device, devicePrefix, stateSuffix, value),
+    };
   }
 
   /**
    * Resolve group member references to actual device objects.
+   * Bleibt in main.ts weil `updateGroupReachability` (auch in main.ts) das
+   * direkt nutzt — Helper-Pfad ist von der Fan-Out-Klasse unabhängig.
    *
    * @param group BaseGroup device with groupMembers
    * @param devices Full device list to search
