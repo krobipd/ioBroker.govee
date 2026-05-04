@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.3.1",
+    "version": "2.4.0",
     "news": {
+      "2.4.0": {
+        "en": "Code-hygiene: local snapshot manager (save/restore/delete) now lives in its own class with a host interface. main.ts shrinks; behaviour unchanged.",
+        "de": "Code-Hygiene: lokaler Snapshot-Manager (save/restore/delete) hat jetzt eine eigene Klasse mit Host-Interface. main.ts wird kleiner; Verhalten identisch.",
+        "ru": "Гигиена кода: локальный snapshot-менеджер вынесен в отдельный класс с host-интерфейсом. main.ts уменьшается; поведение неизменно.",
+        "pt": "Higiene de codigo: o gerenciador local de snapshots agora vive em sua propria classe com host-interface. main.ts encolhe; comportamento inalterado.",
+        "nl": "Code-hygiene: lokale snapshot-manager (save/restore/delete) heeft nu een eigen klasse met host-interface. main.ts wordt kleiner; gedrag ongewijzigd.",
+        "fr": "Hygiene de code : le gestionnaire de snapshot local vit maintenant dans sa propre classe avec une host-interface. main.ts retrecit; comportement inchange.",
+        "it": "Igiene del codice: il gestore snapshot locale vive ora nella propria classe con un host-interface. main.ts si riduce; comportamento invariato.",
+        "es": "Higiene de codigo: el gestor de snapshots locales vive ahora en su propia clase con host-interface. main.ts se reduce; comportamiento sin cambios.",
+        "pl": "Higiena kodu: lokalny snapshot-manager zyskal wlasna klase z host-interface. main.ts maleje; zachowanie bez zmian.",
+        "uk": "Гігієна коду: локальний snapshot-менеджер тепер живе у власному класі з host-інтерфейсом. main.ts зменшується; поведінка без змін.",
+        "zh-cn": "代码卫生：本地 snapshot 管理器现已拆分为独立类，使用 host 接口。main.ts 缩小；行为不变。"
+      },
       "2.3.1": {
         "en": "Test coverage: smoke tests for GoveeCloudClient + GoveeMqttClient. Initial-state and setter checks now in place; full mock-based test paths come in a later release.",
         "de": "Test-Coverage: Smoke-Tests für GoveeCloudClient + GoveeMqttClient. Initial-State + Setter-Checks drin; volle Mock-basierte Test-Pfade kommen separat.",
@@ -80,19 +93,6 @@
         "pl": "Komunikat weryfikacji nie twierdzi juz, ze konto ma 2FA, gdy nie ma. Stare dane z v2.1.0 sa czyszczone przy pierwszym starcie. H61D5 dodano do katalogu.",
         "uk": "Повідомлення верифікації більше не стверджує, що у акаунта 2FA, якщо її немає. Старі креди з v2.1.0 чистяться при першому старті. H61D5 у каталозі.",
         "zh-cn": "验证消息不再误称账户开启了 2FA。来自 v2.1.0 的旧凭据在首次启动时清理。H61D5 加入支持目录。"
-      },
-      "2.1.1": {
-        "en": "Security fix: in v2.1.0 your MQTT login was stored unencrypted by mistake — now encrypted. Diagnostics renamed to diag.export/result/tier. 2FA warning no longer repeats on every reconnect.",
-        "de": "Sicherheitsfix: in v2.1.0 wurde dein MQTT-Login versehentlich unverschluesselt gespeichert — jetzt verschluesselt. Diagnose-Datenpunkte heissen jetzt diag.*. 2FA-Warnung wiederholt sich nicht mehr.",
-        "ru": "Фикс безопасности: в v2.1.0 MQTT-логин ошибочно сохранялся незашифрованным — теперь шифруется. Диагностика переименована в diag.export/result/tier. 2FA-warn не повторяется при каждом реконнекте.",
-        "pt": "Correcao de seguranca: em v2.1.0 o login MQTT foi guardado sem cifrar por engano — agora cifrado. Diagnostico renomeado para diag.export/result/tier. Aviso 2FA nao se repete a cada reconexao.",
-        "nl": "Beveiligingsfix: in v2.1.0 werd je MQTT-login per ongeluk onversleuteld bewaard — nu versleuteld. Diagnose-datapoints heten nu diag.*. 2FA-waarschuwing herhaalt zich niet meer.",
-        "fr": "Correctif de securite: en v2.1.0 les identifiants MQTT etaient stockes en clair par erreur — maintenant chiffres. Diagnostics renommes en diag.*. L'avertissement 2FA ne se repete plus.",
-        "it": "Fix di sicurezza: in v2.1.0 il login MQTT era salvato non cifrato per errore — ora cifrato. Diagnostica rinominata in diag.export/result/tier. L'avviso 2FA non si ripete piu a ogni riconnessione.",
-        "es": "Fix de seguridad: en v2.1.0 el login MQTT se guardaba sin cifrar por error — ahora cifrado. Diagnostico renombrado a diag.export/result/tier. El aviso 2FA ya no se repite en cada reconexion.",
-        "pl": "Fix bezpieczenstwa: w v2.1.0 logowanie MQTT bylo bez szyfrowania przez pomylke — teraz szyfrowane. Diagnostyka przemianowana na diag.*. Ostrzezenie 2FA nie powtarza sie juz.",
-        "uk": "Фікс безпеки: у v2.1.0 MQTT-логін помилково зберігався незашифрованим — тепер шифрується. Діагностика перейменована на diag.export/result/tier. 2FA-warn не повторюється при кожному реконекті.",
-        "zh-cn": "安全修复：v2.1.0 中 MQTT 登录信息因错误而未加密保存 — 现已加密。诊断数据点改名为 diag.export/result/tier。2FA 警告不再在每次重连时重复。"
       }
     },
     "titleLang": {

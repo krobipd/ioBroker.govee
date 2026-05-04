@@ -1,4 +1,12 @@
 # Older Changes
+## 2.1.3 (2026-05-03)
+
+- Critical fix: no more restart-loop after entering the verification code. The cached login is now stored in a state, not in the adapter config — saving the config doesn't trigger a restart anymore.
+- Saving email + password in the adapter config works again. The previous loop made it look like only the "Test login" button worked.
+- Honest startup messages: when MQTT really doesn't connect within the first minute, the log says why ("login rejected", "verification needed", etc.) instead of "still pending".
+- Verification warning shortened. The full step-by-step instructions live in the Wiki, the log only states the action.
+- "MQTT connected to AWS IoT" → "MQTT connected". "OpenAPI MQTT" → "Cloud-events" in user-facing logs.
+
 ## 2.1.2 (2026-05-02)
 
 - The verification message no longer claims your account has 2FA when it doesn't. Govee asks for a one-time check the first time it sees this client — same dialog, but the wording matches reality now.

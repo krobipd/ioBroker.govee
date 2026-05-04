@@ -22,6 +22,9 @@ __export(snapshot_handler_exports, {
 });
 module.exports = __toCommonJS(snapshot_handler_exports);
 class SnapshotHandler {
+  /**
+   * @param host Adapter dependencies via Host-Interface (testbar via Mocks)
+   */
   constructor(host) {
     this.host = host;
   }
