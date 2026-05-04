@@ -124,6 +124,11 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### 2.3.0 (2026-05-04)
+
+- App-Version-Drift-Monitor: täglicher iTunes-Lookup vergleicht die im Adapter hinterlegte Govee-App-Version mit der aktuellen iOS-Version. Bei Drift > 2 Minor wird gewarnt — Govees undokumentierte Endpoints rejecten gelegentlich zu alte Clients.
+- Code-Hygiene: `onStateChange`-Handler in eigene Methoden für Diagnostics-Export und Generic-Capability-Routing aufgeteilt. Magic-Numbers durch `timing-constants.ts` ersetzt. Lifecycle-Flags besser dokumentiert.
+
 ### 2.2.0 (2026-05-04)
 
 - 2FA-Verifizierung triggert keinen Restart mehr. MQTT-Pushes typsicher, Sensor-Datenpunkte im richtigen Kanal (`sensor/`, `events/` statt `control/`).
@@ -149,14 +154,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - The verification message no longer claims your account has 2FA when it doesn't. Govee asks for a one-time check the first time it sees this client — same dialog, but the wording matches reality now.
 - Adapters upgrading from v2.1.0 had stored MQTT credentials as plain text by mistake. The corrupted leftover bytes are now cleared on first start, so the verification flow only runs once.
 - New device added to the catalogue: H61D5 (LED Strip).
-
-### 2.1.1 (2026-05-02)
-
-- Security fix: in v2.1.0 your saved MQTT login (token + certificate) was accidentally stored unencrypted. Now actually encrypted at rest as intended.
-- Diagnostics datapoints renamed from `info.diagnostics_*` to `diag.export` / `diag.result` / `diag.tier`. Old datapoints are removed on first start — adjust scripts that referenced the old names.
-- The `diag.export` JSON now also shows failed Cloud calls (with status code) and recent log lines for the device, so a single JSON dump is enough for a bug report.
-- 2-Factor verification warning no longer repeats on every reconnect attempt. You'll see it once when Govee actually wants a code, not every minute while the adapter retries.
-- The MQTT connection is no longer dropped every few hours when the access token rotates — refreshed in the background. No more spurious 2FA warning after the adapter has been running a while.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

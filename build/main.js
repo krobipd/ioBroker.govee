@@ -37,6 +37,9 @@ var import_segment_wizard = require("./lib/segment-wizard");
 var import_sku_cache = require("./lib/sku-cache");
 var import_state_manager = require("./lib/state-manager");
 var import_types = require("./lib/types");
+var import_timing_constants = require("./lib/timing-constants");
+var import_govee_constants = require("./lib/govee-constants");
+var import_http_client = require("./lib/http-client");
 const FULL_LIMITS = { perMinute: 8, perDay: 9e3 };
 const VERIFICATION_REQUEST_THROTTLE_MS = 3e4;
 const STATE_TO_COMMAND = {
@@ -77,18 +80,27 @@ class GoveeAdapter extends utils.Adapter {
    *  einen unnötigen setStateAsync macht (H4).
    */
   lastConnectionState = null;
-  /**
-   * True nach dem ersten erfolgreichen App-API-Poll. checkAllReady wartet
-   * darauf wenn Sensor-Devices angemeldet sind (H2).
-   */
+  // === Lifecycle-Flags (Adapter-Boot-Sequenz) ===
+  // checkAllReady() prüft alle 5 Voraussetzungen gleichzeitig — sie laufen
+  // parallel ab, kein lineares STATE_MACHINE-Pattern weil Channels
+  // unabhängig connecten.
+  /** LAN-Scan-Initial-Wait abgeschlossen (3s nach Start). */
+  lanScanDone = false;
+  /** State-Tree-Erstellung für alle Cached/Cloud-Devices fertig. */
+  statesReady = false;
+  /** Cloud-Init-Phase abgeschlossen (mit oder ohne Erfolg). */
+  cloudInitDone = false;
+  /** True nach dem ersten erfolgreichen App-API-Poll (für Sensoren mit Werten). */
   appApiInitialPollDone = false;
+  /** Verhindert Mehrfach-Ready-Log innerhalb derselben Adapter-Session. */
+  readyLogged = false;
+  /** Cloud war mindestens einmal connected — für „restored"-Log nach Down. */
+  cloudWasConnected = false;
+  /** Tägliches Interval für App-Version-Drift-Check gegen App-Store. */
+  appVersionCheckTimer;
+  // === Sub-Komponenten ===
   skuCache = null;
   localSnapshots = null;
-  cloudWasConnected = false;
-  readyLogged = false;
-  cloudInitDone = false;
-  lanScanDone = false;
-  statesReady = false;
   stateCreationQueue = [];
   lanScanTimer;
   cleanupTimer;
@@ -340,8 +352,8 @@ class GoveeAdapter extends utils.Adapter {
           }
         }).catch((e) => this.log.debug(`pollAppApi failed: ${(0, import_types.errMessage)(e)}`));
       };
-      this.appApiPollTimer = this.setInterval(triggerAppApiPoll, 2 * 60 * 1e3);
-      this.appApiInitialTimer = this.setTimeout(triggerAppApiPoll, 5e3);
+      this.appApiPollTimer = this.setInterval(triggerAppApiPoll, import_timing_constants.APP_API_POLL_INTERVAL_MS);
+      this.appApiInitialTimer = this.setTimeout(triggerAppApiPoll, import_timing_constants.APP_API_INITIAL_DELAY_MS);
       if (!cachedOk) {
         const result = await this.cloudInitWithTimeout();
         this.cloudWasConnected = result.ok;
@@ -385,6 +397,18 @@ class GoveeAdapter extends utils.Adapter {
     this.cleanupTimer = this.setTimeout(() => {
       this.reapStaleDevices().catch((e) => this.log.debug(`Device cleanup failed: ${(0, import_types.errMessage)(e)}`));
     }, 3e4);
+    this.appVersionCheckTimer = this.setInterval(
+      () => {
+        this.checkAppVersionDrift().catch((e) => this.log.debug(`App version check error: ${(0, import_types.errMessage)(e)}`));
+      },
+      24 * 60 * 60 * 1e3
+    );
+    this.setTimeout(
+      () => {
+        this.checkAppVersionDrift().catch((e) => this.log.debug(`App version check error: ${(0, import_types.errMessage)(e)}`));
+      },
+      2 * 60 * 1e3
+    );
     this.updateConnectionState();
     this.checkAllReady();
     this.readyTimer = this.setTimeout(() => {
@@ -405,7 +429,7 @@ class GoveeAdapter extends utils.Adapter {
     }
     const loadPromise = this.deviceManager.loadFromCloud();
     const timeoutPromise = new Promise((resolve) => {
-      this.cloudInitTimer = this.setTimeout(() => resolve({ ok: false, reason: "transient" }), 6e4);
+      this.cloudInitTimer = this.setTimeout(() => resolve({ ok: false, reason: "transient" }), import_timing_constants.READY_TIMEOUT_MS);
     });
     try {
       return await Promise.race([loadPromise, timeoutPromise]);
@@ -499,6 +523,10 @@ class GoveeAdapter extends utils.Adapter {
         this.clearTimeout(this.cloudInitTimer);
         this.cloudInitTimer = void 0;
       }
+      if (this.appVersionCheckTimer) {
+        this.clearInterval(this.appVersionCheckTimer);
+        this.appVersionCheckTimer = void 0;
+      }
       (_a = this.cloudRetry) == null ? void 0 : _a.dispose();
       (_b = this.segmentWizard) == null ? void 0 : _b.dispose();
       (_c = this.lanClient) == null ? void 0 : _c.stop();
@@ -535,7 +563,7 @@ class GoveeAdapter extends utils.Adapter {
    * @param state New state value
    */
   async onStateChange(id, state) {
-    var _a, _b, _c, _d, _e;
+    var _a;
     if (!state || state.ack || !this.deviceManager || !this.stateManager) {
       return;
     }
@@ -591,40 +619,12 @@ class GoveeAdapter extends utils.Adapter {
       return;
     }
     if (stateSuffix === "diag.export" && val) {
-      const deviceKey = `${device.sku}:${device.deviceId}`;
-      const now = Date.now();
-      const last = (_a = this.diagnosticsLastRun.get(deviceKey)) != null ? _a : 0;
-      if (now - last < 2e3) {
-        this.log.debug(`Diagnostics export throttled for ${device.name} \u2014 last run ${now - last}ms ago`);
-        await this.setStateAsync(id, { val: false, ack: true });
-        return;
-      }
-      this.diagnosticsLastRun.set(deviceKey, now);
-      const diag = this.deviceManager.generateDiagnostics(device, (_b = this.version) != null ? _b : "unknown");
-      const resultId = `${this.namespace}.${prefix}.diag.result`;
-      await this.setStateAsync(resultId, {
-        val: JSON.stringify(diag, null, 2),
-        ack: true
-      });
-      await this.setStateAsync(id, { val: false, ack: true });
-      this.log.info(`Diagnostics exported for ${device.name} (${device.sku})`);
+      await this.handleDiagnosticsExport(device, prefix, id);
       return;
     }
     const command = this.stateToCommand(stateSuffix);
     if (!command) {
-      const obj = await this.getObjectAsync(id);
-      const capType = (_c = obj == null ? void 0 : obj.native) == null ? void 0 : _c.capabilityType;
-      const capInstance = (_d = obj == null ? void 0 : obj.native) == null ? void 0 : _d.capabilityInstance;
-      if (typeof capType === "string" && typeof capInstance === "string") {
-        try {
-          await this.deviceManager.sendCapabilityCommand(device, capType, capInstance, val);
-          await this.setStateAsync(id, { val, ack: true });
-        } catch (err) {
-          this.log.warn(`Command failed for ${device.name}: ${(0, import_types.errMessage)(err)}`);
-        }
-      } else {
-        this.log.debug(`Unknown writable state: ${stateSuffix}`);
-      }
+      await this.handleGenericCapabilityCommand(device, id, stateSuffix, val);
       return;
     }
     if ((command === "lightScene" || command === "diyScene" || command === "snapshot") && (val === "0" || val === 0)) {
@@ -635,7 +635,7 @@ class GoveeAdapter extends utils.Adapter {
       const level = typeof val === "number" ? val : parseInt(String(val), 10);
       if (!isNaN(level)) {
         device.sceneSpeed = level;
-        (_e = this.deviceManager) == null ? void 0 : _e.persistDeviceToCache(device);
+        (_a = this.deviceManager) == null ? void 0 : _a.persistDeviceToCache(device);
       }
       await this.setStateAsync(id, { val, ack: true });
       return;
@@ -988,6 +988,51 @@ class GoveeAdapter extends utils.Adapter {
    * each retired device — those reaping APIs come in with the pruning patch,
    * not before (Memory `feedback_kein_phantom_schema`).
    */
+  /**
+   * App-Version-Drift-Check gegen iTunes-Lookup.
+   *
+   * Govee's app2.govee.com-Endpoints rejecten manchmal sehr alte
+   * User-Agent-Strings. Daily-Check fragt iTunes nach der aktuellen
+   * iOS-App-Version + vergleicht mit `GOVEE_APP_VERSION`. Bei Drift > 2
+   * minor versions: warn-Log + state `info.appVersionDrift` schreiben.
+   *
+   * Failures (5xx, network) werden silent debug-geloggt — kein User-Impact.
+   */
+  async checkAppVersionDrift() {
+    var _a, _b, _c, _d, _e, _f;
+    try {
+      const resp = await (0, import_http_client.httpsRequest)({
+        method: "GET",
+        url: "https://itunes.apple.com/lookup?bundleId=com.ihoment.GoVeeSensor",
+        headers: { "User-Agent": "ioBroker.govee-smart" },
+        timeout: 1e4
+      });
+      const liveVersion = (_b = (_a = resp.results) == null ? void 0 : _a[0]) == null ? void 0 : _b.version;
+      if (typeof liveVersion !== "string" || liveVersion.length === 0) {
+        return;
+      }
+      const localParts = import_govee_constants.GOVEE_APP_VERSION.split(".").map(Number);
+      const liveParts = liveVersion.split(".").map(Number);
+      const localMajor = (_c = localParts[0]) != null ? _c : 0;
+      const localMinor = (_d = localParts[1]) != null ? _d : 0;
+      const liveMajor = (_e = liveParts[0]) != null ? _e : 0;
+      const liveMinor = (_f = liveParts[1]) != null ? _f : 0;
+      const liveTotal = liveMajor * 100 + liveMinor;
+      const localTotal = localMajor * 100 + localMinor;
+      const driftMinor = liveTotal - localTotal;
+      const driftMessage = driftMinor === 0 ? `current (live=${liveVersion}, local=${import_govee_constants.GOVEE_APP_VERSION})` : driftMinor <= 2 ? `minor drift (live=${liveVersion}, local=${import_govee_constants.GOVEE_APP_VERSION})` : `STALE (live=${liveVersion}, local=${import_govee_constants.GOVEE_APP_VERSION}) \u2014 bump GOVEE_APP_VERSION`;
+      await this.setStateAsync("info.appVersionDrift", { val: driftMessage, ack: true }).catch(() => void 0);
+      if (driftMinor > 2) {
+        this.log.warn(
+          `Govee app version drift: live ${liveVersion} vs local ${import_govee_constants.GOVEE_APP_VERSION} \u2014 undocumented endpoints may start failing. Run sync-govee-app-version.py + release a new adapter version.`
+        );
+      } else {
+        this.log.debug(`App version: ${driftMessage}`);
+      }
+    } catch (e) {
+      this.log.debug(`App version check failed: ${(0, import_types.errMessage)(e)}`);
+    }
+  }
   async reapStaleDevices() {
     if (!this.stateManager || !this.deviceManager) {
       return;
@@ -1727,6 +1772,67 @@ class GoveeAdapter extends utils.Adapter {
     colorRgb: "",
     colorTemperature: ""
   };
+  /**
+   * Diagnostics-Export-Button-Handler. Throttled auf 2s pro Device damit
+   * wiederholte/Skript-Trigger keinen Burst von JSON-Serialisierungen
+   * erzeugen.
+   *
+   * @param device Govee device
+   * @param prefix Device state prefix
+   * @param triggerStateId The state-id that triggered the export (so we can ack)
+   */
+  async handleDiagnosticsExport(device, prefix, triggerStateId) {
+    var _a, _b;
+    if (!this.deviceManager) {
+      return;
+    }
+    const deviceKey = `${device.sku}:${device.deviceId}`;
+    const now = Date.now();
+    const last = (_a = this.diagnosticsLastRun.get(deviceKey)) != null ? _a : 0;
+    if (now - last < 2e3) {
+      this.log.debug(`Diagnostics export throttled for ${device.name} \u2014 last run ${now - last}ms ago`);
+      await this.setStateAsync(triggerStateId, { val: false, ack: true });
+      return;
+    }
+    this.diagnosticsLastRun.set(deviceKey, now);
+    const diag = this.deviceManager.generateDiagnostics(device, (_b = this.version) != null ? _b : "unknown");
+    const resultId = `${this.namespace}.${prefix}.diag.result`;
+    await this.setStateAsync(resultId, {
+      val: JSON.stringify(diag, null, 2),
+      ack: true
+    });
+    await this.setStateAsync(triggerStateId, { val: false, ack: true });
+    this.log.info(`Diagnostics exported for ${device.name} (${device.sku})`);
+  }
+  /**
+   * Generischer Capability-Routing-Pfad für States die nicht im STATE_TO_COMMAND
+   * Mapping sind. Liest `native.capabilityType`/`capabilityInstance` aus dem
+   * State-Object und schickt das via Cloud-API.
+   *
+   * @param device Target device
+   * @param id Full state-id (für ack)
+   * @param stateSuffix State-Pfad innerhalb Device (für debug-log)
+   * @param val Value zum Senden
+   */
+  async handleGenericCapabilityCommand(device, id, stateSuffix, val) {
+    var _a, _b;
+    if (!this.deviceManager) {
+      return;
+    }
+    const obj = await this.getObjectAsync(id);
+    const capType = (_a = obj == null ? void 0 : obj.native) == null ? void 0 : _a.capabilityType;
+    const capInstance = (_b = obj == null ? void 0 : obj.native) == null ? void 0 : _b.capabilityInstance;
+    if (typeof capType === "string" && typeof capInstance === "string") {
+      try {
+        await this.deviceManager.sendCapabilityCommand(device, capType, capInstance, val);
+        await this.setStateAsync(id, { val, ack: true });
+      } catch (err) {
+        this.log.warn(`Command failed for ${device.name}: ${(0, import_types.errMessage)(err)}`);
+      }
+    } else {
+      this.log.debug(`Unknown writable state: ${stateSuffix}`);
+    }
+  }
   /**
    * Reset related dropdown states when switching between scenes/snapshots/colors.
    * Each mode-switch resets all OTHER mode dropdowns to "---" (0).

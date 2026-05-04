@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "news": {
+      "2.3.0": {
+        "en": "App-version drift monitor: daily iTunes lookup warns when local Govee-App-Version constant gets too stale. Plus code-hygiene: onStateChange handlers split out, timing-constants module.",
+        "de": "App-Version-Drift-Monitor: täglicher iTunes-Lookup warnt wenn lokale Govee-App-Version zu alt ist. Plus Code-Hygiene: onStateChange-Handler aufgeteilt, timing-constants-Modul.",
+        "ru": "Монитор дрифта App-версии: ежедневная проверка через iTunes warnt при устаревании локальной Govee-App-Version. Плюс гигиена кода: onStateChange-handlers выделены.",
+        "pt": "Monitor de drift da App-version: lookup diario no iTunes alerta quando a Govee-App-Version local fica obsoleta. Plus higiene de codigo: onStateChange handlers separados.",
+        "nl": "App-version drift monitor: dagelijkse iTunes-lookup waarschuwt als lokale Govee-App-Version verouderd is. Plus code-hygiene: onStateChange handlers uitgesplitst.",
+        "fr": "Moniteur de drift App-version : lookup iTunes quotidien alerte quand la Govee-App-Version locale devient obsolete. Plus hygiene de code : onStateChange handlers separes.",
+        "it": "Monitor drift App-version: lookup iTunes giornaliero avvisa quando la Govee-App-Version locale diventa obsoleta. Plus igiene del codice: onStateChange handlers separati.",
+        "es": "Monitor drift App-version: lookup diario en iTunes avisa cuando la Govee-App-Version local se queda obsoleta. Plus higiene de codigo: onStateChange handlers separados.",
+        "pl": "Monitor driftu App-version: codzienny lookup iTunes ostrzega gdy lokalna Govee-App-Version jest przestarzala. Plus higiena kodu: onStateChange handlers wydzielone.",
+        "uk": "Монітор дрейфу App-версії: щоденний iTunes-лукап попереджає коли локальна Govee-App-Version застаріла. Плюс гігієна коду: onStateChange handlers виділені.",
+        "zh-cn": "App 版本漂移监控：每日 iTunes 查询，本地 Govee 应用版本过旧时发出警告。代码卫生：onStateChange handlers 拆分。"
+      },
       "2.2.0": {
         "en": "Quality release: 2FA no longer restarts, MQTT pushes type-safe, sensors in right channel. Ready-log shows channel status, persistent UDP sockets, abortable HTTP, no more group-WARN spam.",
         "de": "Quality-Release: 2FA ohne Restart, MQTT-Pushes typsicher, Sensoren im richtigen Kanal. Ready-Log mit Channel-Status, persistente UDP-Sockets, abbrechbares HTTP, kein Group-WARN-Spam.",
@@ -80,19 +93,6 @@
         "pl": "Konta Govee z weryfikacja email mozna teraz uzywac. Czujniki nie zostaja juz blednie offline (np. termometr H5179). Dropdowny scen widoczne od pierwszego startu. Nowy diag.tier na urzadzenie.",
         "uk": "Облікові записи Govee з email-верифікацією тепер працюють. Сенсори не залишаються офлайн помилково (напр. H5179). Випадаючі списки сцен видно з першого старту. Новий diag.tier на пристрій.",
         "zh-cn": "需要邮件验证的 Govee 账户现在可以使用。传感器不再错误地卡在离线状态（如 H5179 温度计）。场景下拉菜单从首次启动起就可见。每设备新增 diag.tier。"
-      },
-      "2.0.3": {
-        "en": "Min js-controller >=6.0.11, admin >=7.6.20 (correcting an accidental bump in 2.0.2).",
-        "de": "Min js-controller >=6.0.11, admin >=7.6.20 (korrigiert einen versehentlichen Bump in 2.0.2).",
-        "ru": "Мин. js-controller >=6.0.11, admin >=7.6.20 (исправлен случайный бамп в 2.0.2).",
-        "pt": "Min js-controller >=6.0.11, admin >=7.6.20 (corrige um bump acidental em 2.0.2).",
-        "nl": "Min js-controller >=6.0.11, admin >=7.6.20 (corrigeert een onbedoelde verhoging in 2.0.2).",
-        "fr": "Min js-controller >=6.0.11, admin >=7.6.20 (corrige une montee accidentelle en 2.0.2).",
-        "it": "Min js-controller >=6.0.11, admin >=7.6.20 (corregge un bump accidentale in 2.0.2).",
-        "es": "Min js-controller >=6.0.11, admin >=7.6.20 (corrige un bump accidental en 2.0.2).",
-        "pl": "Min js-controller >=6.0.11, admin >=7.6.20 (poprawia przypadkowy bump w 2.0.2).",
-        "uk": "Мін. js-controller >=6.0.11, admin >=7.6.20 (виправлено випадковий bump у 2.0.2).",
-        "zh-cn": "最低 js-controller >=6.0.11，admin >=7.6.20（修正 2.0.2 中的意外提升）。"
       }
     },
     "titleLang": {
@@ -301,6 +301,20 @@
         "write": false,
         "def": false,
         "desc": "Internal flag — true after one-time migration of legacy plaintext MQTT credentials. Prevents repeated extendForeignObjectAsync restart-trigger."
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.appVersionDrift",
+      "type": "state",
+      "common": {
+        "name": "Govee App Version drift",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": "",
+        "desc": "Comparison of the local GOVEE_APP_VERSION constant vs the latest iOS App Store version. 'current' / 'minor drift' / 'STALE'."
       },
       "native": {}
     },
