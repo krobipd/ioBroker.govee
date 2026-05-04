@@ -1226,6 +1226,67 @@ describe("DeviceManager", () => {
       expect(updatedState).to.not.be.null;
       expect(updatedState!.online).to.be.true;
     });
+
+    it("should coerce string brightness from spoofed Govee push", () => {
+      setupDevice();
+      let updatedState: Partial<import("./types").DeviceState> | null = null;
+      dm.setCallbacks(
+        (_dev, state) => {
+          updatedState = state;
+        },
+        () => {},
+      );
+      // Govee schickt gelegentlich `brightness: "50"` (String) — der Adapter
+      // muss das via coerceFiniteNumber zu 50 (Number) coerce'n und nicht
+      // den String unverändert in den number-typed State propagieren.
+      dm.handleMqttStatus({
+        sku: "H6160",
+        device: "AABBCCDDEEFF0011",
+        state: { brightness: "50" as unknown as number },
+      });
+      expect(updatedState).to.not.be.null;
+      expect(updatedState!.brightness).to.equal(50);
+      expect(typeof updatedState!.brightness).to.equal("number");
+    });
+
+    it("should drop completely garbage brightness (NaN, object, null)", () => {
+      setupDevice();
+      let updatedState: Partial<import("./types").DeviceState> | null = null;
+      dm.setCallbacks(
+        (_dev, state) => {
+          updatedState = state;
+        },
+        () => {},
+      );
+      dm.handleMqttStatus({
+        sku: "H6160",
+        device: "AABBCCDDEEFF0011",
+        state: { brightness: "NaN" as unknown as number, onOff: "garbage" as unknown as number },
+      });
+      // Nur online: true sollte gesetzt sein, brightness/power nicht.
+      expect(updatedState).to.not.be.null;
+      expect(updatedState!.online).to.be.true;
+      expect(updatedState!.brightness).to.be.undefined;
+      expect(updatedState!.power).to.be.undefined;
+    });
+
+    it("should drop colorTemInKelvin=0 (Govee 'no colortemp mode' marker)", () => {
+      setupDevice();
+      let updatedState: Partial<import("./types").DeviceState> | null = null;
+      dm.setCallbacks(
+        (_dev, state) => {
+          updatedState = state;
+        },
+        () => {},
+      );
+      dm.handleMqttStatus({
+        sku: "H6160",
+        device: "AABBCCDDEEFF0011",
+        state: { colorTemInKelvin: 0 },
+      });
+      expect(updatedState).to.not.be.null;
+      expect(updatedState!.colorTemperature).to.be.undefined;
+    });
   });
 
   describe("handleLanStatus — edge cases", () => {

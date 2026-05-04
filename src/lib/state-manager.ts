@@ -56,14 +56,42 @@ const CHANNEL_NAMES: Record<string, string> = {
  * needing a separate `createDeviceStates` pass for sensor-only devices.
  * Keep IDs lowercase; resolveStatePath calls this on the raw stateId.
  */
-const SENSOR_STATE_IDS = new Set(["temperature", "humidity", "battery", "co2", "carbondioxide", "online"]);
+// Beide Lookup-Sets enthalten zwei Schreibweisen pro State-ID:
+//   - „raw"-Form (z.B. `temperature`) für instances die direkt so heißen
+//   - sanitizeId-Output (z.B. `sensor_temperature`) für camelCase-instances
+//     die durch sanitizeId zu snake_case konvertiert wurden
+// `sanitizeId` in capability-mapper konvertiert camelCase → snake_case, also
+// werden „sensorTemperature" zu „sensor_temperature" und „lackWaterEvent"
+// zu „lack_water_event". Ohne diese Aliase fielen sanitize-Varianten auf den
+// safe-default „control" zurück und die States wären nicht erreichbar.
+const SENSOR_STATE_IDS = new Set([
+  // raw forms
+  "temperature",
+  "humidity",
+  "battery",
+  "co2",
+  "carbondioxide",
+  "online",
+  // sanitizeId(instance) forms
+  "sensor_temperature",
+  "sensor_humidity",
+  "sensor_battery",
+]);
 const EVENT_STATE_IDS = new Set([
+  // raw forms (no underscore separator)
   "lackwater",
   "lackwaterevent",
   "icefull",
   "icefullevent",
   "bodyappeared",
   "dirtdetected",
+  // sanitizeId(instance) forms (camelCase → snake_case)
+  "lack_water",
+  "lack_water_event",
+  "ice_full",
+  "ice_full_event",
+  "body_appeared",
+  "dirt_detected",
 ]);
 
 /**
@@ -133,6 +161,41 @@ const SYNTHETIC_STATE_META: Record<string, SyntheticStateMeta> = {
   icefullevent: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
   bodyappeared: { type: "boolean", role: "indicator", name: "Body Detected" },
   dirtdetected: { type: "boolean", role: "indicator", name: "Dirt Detected" },
+  // sanitizeId(instance) Aliases — gleiche Meta wie raw-Form, decoupled
+  // damit der Adapter beim ersten Sensor-State-Write den richtigen Channel
+  // (sensor/ bzw. events/) anlegt.
+  sensor_temperature: {
+    type: "number",
+    role: "value.temperature",
+    unit: "°C",
+    name: "Temperature",
+  },
+  sensor_humidity: {
+    type: "number",
+    role: "value.humidity",
+    unit: "%",
+    name: "Humidity",
+  },
+  sensor_battery: {
+    type: "number",
+    role: "value.battery",
+    unit: "%",
+    name: "Battery",
+  },
+  lack_water: {
+    type: "boolean",
+    role: "indicator.alarm",
+    name: "Lack of Water",
+  },
+  lack_water_event: {
+    type: "boolean",
+    role: "indicator.alarm",
+    name: "Lack of Water",
+  },
+  ice_full: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
+  ice_full_event: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
+  body_appeared: { type: "boolean", role: "indicator", name: "Body Detected" },
+  dirt_detected: { type: "boolean", role: "indicator", name: "Dirt Detected" },
 };
 
 /** Manages ioBroker state creation and updates for Govee devices */
@@ -228,8 +291,12 @@ export class StateManager {
         native: {},
       })
       .catch(() => undefined);
+    // extendObjectAsync (idempotent + repariert partial-formed Objects).
+    // setObjectNotExistsAsync wäre no-op auf existing — und Objects aus
+    // alten Layouts (v2.0.x→v2.1.x-Migration) können unvollständige
+    // common-Felder haben, die dann beim ersten setStateAsync warnen.
     await this.adapter
-      .setObjectNotExistsAsync(`${prefix}.${channel}.${stateId}`, {
+      .extendObjectAsync(`${prefix}.${channel}.${stateId}`, {
         type: "state",
         common: {
           name: meta.name,

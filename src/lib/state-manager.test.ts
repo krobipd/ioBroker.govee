@@ -827,6 +827,82 @@ describe("StateManager", () => {
       expect(sm.resolveStatePath("devices.h6160_0011", "lack_water")).to.equal("devices.h6160_0011.events.lack_water");
       expect(sm.resolveStatePath("devices.h6160_0011", "ice_full")).to.equal("devices.h6160_0011.events.ice_full");
     });
+
+    it("should route sanitizeId-output sensor IDs (sensor_temperature etc.) to sensor channel via inferChannelFromStateId", () => {
+      // No createDeviceStates pre-population — inferChannelFromStateId
+      // is the fallback when stateChannelMap doesn't have the ID. Caps
+      // from App-API/OpenAPI-MQTT use sanitizeId(camelCase) which produces
+      // sensor_temperature, sensor_humidity, sensor_battery — these MUST
+      // route to sensor/ even without prior createDeviceStates run.
+      const { adapter } = createMockAdapter();
+      const sm = new StateManager(adapter as never);
+      expect(sm.resolveStatePath("devices.h5179_3c1b", "sensor_temperature")).to.equal(
+        "devices.h5179_3c1b.sensor.sensor_temperature",
+      );
+      expect(sm.resolveStatePath("devices.h5179_3c1b", "sensor_humidity")).to.equal(
+        "devices.h5179_3c1b.sensor.sensor_humidity",
+      );
+      expect(sm.resolveStatePath("devices.h5179_3c1b", "sensor_battery")).to.equal(
+        "devices.h5179_3c1b.sensor.sensor_battery",
+      );
+    });
+
+    it("should route sanitizeId-output event IDs (lack_water_event etc.) to events channel via inferChannelFromStateId", () => {
+      const { adapter } = createMockAdapter();
+      const sm = new StateManager(adapter as never);
+      expect(sm.resolveStatePath("devices.hxxxx_yy", "lack_water_event")).to.equal(
+        "devices.hxxxx_yy.events.lack_water_event",
+      );
+      expect(sm.resolveStatePath("devices.hxxxx_yy", "ice_full_event")).to.equal(
+        "devices.hxxxx_yy.events.ice_full_event",
+      );
+      expect(sm.resolveStatePath("devices.hxxxx_yy", "body_appeared")).to.equal(
+        "devices.hxxxx_yy.events.body_appeared",
+      );
+      expect(sm.resolveStatePath("devices.hxxxx_yy", "dirt_detected")).to.equal(
+        "devices.hxxxx_yy.events.dirt_detected",
+      );
+    });
+  });
+
+  describe("ensureSyntheticStateObject", () => {
+    it("should create state under sensor/ channel for sensor_temperature", async () => {
+      const { adapter, calls, objects } = createMockAdapter();
+      const sm = new StateManager(adapter as never);
+      await sm.ensureSyntheticStateObject("devices.h5179_3c1b", "sensor_temperature");
+      // Check Channel-Object created
+      expect(objects.has("devices.h5179_3c1b.sensor")).to.be.true;
+      // Check State-Object created via extendObjectAsync (NOT setObjectNotExists)
+      expect(objects.has("devices.h5179_3c1b.sensor.sensor_temperature")).to.be.true;
+      // Verify extendObjectAsync was used (idempotent + repairs partial-formed)
+      const extendCalls = calls.filter(c => c.method === "extendObjectAsync");
+      const stateExtend = extendCalls.find(c => c.args[0] === "devices.h5179_3c1b.sensor.sensor_temperature");
+      expect(stateExtend).to.not.be.undefined;
+    });
+
+    it("should be no-op for unknown stateId (not in SYNTHETIC_STATE_META)", async () => {
+      const { adapter, calls } = createMockAdapter();
+      const sm = new StateManager(adapter as never);
+      await sm.ensureSyntheticStateObject("devices.h5179_3c1b", "unknown_state_xyz");
+      const extendCalls = calls.filter(c => c.method === "extendObjectAsync");
+      expect(extendCalls).to.have.lengthOf(0);
+    });
+
+    it("should repair partial-formed object via extendObject (no-op with setObjectNotExists)", async () => {
+      const { adapter, objects } = createMockAdapter();
+      // Pre-set partial-formed object (missing role) — simulating broken
+      // state from older adapter version
+      objects.set("devices.h5179_3c1b.sensor.sensor_humidity", {
+        type: "state",
+        common: { name: "old", type: "number" },
+      });
+      const sm = new StateManager(adapter as never);
+      await sm.ensureSyntheticStateObject("devices.h5179_3c1b", "sensor_humidity");
+      const final = objects.get("devices.h5179_3c1b.sensor.sensor_humidity") as Record<string, unknown>;
+      // extendObjectAsync stores latest write — common should now be the full meta
+      const common = final?.common as { role?: string };
+      expect(common?.role).to.equal("value.humidity");
+    });
   });
 
   describe("updateDeviceState", () => {

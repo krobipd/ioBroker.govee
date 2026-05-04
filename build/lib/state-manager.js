@@ -38,14 +38,34 @@ const CHANNEL_NAMES = {
   info: "Device Information",
   diag: "Diagnostics"
 };
-const SENSOR_STATE_IDS = /* @__PURE__ */ new Set(["temperature", "humidity", "battery", "co2", "carbondioxide", "online"]);
+const SENSOR_STATE_IDS = /* @__PURE__ */ new Set([
+  // raw forms
+  "temperature",
+  "humidity",
+  "battery",
+  "co2",
+  "carbondioxide",
+  "online",
+  // sanitizeId(instance) forms
+  "sensor_temperature",
+  "sensor_humidity",
+  "sensor_battery"
+]);
 const EVENT_STATE_IDS = /* @__PURE__ */ new Set([
+  // raw forms (no underscore separator)
   "lackwater",
   "lackwaterevent",
   "icefull",
   "icefullevent",
   "bodyappeared",
-  "dirtdetected"
+  "dirtdetected",
+  // sanitizeId(instance) forms (camelCase → snake_case)
+  "lack_water",
+  "lack_water_event",
+  "ice_full",
+  "ice_full_event",
+  "body_appeared",
+  "dirt_detected"
 ]);
 function inferChannelFromStateId(stateId) {
   const normalised = stateId.toLowerCase();
@@ -97,7 +117,42 @@ const SYNTHETIC_STATE_META = {
   icefull: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
   icefullevent: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
   bodyappeared: { type: "boolean", role: "indicator", name: "Body Detected" },
-  dirtdetected: { type: "boolean", role: "indicator", name: "Dirt Detected" }
+  dirtdetected: { type: "boolean", role: "indicator", name: "Dirt Detected" },
+  // sanitizeId(instance) Aliases — gleiche Meta wie raw-Form, decoupled
+  // damit der Adapter beim ersten Sensor-State-Write den richtigen Channel
+  // (sensor/ bzw. events/) anlegt.
+  sensor_temperature: {
+    type: "number",
+    role: "value.temperature",
+    unit: "\xB0C",
+    name: "Temperature"
+  },
+  sensor_humidity: {
+    type: "number",
+    role: "value.humidity",
+    unit: "%",
+    name: "Humidity"
+  },
+  sensor_battery: {
+    type: "number",
+    role: "value.battery",
+    unit: "%",
+    name: "Battery"
+  },
+  lack_water: {
+    type: "boolean",
+    role: "indicator.alarm",
+    name: "Lack of Water"
+  },
+  lack_water_event: {
+    type: "boolean",
+    role: "indicator.alarm",
+    name: "Lack of Water"
+  },
+  ice_full: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
+  ice_full_event: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
+  body_appeared: { type: "boolean", role: "indicator", name: "Body Detected" },
+  dirt_detected: { type: "boolean", role: "indicator", name: "Dirt Detected" }
 };
 class StateManager {
   adapter;
@@ -183,7 +238,7 @@ class StateManager {
       common: { name: (_a = CHANNEL_NAMES[channel]) != null ? _a : channel },
       native: {}
     }).catch(() => void 0);
-    await this.adapter.setObjectNotExistsAsync(`${prefix}.${channel}.${stateId}`, {
+    await this.adapter.extendObjectAsync(`${prefix}.${channel}.${stateId}`, {
       type: "state",
       common: {
         name: meta.name,

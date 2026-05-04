@@ -9,6 +9,7 @@ import type { RateLimiter } from "./rate-limiter";
 import type { CachedDeviceData, SkuCache } from "./sku-cache";
 import {
   classifyError,
+  coerceFiniteNumber,
   normalizeDeviceId,
   rgbToHex,
   type CloudDevice,
@@ -1005,18 +1006,30 @@ export class DeviceManager {
     const state: Partial<DeviceState> = { online: true };
 
     if (update.state) {
-      if (update.state.onOff !== undefined) {
-        state.power = update.state.onOff === 1;
+      // API-Boundary: Govee schickt gelegentlich brightness/onOff/color als
+      // String oder mit unerwarteten Typen. coerceFiniteNumber/coerceBool
+      // returnt null bei Drift → Feld bleibt unverändert (vorhandener Wert
+      // bleibt stehen, kein State-Schreibung mit kaputtem Wert).
+      const onOff = coerceFiniteNumber(update.state.onOff);
+      if (onOff !== null) {
+        state.power = onOff === 1;
       }
-      if (update.state.brightness !== undefined) {
-        state.brightness = update.state.brightness;
+      const brightness = coerceFiniteNumber(update.state.brightness);
+      if (brightness !== null) {
+        state.brightness = brightness;
       }
-      if (update.state.color) {
-        const { r, g, b } = update.state.color;
-        state.colorRgb = rgbToHex(r, g, b);
+      if (update.state.color && typeof update.state.color === "object") {
+        const r = coerceFiniteNumber((update.state.color as { r?: unknown }).r);
+        const g = coerceFiniteNumber((update.state.color as { g?: unknown }).g);
+        const b = coerceFiniteNumber((update.state.color as { b?: unknown }).b);
+        if (r !== null && g !== null && b !== null) {
+          state.colorRgb = rgbToHex(r, g, b);
+        }
       }
-      if (update.state.colorTemInKelvin) {
-        state.colorTemperature = update.state.colorTemInKelvin;
+      // 0 = "not in colortemp mode" — drop intentionally (Govee-Konvention).
+      const ctk = coerceFiniteNumber(update.state.colorTemInKelvin);
+      if (ctk !== null && ctk > 0) {
+        state.colorTemperature = ctk;
       }
     }
 

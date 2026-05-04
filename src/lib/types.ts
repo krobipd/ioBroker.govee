@@ -481,6 +481,119 @@ export function classifyError(err: unknown): ErrorCategory {
 }
 
 /**
+ * Render an unknown error to a string for logging.
+ *
+ * Prefer `e.stack` over `e.message` so warn/error logs include where the
+ * error originated. For non-Error values falls back to `String(...)`.
+ *
+ * @param e Caught value (usually `unknown` in catch blocks)
+ */
+export function errMessage(e: unknown): string {
+  if (e instanceof Error) {
+    return e.stack ?? e.message;
+  }
+  return String(e);
+}
+
+/**
+ * Parse JSON without throwing. Returns null on parse failure or non-string
+ * input. Caller decides how to handle null (skip, fallback, log).
+ *
+ * @param raw Raw JSON string
+ */
+export function safeJsonParse<T>(raw: unknown): T | null {
+  if (typeof raw !== "string" || raw.length === 0) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Coerce an unknown value to a finite number. Returns null for NaN, Infinity,
+ * non-numeric strings, objects, etc. Use at API boundaries where external
+ * payloads might send numbers as strings, or send malformed values.
+ *
+ * Strings that contain a finite number are accepted (Govee occasionally sends
+ * `brightness: "50"` instead of `brightness: 50`).
+ *
+ * @param raw Unknown input
+ */
+export function coerceFiniteNumber(raw: unknown): number | null {
+  if (typeof raw === "number") {
+    return Number.isFinite(raw) ? raw : null;
+  }
+  if (typeof raw === "string" && raw.trim().length > 0) {
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/**
+ * Coerce an unknown value to a boolean. Accepts native bool, 0/1 numbers,
+ * and the strings "true"/"false"/"0"/"1". Returns null for everything else.
+ *
+ * @param raw Unknown input
+ */
+export function coerceBool(raw: unknown): boolean | null {
+  if (typeof raw === "boolean") {
+    return raw;
+  }
+  if (raw === 0 || raw === 1) {
+    return raw === 1;
+  }
+  if (typeof raw === "string") {
+    const s = raw.trim().toLowerCase();
+    if (s === "true" || s === "1") {
+      return true;
+    }
+    if (s === "false" || s === "0") {
+      return false;
+    }
+  }
+  return null;
+}
+
+/**
+ * Dedup-aware error logger.
+ *
+ * Compares the new error category against the caller's last category. On
+ * change → warn (so the user sees fresh failures). On repeat → debug (so the
+ * log doesn't spam). Returns the new category so the caller can update its
+ * `lastErrorCategory` member.
+ *
+ * Caller pattern:
+ * ```ts
+ * this.lastErrorCategory = logDedup(this.log, this.lastErrorCategory, "Cloud", err);
+ * ```
+ *
+ * @param log Adapter logger
+ * @param last Previous category (null on first call)
+ * @param context Short prefix (e.g. "Cloud", "MQTT", "App-API")
+ * @param err Caught error
+ * @returns New category (assign to caller's tracker)
+ */
+export function logDedup(
+  log: ioBroker.Logger,
+  last: ErrorCategory | null,
+  context: string,
+  err: unknown,
+): ErrorCategory {
+  const category = classifyError(err);
+  const msg = errMessage(err);
+  if (category !== last) {
+    log.warn(`${context}: ${msg}`);
+  } else {
+    log.debug(`${context}: ${msg} (repeated)`);
+  }
+  return category;
+}
+
+/**
  * Clamp a value to the 0-255 byte range. NaN/non-numeric inputs become 0.
  *
  * @param v Input value

@@ -1318,13 +1318,28 @@ class GoveeAdapter extends utils.Adapter {
   }
   /**
    * Helper: clear `mqttVerificationCode` in adapter native after a successful
-   * login or a 455-fail. Triggers a settings-reload by the admin UI but the
-   * adapter restart is gentle (only the field changed, not the connection).
+   * login or a 455-fail.
+   *
+   * Idempotent: liest erst den aktuellen Wert, schreibt nur wenn dirty.
+   * Verhindert den Adapter-Restart der durch jeden
+   * `extendForeignObjectAsync(system.adapter.X, native:...)`-Call ausgelöst
+   * wird (Memory v2.1.3-Bug). Vorher gab es nach jedem 2FA-Login einen
+   * unnötigen Restart.
    */
   async clearVerificationCodeSetting() {
-    await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
-      native: { mqttVerificationCode: "" }
-    });
+    var _a;
+    try {
+      const obj = await this.getForeignObjectAsync(`system.adapter.${this.namespace}`);
+      const native = (_a = obj == null ? void 0 : obj.native) != null ? _a : {};
+      if (typeof native.mqttVerificationCode !== "string" || native.mqttVerificationCode === "") {
+        return;
+      }
+      await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
+        native: { mqttVerificationCode: "" }
+      });
+    } catch (e) {
+      this.log.warn(`Could not clear mqttVerificationCode: ${(0, import_types.errMessage)(e)}`);
+    }
   }
   /**
    * Read persisted MQTT credentials from `info.mqttCredentials`. The
@@ -1383,14 +1398,27 @@ class GoveeAdapter extends utils.Adapter {
   }
   /**
    * One-shot cleanup of legacy v2.1.0/v2.1.1/v2.1.2 plaintext credentials
-   * sitting in `system.adapter.X.native`. Reads the current native, and
-   * if any of the seven legacy mqtt* fields exist with content, blanks
-   * them. This triggers ONE js-controller restart (config-change), but
-   * it's idempotent — second start finds them empty, skips the cleanup.
+   * sitting in `system.adapter.X.native`.
+   *
+   * Doppelte Idempotenz:
+   * 1. State-Marker `info.legacyMqttCleaned=true` wird NACH erfolgreichem
+   *    Wipe gesetzt. Bei späteren Starts wird die Funktion über den Marker
+   *    sofort verlassen — auch wenn das native irgendwie wieder dirty wird.
+   * 2. Nur wenn KEINER der Legacy-Marker gesetzt ist UND das native dirty,
+   *    wird der einmalige extendForeignObjectAsync (Restart-Trigger) gemacht.
+   *
+   * Dieser Aufruf triggert genau einmal pro Adapter-Lifetime einen
+   * Restart — das ist unvermeidlich, weil die Plaintext-Bytes weg müssen.
+   * Aber: nach erfolgreichem Cleanup bleibt der Marker, kein erneuter
+   * Restart bei flaky writes.
    */
   async cleanupLegacyMqttNativeOnce() {
     var _a;
     try {
+      const markerState = await this.getStateAsync("info.legacyMqttCleaned");
+      if ((markerState == null ? void 0 : markerState.val) === true) {
+        return;
+      }
       const obj = await this.getForeignObjectAsync(`system.adapter.${this.namespace}`);
       const native = (_a = obj == null ? void 0 : obj.native) != null ? _a : {};
       const legacy = [
@@ -1404,6 +1432,7 @@ class GoveeAdapter extends utils.Adapter {
       ];
       const dirty = legacy.some((k) => k in native && native[k] !== "" && native[k] !== 0);
       if (!dirty) {
+        await this.setStateAsync("info.legacyMqttCleaned", { val: true, ack: true }).catch(() => void 0);
         return;
       }
       this.log.info("Removing legacy plaintext MQTT credentials from native (one-time migration)");
@@ -1412,7 +1441,9 @@ class GoveeAdapter extends utils.Adapter {
         wipe[k] = k === "mqttTokenExpiresAt" ? 0 : "";
       }
       await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, { native: wipe });
-    } catch {
+      await this.setStateAsync("info.legacyMqttCleaned", { val: true, ack: true }).catch(() => void 0);
+    } catch (e) {
+      this.log.debug(`legacy MQTT cleanup skipped: ${(0, import_types.errMessage)(e)}`);
     }
   }
   sendMessageResponse(obj, data) {

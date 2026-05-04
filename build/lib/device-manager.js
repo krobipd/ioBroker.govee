@@ -813,18 +813,25 @@ class DeviceManager {
     device.lastSeenOnNetwork = Date.now();
     const state = { online: true };
     if (update.state) {
-      if (update.state.onOff !== void 0) {
-        state.power = update.state.onOff === 1;
+      const onOff = (0, import_types.coerceFiniteNumber)(update.state.onOff);
+      if (onOff !== null) {
+        state.power = onOff === 1;
       }
-      if (update.state.brightness !== void 0) {
-        state.brightness = update.state.brightness;
+      const brightness = (0, import_types.coerceFiniteNumber)(update.state.brightness);
+      if (brightness !== null) {
+        state.brightness = brightness;
       }
-      if (update.state.color) {
-        const { r, g, b } = update.state.color;
-        state.colorRgb = (0, import_types.rgbToHex)(r, g, b);
+      if (update.state.color && typeof update.state.color === "object") {
+        const r = (0, import_types.coerceFiniteNumber)(update.state.color.r);
+        const g = (0, import_types.coerceFiniteNumber)(update.state.color.g);
+        const b = (0, import_types.coerceFiniteNumber)(update.state.color.b);
+        if (r !== null && g !== null && b !== null) {
+          state.colorRgb = (0, import_types.rgbToHex)(r, g, b);
+        }
       }
-      if (update.state.colorTemInKelvin) {
-        state.colorTemperature = update.state.colorTemInKelvin;
+      const ctk = (0, import_types.coerceFiniteNumber)(update.state.colorTemInKelvin);
+      if (ctk !== null && ctk > 0) {
+        state.colorTemperature = ctk;
       }
     }
     Object.assign(device.state, state);

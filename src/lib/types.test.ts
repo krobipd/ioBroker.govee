@@ -9,6 +9,12 @@ import {
   disambiguateLabels,
   buildUniqueLabelMap,
   resolveStatesValue,
+  errMessage,
+  safeJsonParse,
+  coerceFiniteNumber,
+  coerceBool,
+  logDedup,
+  type ErrorCategory,
 } from "./types";
 
 describe("Types utilities", () => {
@@ -427,6 +433,172 @@ describe("Types utilities", () => {
       const drifted = { 0: "---", 1: 42 as unknown as string };
       expect(resolveStatesValue("42", drifted)).to.be.null;
       expect(resolveStatesValue(1, drifted)).to.deep.equal({ key: "1", canonical: 42 as unknown as string });
+    });
+  });
+
+  describe("errMessage", () => {
+    it("should return e.stack for Error with stack", () => {
+      const e = new Error("boom");
+      const out = errMessage(e);
+      expect(out).to.include("boom");
+    });
+
+    it("should return e.message for Error without stack", () => {
+      const e = new Error("oops");
+      delete (e as { stack?: string }).stack;
+      expect(errMessage(e)).to.equal("oops");
+    });
+
+    it("should return String() for non-Error values", () => {
+      expect(errMessage("plain string")).to.equal("plain string");
+      expect(errMessage(42)).to.equal("42");
+      expect(errMessage(null)).to.equal("null");
+      expect(errMessage(undefined)).to.equal("undefined");
+      expect(errMessage({ msg: "obj" })).to.equal("[object Object]");
+    });
+  });
+
+  describe("safeJsonParse", () => {
+    it("should parse valid JSON", () => {
+      expect(safeJsonParse<{ a: number }>('{"a":1}')).to.deep.equal({ a: 1 });
+      expect(safeJsonParse<number[]>("[1,2,3]")).to.deep.equal([1, 2, 3]);
+    });
+
+    it("should return null for invalid JSON", () => {
+      expect(safeJsonParse("not json")).to.be.null;
+      expect(safeJsonParse("{")).to.be.null;
+    });
+
+    it("should return null for non-string input", () => {
+      expect(safeJsonParse(42)).to.be.null;
+      expect(safeJsonParse(null)).to.be.null;
+      expect(safeJsonParse(undefined)).to.be.null;
+      expect(safeJsonParse({})).to.be.null;
+    });
+
+    it("should return null for empty string", () => {
+      expect(safeJsonParse("")).to.be.null;
+    });
+  });
+
+  describe("coerceFiniteNumber", () => {
+    it("should accept finite numbers", () => {
+      expect(coerceFiniteNumber(0)).to.equal(0);
+      expect(coerceFiniteNumber(42)).to.equal(42);
+      expect(coerceFiniteNumber(-1.5)).to.equal(-1.5);
+    });
+
+    it("should reject NaN/Infinity", () => {
+      expect(coerceFiniteNumber(NaN)).to.be.null;
+      expect(coerceFiniteNumber(Infinity)).to.be.null;
+      expect(coerceFiniteNumber(-Infinity)).to.be.null;
+    });
+
+    it("should accept numeric strings (Govee API quirk)", () => {
+      expect(coerceFiniteNumber("50")).to.equal(50);
+      expect(coerceFiniteNumber("3.14")).to.equal(3.14);
+      expect(coerceFiniteNumber("-7")).to.equal(-7);
+    });
+
+    it("should reject non-numeric strings", () => {
+      expect(coerceFiniteNumber("abc")).to.be.null;
+      expect(coerceFiniteNumber("12abc")).to.be.null;
+      expect(coerceFiniteNumber("")).to.be.null;
+      expect(coerceFiniteNumber("   ")).to.be.null;
+    });
+
+    it("should reject other types", () => {
+      expect(coerceFiniteNumber(null)).to.be.null;
+      expect(coerceFiniteNumber(undefined)).to.be.null;
+      expect(coerceFiniteNumber(true)).to.be.null;
+      expect(coerceFiniteNumber({})).to.be.null;
+      expect(coerceFiniteNumber([])).to.be.null;
+    });
+  });
+
+  describe("coerceBool", () => {
+    it("should accept native booleans", () => {
+      expect(coerceBool(true)).to.be.true;
+      expect(coerceBool(false)).to.be.false;
+    });
+
+    it("should accept 0/1 numbers", () => {
+      expect(coerceBool(1)).to.be.true;
+      expect(coerceBool(0)).to.be.false;
+    });
+
+    it("should reject other numbers", () => {
+      expect(coerceBool(2)).to.be.null;
+      expect(coerceBool(-1)).to.be.null;
+    });
+
+    it('should accept "true"/"false"/"0"/"1" strings (case-insensitive)', () => {
+      expect(coerceBool("true")).to.be.true;
+      expect(coerceBool("TRUE")).to.be.true;
+      expect(coerceBool("1")).to.be.true;
+      expect(coerceBool("false")).to.be.false;
+      expect(coerceBool("False")).to.be.false;
+      expect(coerceBool("0")).to.be.false;
+    });
+
+    it("should reject other strings", () => {
+      expect(coerceBool("yes")).to.be.null;
+      expect(coerceBool("no")).to.be.null;
+      expect(coerceBool("")).to.be.null;
+    });
+
+    it("should reject other types", () => {
+      expect(coerceBool(null)).to.be.null;
+      expect(coerceBool(undefined)).to.be.null;
+      expect(coerceBool({})).to.be.null;
+    });
+  });
+
+  describe("logDedup", () => {
+    function makeMockLog(): {
+      log: ioBroker.Logger;
+      warns: string[];
+      debugs: string[];
+    } {
+      const warns: string[] = [];
+      const debugs: string[] = [];
+      const log: ioBroker.Logger = {
+        info: () => {},
+        warn: (m: string) => warns.push(m),
+        error: () => {},
+        debug: (m: string) => debugs.push(m),
+        silly: () => {},
+        level: "debug",
+      };
+      return { log, warns, debugs };
+    }
+
+    it("should warn on first error of a category", () => {
+      const { log, warns, debugs } = makeMockLog();
+      const cat = logDedup(log, null, "Cloud", new Error("ECONNREFUSED something"));
+      expect(cat).to.equal("NETWORK");
+      expect(warns).to.have.lengthOf(1);
+      expect(warns[0]).to.include("Cloud:");
+      expect(debugs).to.have.lengthOf(0);
+    });
+
+    it("should debug on repeated same category", () => {
+      const { log, warns, debugs } = makeMockLog();
+      const e1 = new Error("ECONNREFUSED first");
+      const e2 = new Error("ECONNREFUSED second");
+      const cat1 = logDedup(log, null, "Cloud", e1);
+      const cat2 = logDedup(log, cat1, "Cloud", e2);
+      expect(cat2).to.equal("NETWORK");
+      expect(warns).to.have.lengthOf(1);
+      expect(debugs).to.have.lengthOf(1);
+      expect(debugs[0]).to.include("repeated");
+    });
+
+    it("should warn again on category change", () => {
+      const { log, warns } = makeMockLog();
+      const lastCat: ErrorCategory | null = logDedup(log, null, "Cloud", new Error("ECONNREFUSED"));
+      logDedup(log, lastCat, "Cloud", new Error("status 401 unauthorized"));
+      expect(warns).to.have.lengthOf(2);
     });
   });
 });

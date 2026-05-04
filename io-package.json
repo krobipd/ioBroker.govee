@@ -289,6 +289,20 @@
       "native": {}
     },
     {
+      "_id": "info.legacyMqttCleaned",
+      "type": "state",
+      "common": {
+        "name": "Legacy MQTT cleanup done",
+        "type": "boolean",
+        "role": "indicator",
+        "read": true,
+        "write": false,
+        "def": false,
+        "desc": "Internal flag — true after one-time migration of legacy plaintext MQTT credentials. Prevents repeated extendForeignObjectAsync restart-trigger."
+      },
+      "native": {}
+    },
+    {
       "_id": "devices",
       "type": "folder",
       "common": {

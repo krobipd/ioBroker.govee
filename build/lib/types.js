@@ -20,13 +20,18 @@ var types_exports = {};
 __export(types_exports, {
   buildUniqueLabelMap: () => buildUniqueLabelMap,
   classifyError: () => classifyError,
+  coerceBool: () => coerceBool,
+  coerceFiniteNumber: () => coerceFiniteNumber,
   disambiguateLabels: () => disambiguateLabels,
+  errMessage: () => errMessage,
   hexToRgb: () => hexToRgb,
+  logDedup: () => logDedup,
   normalizeDeviceId: () => normalizeDeviceId,
   parseSegmentList: () => parseSegmentList,
   resolveStatesValue: () => resolveStatesValue,
   rgbIntToHex: () => rgbIntToHex,
-  rgbToHex: () => rgbToHex
+  rgbToHex: () => rgbToHex,
+  safeJsonParse: () => safeJsonParse
 });
 module.exports = __toCommonJS(types_exports);
 function normalizeDeviceId(id) {
@@ -65,6 +70,61 @@ function classifyError(err) {
     return "AUTH";
   }
   return "UNKNOWN";
+}
+function errMessage(e) {
+  var _a;
+  if (e instanceof Error) {
+    return (_a = e.stack) != null ? _a : e.message;
+  }
+  return String(e);
+}
+function safeJsonParse(raw) {
+  if (typeof raw !== "string" || raw.length === 0) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+function coerceFiniteNumber(raw) {
+  if (typeof raw === "number") {
+    return Number.isFinite(raw) ? raw : null;
+  }
+  if (typeof raw === "string" && raw.trim().length > 0) {
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+function coerceBool(raw) {
+  if (typeof raw === "boolean") {
+    return raw;
+  }
+  if (raw === 0 || raw === 1) {
+    return raw === 1;
+  }
+  if (typeof raw === "string") {
+    const s = raw.trim().toLowerCase();
+    if (s === "true" || s === "1") {
+      return true;
+    }
+    if (s === "false" || s === "0") {
+      return false;
+    }
+  }
+  return null;
+}
+function logDedup(log, last, context, err) {
+  const category = classifyError(err);
+  const msg = errMessage(err);
+  if (category !== last) {
+    log.warn(`${context}: ${msg}`);
+  } else {
+    log.debug(`${context}: ${msg} (repeated)`);
+  }
+  return category;
 }
 function clampByte(v) {
   const n = typeof v === "number" && Number.isFinite(v) ? v : 0;
@@ -195,12 +255,17 @@ function resolveStatesValue(input, statesMap) {
 0 && (module.exports = {
   buildUniqueLabelMap,
   classifyError,
+  coerceBool,
+  coerceFiniteNumber,
   disambiguateLabels,
+  errMessage,
   hexToRgb,
+  logDedup,
   normalizeDeviceId,
   parseSegmentList,
   resolveStatesValue,
   rgbIntToHex,
-  rgbToHex
+  rgbToHex,
+  safeJsonParse
 });
 //# sourceMappingURL=types.js.map
