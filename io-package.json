@@ -3,6 +3,19 @@
     "name": "govee-smart",
     "version": "2.5.0",
     "news": {
+      "NEXT": {
+        "en": "Cloud rate-limit hint now reads 'rate-limited by Govee' on 429 instead of the generic cloud-error message. Plus 33 mock tests for cloud + MQTT login paths.",
+        "de": "Cloud-Rate-Limit-Hinweis zeigt bei 429 jetzt 'rate-limited by Govee' statt der generischen Cloud-Fehlermeldung. Plus 33 Mock-Tests fuer Cloud + MQTT-Login.",
+        "ru": "Сообщение о лимите Cloud при 429 теперь корректно показывает 'rate-limited by Govee' вместо общей ошибки Cloud. Плюс 33 mock-теста для cloud + MQTT-login.",
+        "pt": "Aviso de rate-limit Cloud agora mostra 'rate-limited by Govee' em 429 em vez do erro generico. Mais 33 mock tests para cloud + MQTT login.",
+        "nl": "Cloud rate-limit melding toont bij 429 nu 'rate-limited by Govee' i.p.v. de generieke cloud-fout. Plus 33 mock tests voor cloud + MQTT-login.",
+        "fr": "Le message de rate-limit Cloud affiche maintenant 'rate-limited by Govee' sur 429 au lieu de l'erreur generique. Plus 33 mock tests pour cloud + MQTT-login.",
+        "it": "Avviso rate-limit Cloud ora mostra 'rate-limited by Govee' su 429 invece dell'errore generico. Piu 33 mock test per cloud + MQTT-login.",
+        "es": "Aviso de rate-limit Cloud ahora muestra 'rate-limited by Govee' en 429 en vez del error generico. Mas 33 mock tests para cloud + MQTT-login.",
+        "pl": "Komunikat o limicie Cloud przy 429 teraz pokazuje 'rate-limited by Govee' zamiast generycznego bledu. Plus 33 mock-testy dla cloud + MQTT-login.",
+        "uk": "Повідомлення про ліміт Cloud при 429 тепер показує 'rate-limited by Govee' замість загальної помилки. Плюс 33 mock-тести для cloud + MQTT-login.",
+        "zh-cn": "Cloud 限流提示：429 现在正确显示 'rate-limited by Govee' 而非通用 Cloud 错误。新增 33 个 cloud + MQTT 登录路径 mock 测试。"
+      },
       "2.5.0": {
         "en": "Code-hygiene: onMessage handler (sendTo from admin UI) is now its own class with host-interface. main.ts shrinks; behaviour unchanged.",
         "de": "Code-Hygiene: onMessage-Handler (sendTo aus dem Admin-UI) ist jetzt eigene Klasse mit Host-Interface. main.ts wird kleiner; Verhalten identisch.",

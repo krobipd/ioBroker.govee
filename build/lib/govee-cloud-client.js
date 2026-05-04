@@ -27,6 +27,7 @@ const BASE_URL = "https://openapi.api.govee.com";
 class GoveeCloudClient {
   apiKey;
   log;
+  httpsRequestImpl;
   /**
    * Diagnostics hook — receives (deviceId, endpoint, body) for each
    * response. Optional; the adapter wires it to a DiagnosticsCollector
@@ -41,10 +42,12 @@ class GoveeCloudClient {
   /**
    * @param apiKey Govee API key
    * @param log ioBroker logger
+   * @param httpsRequestImpl optional DI für Tests — Default ist die echte httpsRequest
    */
-  constructor(apiKey, log) {
+  constructor(apiKey, log, httpsRequestImpl = import_http_client.httpsRequest) {
     this.apiKey = apiKey;
     this.log = log;
+    this.httpsRequestImpl = httpsRequestImpl;
   }
   /**
    * Short user-facing reason for "Cloud not connected", or null wenn der
@@ -205,7 +208,7 @@ class GoveeCloudClient {
     var _a;
     this.log.debug(`Cloud API: ${method} ${path}`);
     try {
-      const result = await (0, import_http_client.httpsRequest)({
+      const result = await this.httpsRequestImpl({
         method,
         url: new URL(path, BASE_URL).toString(),
         headers: { "Govee-API-Key": this.apiKey },
@@ -214,11 +217,12 @@ class GoveeCloudClient {
       this.lastErrorCategory = null;
       return result;
     } catch (err) {
-      this.lastErrorCategory = (0, import_types.classifyError)(err);
       if (err instanceof import_http_client.HttpError && err.statusCode === 429) {
+        this.lastErrorCategory = "RATE_LIMIT";
         const retryAfter = String((_a = err.headers["retry-after"]) != null ? _a : "unknown");
         throw new import_http_client.HttpError(`Rate limited \u2014 retry after ${retryAfter}s`, 429, err.headers);
       }
+      this.lastErrorCategory = (0, import_types.classifyError)(err);
       throw err;
     }
   }

@@ -65,6 +65,7 @@ class GoveeMqttClient {
   password;
   log;
   timers;
+  httpsRequestImpl;
   client = null;
   accountTopic = "";
   _bearerToken = "";
@@ -107,12 +108,14 @@ class GoveeMqttClient {
    * @param password Govee account password
    * @param log ioBroker logger
    * @param timers Timer adapter
+   * @param httpsRequestImpl optional DI für Tests — Default ist die echte httpsRequest
    */
-  constructor(email, password, log, timers) {
+  constructor(email, password, log, timers, httpsRequestImpl = import_http_client.httpsRequest) {
     this.email = email;
     this.password = password;
     this.log = log;
     this.timers = timers;
+    this.httpsRequestImpl = httpsRequestImpl;
     this.clientId = (0, import_govee_constants.deriveGoveeClientId)(email);
   }
   /**
@@ -613,7 +616,7 @@ class GoveeMqttClient {
     if (code) {
       body.code = code;
     }
-    return (0, import_http_client.httpsRequest)({
+    return this.httpsRequestImpl({
       method: "POST",
       url: LOGIN_URL,
       headers: {
@@ -639,7 +642,7 @@ class GoveeMqttClient {
    */
   async requestVerificationCode() {
     const url = "https://app2.govee.com/account/rest/account/v1/verification";
-    await (0, import_http_client.httpsRequest)({
+    await this.httpsRequestImpl({
       method: "POST",
       url,
       headers: {
@@ -658,7 +661,7 @@ class GoveeMqttClient {
   }
   /** Get IoT key (P12 certificate) */
   getIotKey() {
-    return (0, import_http_client.httpsRequest)({
+    return this.httpsRequestImpl({
       method: "GET",
       url: IOT_KEY_URL,
       headers: {

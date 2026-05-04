@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto";
 import * as forge from "node-forge";
 import * as mqtt from "mqtt";
-import { httpsRequest } from "./http-client";
+import { httpsRequest, type HttpsRequestFn } from "./http-client";
 import { GOVEE_APP_VERSION, GOVEE_CLIENT_TYPE, GOVEE_USER_AGENT, deriveGoveeClientId } from "./govee-constants";
 import {
   classifyError,
@@ -61,6 +61,7 @@ export class GoveeMqttClient {
   private readonly password: string;
   private readonly log: ioBroker.Logger;
   private readonly timers: TimerAdapter;
+  private readonly httpsRequestImpl: HttpsRequestFn;
   private client: mqtt.MqttClient | null = null;
   private accountTopic = "";
   private _bearerToken = "";
@@ -109,12 +110,20 @@ export class GoveeMqttClient {
    * @param password Govee account password
    * @param log ioBroker logger
    * @param timers Timer adapter
+   * @param httpsRequestImpl optional DI für Tests — Default ist die echte httpsRequest
    */
-  constructor(email: string, password: string, log: ioBroker.Logger, timers: TimerAdapter) {
+  constructor(
+    email: string,
+    password: string,
+    log: ioBroker.Logger,
+    timers: TimerAdapter,
+    httpsRequestImpl: HttpsRequestFn = httpsRequest,
+  ) {
     this.email = email;
     this.password = password;
     this.log = log;
     this.timers = timers;
+    this.httpsRequestImpl = httpsRequestImpl;
     this.clientId = deriveGoveeClientId(email);
   }
 
@@ -715,7 +724,7 @@ export class GoveeMqttClient {
     if (code) {
       body.code = code;
     }
-    return httpsRequest<GoveeLoginResponse>({
+    return this.httpsRequestImpl<GoveeLoginResponse>({
       method: "POST",
       url: LOGIN_URL,
       headers: {
@@ -742,7 +751,7 @@ export class GoveeMqttClient {
    */
   async requestVerificationCode(): Promise<void> {
     const url = "https://app2.govee.com/account/rest/account/v1/verification";
-    await httpsRequest<unknown>({
+    await this.httpsRequestImpl<unknown>({
       method: "POST",
       url,
       headers: {
@@ -762,7 +771,7 @@ export class GoveeMqttClient {
 
   /** Get IoT key (P12 certificate) */
   private getIotKey(): Promise<GoveeIotKeyResponse> {
-    return httpsRequest<GoveeIotKeyResponse>({
+    return this.httpsRequestImpl<GoveeIotKeyResponse>({
       method: "GET",
       url: IOT_KEY_URL,
       headers: {

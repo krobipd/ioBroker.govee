@@ -1,4 +1,4 @@
-import { httpsRequest, HttpError } from "./http-client";
+import { httpsRequest, HttpError, type HttpsRequestFn } from "./http-client";
 import {
   classifyError,
   type CloudDevice,
@@ -19,6 +19,7 @@ const BASE_URL = "https://openapi.api.govee.com";
 export class GoveeCloudClient {
   private readonly apiKey: string;
   private readonly log: ioBroker.Logger;
+  private readonly httpsRequestImpl: HttpsRequestFn;
   /**
    * Diagnostics hook — receives (deviceId, endpoint, body) for each
    * response. Optional; the adapter wires it to a DiagnosticsCollector
@@ -35,10 +36,12 @@ export class GoveeCloudClient {
   /**
    * @param apiKey Govee API key
    * @param log ioBroker logger
+   * @param httpsRequestImpl optional DI für Tests — Default ist die echte httpsRequest
    */
-  constructor(apiKey: string, log: ioBroker.Logger) {
+  constructor(apiKey: string, log: ioBroker.Logger, httpsRequestImpl: HttpsRequestFn = httpsRequest) {
     this.apiKey = apiKey;
     this.log = log;
+    this.httpsRequestImpl = httpsRequestImpl;
   }
 
   /**
@@ -228,7 +231,7 @@ export class GoveeCloudClient {
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     this.log.debug(`Cloud API: ${method} ${path}`);
     try {
-      const result = await httpsRequest<T>({
+      const result = await this.httpsRequestImpl<T>({
         method: method as "GET" | "POST",
         url: new URL(path, BASE_URL).toString(),
         headers: { "Govee-API-Key": this.apiKey },
@@ -239,12 +242,16 @@ export class GoveeCloudClient {
       this.lastErrorCategory = null;
       return result;
     } catch (err) {
-      this.lastErrorCategory = classifyError(err);
-      // Enhance 429 errors with retry-after info
+      // 429 explizit per statusCode klassifizieren — classifyError schaut nur in
+      // err.message, und HttpError("Too many requests", 429, …) hat keinen "429"-
+      // oder "Rate limit"-Marker im Text. Ohne diesen Branch landet 429 als
+      // UNKNOWN, getFailureReason() liefert dann den falschen Ready-Hint.
       if (err instanceof HttpError && err.statusCode === 429) {
+        this.lastErrorCategory = "RATE_LIMIT";
         const retryAfter = String(err.headers["retry-after"] ?? "unknown");
         throw new HttpError(`Rate limited — retry after ${retryAfter}s`, 429, err.headers);
       }
+      this.lastErrorCategory = classifyError(err);
       throw err;
     }
   }

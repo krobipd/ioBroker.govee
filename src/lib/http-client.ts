@@ -24,6 +24,13 @@ export interface HttpRequestOptions {
 }
 
 /**
+ * Signature der httpsRequest-Funktion. Cloud/Mqtt-Clients nehmen das als
+ * optionalen DI-Parameter — Default ist die echte httpsRequest, Tests können
+ * einen Mock injizieren ohne Module-Replacement.
+ */
+export type HttpsRequestFn = <T>(options: HttpRequestOptions) => Promise<T>;
+
+/**
  * Perform an HTTPS request and parse the JSON response.
  *
  * @param options Request options

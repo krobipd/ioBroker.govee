@@ -124,6 +124,10 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### **WORK IN PROGRESS**
+
+- Cloud-Rate-Limit-Hinweis zeigt bei 429 jetzt „rate-limited by Govee" statt der generischen Cloud-Fehlermeldung. Plus 33 Mock-Tests für Cloud + MQTT-Login.
+
 ### 2.5.0 (2026-05-04)
 
 - F4 final: `onMessage`-Handler (sendTo aus dem Admin-UI) ist jetzt eine eigene Klasse mit Host-Interface. main.ts deutlich kleiner, Login-Test/2FA-Code-Anforderung isoliert testbar. Verhalten identisch.
