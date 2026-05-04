@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.1.4",
+    "version": "2.2.0",
     "news": {
+      "2.2.0": {
+        "en": "Quality release: 2FA no longer restarts, MQTT pushes type-safe, sensors in right channel. Ready-log shows channel status, persistent UDP sockets, abortable HTTP, no more group-WARN spam.",
+        "de": "Quality-Release: 2FA ohne Restart, MQTT-Pushes typsicher, Sensoren im richtigen Kanal. Ready-Log mit Channel-Status, persistente UDP-Sockets, abbrechbares HTTP, kein Group-WARN-Spam.",
+        "ru": "Quality-релиз: 2FA-верификация без рестарта, MQTT-пуши типобезопасны, сенсоры в правильном канале. Новый ready-лог со статусом каналов, постоянные UDP-сокеты, прерываемые HTTP, без group-WARN-спама.",
+        "pt": "Release quality: verificacao 2FA sem reinicio, MQTT type-safe, sensores no canal certo. Novo log ready com status de canais, sockets UDP persistentes, HTTP cancelavel, sem mais spam group-WARN.",
+        "nl": "Quality release: 2FA-verificatie geen restart meer, MQTT type-safe, sensors in juiste kanaal. Nieuw ready-log, persistente UDP-sockets, afbreekbare HTTP, geen group-WARN spam.",
+        "fr": "Release qualite : verification 2FA sans redemarrage, MQTT type-safe, capteurs dans le bon canal. Nouveau ready-log avec statut canaux, sockets UDP persistants, HTTP annulable, plus de group-WARN spam.",
+        "it": "Release quality: verifica 2FA senza riavvio, MQTT type-safe, sensori nel canale giusto. Nuovo ready-log con stato canali, socket UDP persistenti, HTTP annullabile, niente piu group-WARN spam.",
+        "es": "Release de calidad: verificacion 2FA sin reinicio, MQTT type-safe, sensores al canal correcto. Nuevo ready-log con estado de canales, sockets UDP persistentes, HTTP cancelable, sin spam group-WARN.",
+        "pl": "Quality release: weryfikacja 2FA bez restartu, MQTT type-safe, sensory we wlasciwym kanale. Nowy ready-log ze statusem kanalow, persistentne UDP, anulowalne HTTP, bez spamu group-WARN.",
+        "uk": "Quality-реліз: 2FA-верифікація без рестарту, MQTT типобезпечно, сенсори у правильному каналі. Новий ready-лог зі статусом каналів, постійні UDP-сокети, переривані HTTP, без group-WARN-спаму.",
+        "zh-cn": "质量发布：2FA 验证不再重启；MQTT 推送类型安全；传感器进入正确通道。新 ready 日志带通道状态、持久 UDP socket、可中断 HTTP、不再有 group-WARN 刷屏。"
+      },
       "2.1.4": {
         "en": "Online status correct again after adapter restart — lights flip to online with the first LAN scan, sensors with the first cloud poll (5 s after start instead of 2 minutes).",
         "de": "Online-Status nach Adapter-Restart wieder korrekt — Lichter werden direkt mit dem ersten LAN-Scan online, Sensoren mit dem ersten Cloud-Poll (5 s nach Start statt 2 Minuten).",
@@ -80,19 +93,6 @@
         "pl": "Min js-controller >=6.0.11, admin >=7.6.20 (poprawia przypadkowy bump w 2.0.2).",
         "uk": "Мін. js-controller >=6.0.11, admin >=7.6.20 (виправлено випадковий bump у 2.0.2).",
         "zh-cn": "最低 js-controller >=6.0.11，admin >=7.6.20（修正 2.0.2 中的意外提升）。"
-      },
-      "2.0.2": {
-        "en": "Sensor and appliance events now arrive reliably across reconnects. Min js-controller >=7.0.23.",
-        "de": "Sensor- und Geraete-Events kommen jetzt zuverlaessig auch ueber Reconnects an. Min js-controller >=7.0.23.",
-        "ru": "Sensor- и appliance-события теперь надёжно приходят и при реконнектах. Мин. js-controller >=7.0.23.",
-        "pt": "Eventos de sensores e dispositivos chegam agora de forma confiavel mesmo apos reconexoes. Min js-controller >=7.0.23.",
-        "nl": "Sensor- en apparaat-events komen nu betrouwbaar binnen ook bij reconnects. Min js-controller >=7.0.23.",
-        "fr": "Les evenements des capteurs et appareils arrivent maintenant de maniere fiable meme apres des reconnexions. Min js-controller >=7.0.23.",
-        "it": "Gli eventi di sensori e dispositivi arrivano ora in modo affidabile anche dopo le riconnessioni. Min js-controller >=7.0.23.",
-        "es": "Los eventos de sensores y dispositivos llegan ahora de forma fiable tambien tras reconexiones. Min js-controller >=7.0.23.",
-        "pl": "Eventy czujnikow i urzadzen przychodza teraz niezawodnie takze po reconnectach. Min js-controller >=7.0.23.",
-        "uk": "Події від сенсорів і пристроїв тепер надходять надійно й після реконектів. Мін. js-controller >=7.0.23.",
-        "zh-cn": "传感器和设备事件现在在重连后也能可靠到达。最低 js-controller >=7.0.23。"
       }
     },
     "titleLang": {

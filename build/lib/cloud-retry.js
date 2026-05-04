@@ -108,9 +108,7 @@ class CloudRetryLoop {
     }
     this.retryTimer = this.host.setTimeout(() => {
       this.retryTimer = void 0;
-      this.runAttempt().catch(
-        (e) => this.host.log.debug(`Cloud retry failed: ${(0, import_types.errMessage)(e)}`)
-      );
+      this.runAttempt().catch((e) => this.host.log.debug(`Cloud retry failed: ${(0, import_types.errMessage)(e)}`));
     }, delayMs);
   }
   /** Internal retry step — one load call, route the result. */

@@ -87,9 +87,7 @@ class DeviceRegistry {
     try {
       parsed = JSON.parse(raw);
     } catch (err) {
-      (_b = this.log) == null ? void 0 : _b.warn(
-        `device-registry: invalid JSON in ${filePath}: ${(0, import_types.errMessage)(err)}`
-      );
+      (_b = this.log) == null ? void 0 : _b.warn(`device-registry: invalid JSON in ${filePath}: ${(0, import_types.errMessage)(err)}`);
       return;
     }
     this.ingest(parsed);

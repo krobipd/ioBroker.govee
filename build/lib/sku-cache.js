@@ -51,9 +51,7 @@ class SkuCache {
       this.dataAvailable = true;
     } catch (e) {
       this.dataAvailable = false;
-      this.log.warn(
-        `SKU cache directory not writable (${this.cacheDir}): ${(0, import_types.errMessage)(e)}`
-      );
+      this.log.warn(`SKU cache directory not writable (${this.cacheDir}): ${(0, import_types.errMessage)(e)}`);
     }
   }
   /** False wenn Cache-Dir nicht zugreifbar ist — save/load skipt dann. */

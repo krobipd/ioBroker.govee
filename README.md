@@ -124,6 +124,14 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### 2.2.0 (2026-05-04)
+
+- 2FA-Verifizierung triggert keinen Restart mehr. MQTT-Pushes typsicher, Sensor-Datenpunkte im richtigen Kanal (`sensor/`, `events/` statt `control/`).
+- Ready-Log zeigt was operational ist: Channel-Status (LAN+Cloud+MQTT+Cloud-events), Lichter-Online-Count, Sensoren mit Datenmarker. Wartet auf den ersten Sensor-Poll.
+- Persistente UDP-Sockets, abbrechbare HTTP-Calls, HTTP keep-alive (~200 ms schneller), Backoff-Jitter gegen Thundering Herd.
+- Memory-Leaks beim Device-Remove geschlossen — Diagnostics-Buffer und State-Tree werden gemeinsam aufgeräumt wenn ein Gerät aus dem Govee-Account verschwindet.
+- Kein WARN-Spam mehr für Group-State `info.membersUnreachable`. Plus XOR-Validierung für MQTT-BLE-Pakete, type-Guards an allen API-Boundaries, `tier: 2`.
+
 ### 2.1.4 (2026-05-03)
 
 - Online status correct again after adapter restart — lights flip to online with the first LAN scan, sensors with the first cloud poll (5 s after start instead of 2 minutes).
@@ -149,17 +157,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - The `diag.export` JSON now also shows failed Cloud calls (with status code) and recent log lines for the device, so a single JSON dump is enough for a bug report.
 - 2-Factor verification warning no longer repeats on every reconnect attempt. You'll see it once when Govee actually wants a code, not every minute while the adapter retries.
 - The MQTT connection is no longer dropped every few hours when the access token rotates — refreshed in the background. No more spurious 2FA warning after the adapter has been running a while.
-
-### 2.1.0 (2026-05-01)
-
-- Govee accounts that require email verification on login can now be used. Adapter settings have a button to request the code, plus a field to paste it.
-- The MQTT login is remembered across restarts, so the verification email is not re-sent on every reboot.
-- Reconnects no longer look like a brand-new login to Govee, which used to trigger a verification email even for already-verified accounts.
-- `info.online` now reflects reality for sensors and appliances. Fixes thermometers (e.g. H5179) staying at offline while their values kept updating.
-- New per-device datapoint shows whether your model is verified, community-reported, beta or unknown. Unknown SKUs get a one-time hint to file a diag.export.
-- Scene / DIY-scene / snapshot dropdowns now appear from the first start instead of waiting for the first Cloud call to come back.
-- The Refresh Cloud Data button reloads the scene / music / DIY libraries again (had been skipped since v1.10.1).
-- Min js-controller `>=7.0.7`, min admin `>=7.7.22`.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

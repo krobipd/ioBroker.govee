@@ -450,9 +450,7 @@ class GoveeMqttClient {
     try {
       extracted = this.extractCertsFromP12(creds.p12Cert, creds.p12Pass);
     } catch (e) {
-      this.log.debug(
-        `Persisted P12 cert unusable: ${(0, import_types.errMessage)(e)} \u2014 falling back to fresh login`
-      );
+      this.log.debug(`Persisted P12 cert unusable: ${(0, import_types.errMessage)(e)} \u2014 falling back to fresh login`);
       return false;
     }
     this._bearerToken = creds.bearerToken;
@@ -600,9 +598,7 @@ class GoveeMqttClient {
       }
       this.scheduleProactiveRefresh(newExpiresAt);
     } catch (e) {
-      this.log.debug(
-        `Silent bearer refresh failed: ${(0, import_types.errMessage)(e)} \u2014 current session kept`
-      );
+      this.log.debug(`Silent bearer refresh failed: ${(0, import_types.errMessage)(e)} \u2014 current session kept`);
     }
   }
   /** Login to Govee account */

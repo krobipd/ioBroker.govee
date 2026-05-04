@@ -1,4 +1,15 @@
 # Older Changes
+## 2.1.0 (2026-05-01)
+
+- Govee accounts that require email verification on login can now be used. Adapter settings have a button to request the code, plus a field to paste it.
+- The MQTT login is remembered across restarts, so the verification email is not re-sent on every reboot.
+- Reconnects no longer look like a brand-new login to Govee, which used to trigger a verification email even for already-verified accounts.
+- `info.online` now reflects reality for sensors and appliances. Fixes thermometers (e.g. H5179) staying at offline while their values kept updating.
+- New per-device datapoint shows whether your model is verified, community-reported, beta or unknown. Unknown SKUs get a one-time hint to file a diag.export.
+- Scene / DIY-scene / snapshot dropdowns now appear from the first start instead of waiting for the first Cloud call to come back.
+- The Refresh Cloud Data button reloads the scene / music / DIY libraries again (had been skipped since v1.10.1).
+- Min js-controller `>=7.0.7`, min admin `>=7.7.22`.
+
 ## 2.0.3 (2026-04-26)
 
 - Min js-controller `>=6.0.11`, admin `>=7.6.20` (correcting an accidental bump in 2.0.2).

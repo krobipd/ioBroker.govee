@@ -117,9 +117,7 @@ class GoveeAdapter extends utils.Adapter {
     );
     this.on(
       "stateChange",
-      (id, state) => this.onStateChange(id, state).catch(
-        (e) => this.log.warn(`onStateChange crashed for ${id}: ${(0, import_types.errMessage)(e)}`)
-      )
+      (id, state) => this.onStateChange(id, state).catch((e) => this.log.warn(`onStateChange crashed for ${id}: ${(0, import_types.errMessage)(e)}`))
     );
     this.on("message", (obj) => this.onMessage(obj));
     this.on("unload", (callback) => this.onUnload(callback));
@@ -226,9 +224,7 @@ class GoveeAdapter extends utils.Adapter {
         return;
       }
       this.stateManager.createSegmentStates(device).catch((e) => {
-        this.log.warn(
-          `Failed to rebuild segment tree for ${device.name} after count growth: ${(0, import_types.errMessage)(e)}`
-        );
+        this.log.warn(`Failed to rebuild segment tree for ${device.name} after count growth: ${(0, import_types.errMessage)(e)}`);
       });
     };
     const startChannels = ["LAN"];
@@ -315,9 +311,7 @@ class GoveeAdapter extends utils.Adapter {
       this.deviceManager.setCloudClient(this.cloudClient);
       this.deviceManager.setOnCloudCapabilities((device, caps) => {
         this.applyCloudCapabilities(device, caps).catch(
-          (e) => this.log.warn(
-            `applyCloudCapabilities failed for ${device.sku}: ${(0, import_types.errMessage)(e)}`
-          )
+          (e) => this.log.warn(`applyCloudCapabilities failed for ${device.sku}: ${(0, import_types.errMessage)(e)}`)
         );
       });
       this.rateLimiter = new import_rate_limiter.RateLimiter(this.log, this, FULL_LIMITS.perMinute, FULL_LIMITS.perDay);
@@ -389,9 +383,7 @@ class GoveeAdapter extends utils.Adapter {
     await this.subscribeStatesAsync("groups.*");
     await this.subscribeStatesAsync("info.refresh_cloud_data");
     this.cleanupTimer = this.setTimeout(() => {
-      this.reapStaleDevices().catch(
-        (e) => this.log.debug(`Device cleanup failed: ${(0, import_types.errMessage)(e)}`)
-      );
+      this.reapStaleDevices().catch((e) => this.log.debug(`Device cleanup failed: ${(0, import_types.errMessage)(e)}`));
     }, 3e4);
     this.updateConnectionState();
     this.checkAllReady();
