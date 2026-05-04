@@ -154,6 +154,12 @@
       "status": "verified",
       "since": "1.0.0"
     },
+    "H61A8": {
+      "name": "Outdoor Neon LED Strip 10m",
+      "type": "light",
+      "status": "verified",
+      "since": "2.5.2"
+    },
     "H61BE": {
       "name": "Glide Wall Light Wide",
       "type": "light",

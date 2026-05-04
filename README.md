@@ -124,6 +124,11 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### **WORK IN PROGRESS**
+
+- WARN-Spam alle 2 Min behoben: `groups.*.info.membersUnreachable` bleibt bei vollständig erreichbaren Gruppen mit leerem Wert vorhanden statt gelöscht zu werden.
+- Neu verifiziert: H61A8 Outdoor Neon LED Strip 10m (gemeldet von tukey42 in Issue #11).
+
 ### 2.5.1 (2026-05-04)
 
 - Cloud-Rate-Limit-Hinweis zeigt bei 429 jetzt „rate-limited by Govee" statt der generischen Cloud-Fehlermeldung. Plus 33 Mock-Tests für Cloud + MQTT-Login.

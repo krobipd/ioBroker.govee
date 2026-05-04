@@ -594,7 +594,7 @@ describe("StateManager", () => {
   });
 
   describe("updateGroupMembersUnreachable", () => {
-    it("should create state when unreachable members exist", async () => {
+    it("should create state and write unreachable list when members are offline", async () => {
       const { adapter, objects, states } = createMockAdapter();
       const sm = new StateManager(adapter as never);
       const group = createTestDevice({ sku: "BaseGroup", deviceId: "6781311" });
@@ -608,32 +608,38 @@ describe("StateManager", () => {
       expect(val!.val).to.equal("h61be_0011");
     });
 
-    it("should delete state when all members are reachable AND state existed before", async () => {
+    it("should write empty string when all members are reachable (no delete to avoid race-condition WARN)", async () => {
+      const { adapter, calls, objects, states } = createMockAdapter();
+      const sm = new StateManager(adapter as never);
+      const group = createTestDevice({ sku: "BaseGroup", deviceId: "6781311" });
+      const m1 = createTestDevice({ state: { online: true } });
+
+      await sm.updateGroupMembersUnreachable(group, [m1]);
+
+      // State + Object existieren weiter, der Inhalt wird auf empty-string gesetzt
+      expect(objects.has("groups.basegroup_1311.info.membersUnreachable")).to.be.true;
+      const val = states.get("groups.basegroup_1311.info.membersUnreachable");
+      expect(val!.val).to.equal("");
+      // Kritisch: keinerlei delObject/delState — sonst entsteht der „has no existing object"-WARN
+      // alle 2 Min wenn parallele updateGroupReachability-Aufrufe race-condition produzieren
+      const delObj = calls.filter(c => c.method === "delObjectAsync").map(c => c.args[0] as string);
+      const delSt = calls.filter(c => c.method === "delStateAsync").map(c => c.args[0] as string);
+      expect(delObj).to.not.include("groups.basegroup_1311.info.membersUnreachable");
+      expect(delSt).to.not.include("groups.basegroup_1311.info.membersUnreachable");
+    });
+
+    it("should not call delObjectAsync ever (race-condition prevention)", async () => {
       const { adapter, calls, objects } = createMockAdapter();
       const sm = new StateManager(adapter as never);
       const group = createTestDevice({ sku: "BaseGroup", deviceId: "6781311" });
-      // Pre-seed: state existed (from previous unreachable-cycle)
+      // Pre-seed: state existed (from previous unreachable-cycle on disk)
       objects.set("groups.basegroup_1311.info.membersUnreachable", { type: "state", common: {} });
       const m1 = createTestDevice({ state: { online: true } });
 
       await sm.updateGroupMembersUnreachable(group, [m1]);
 
       const delCalls = calls.filter(c => c.method === "delObjectAsync").map(c => c.args[0] as string);
-      expect(delCalls).to.include("groups.basegroup_1311.info.membersUnreachable");
-    });
-
-    it("should NOT trigger del-calls when state never existed (no WARN spam every 2 min)", async () => {
-      const { adapter, calls } = createMockAdapter();
-      const sm = new StateManager(adapter as never);
-      const group = createTestDevice({ sku: "BaseGroup", deviceId: "6781311" });
-      const m1 = createTestDevice({ state: { online: true } });
-
-      await sm.updateGroupMembersUnreachable(group, [m1]);
-
-      const delCalls = calls.filter(c => c.method === "delObjectAsync").map(c => c.args[0] as string);
-      const delStates = calls.filter(c => c.method === "delStateAsync").map(c => c.args[0] as string);
       expect(delCalls).to.not.include("groups.basegroup_1311.info.membersUnreachable");
-      expect(delStates).to.not.include("groups.basegroup_1311.info.membersUnreachable");
     });
   });
 

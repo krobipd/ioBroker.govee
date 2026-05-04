@@ -3,6 +3,19 @@
     "name": "govee-smart",
     "version": "2.5.1",
     "news": {
+      "NEXT": {
+        "en": "Stops the 'membersUnreachable has no existing object' WARN spam every 2 min — group state stays present with empty value. Plus verified H61A8 Outdoor Neon LED Strip 10m.",
+        "de": "Behebt WARN-Spam 'membersUnreachable has no existing object' alle 2 Min — Gruppen-State bleibt existent mit leerem Wert. Plus verifiziert: H61A8 Outdoor Neon LED Strip 10m.",
+        "ru": "Устраняет WARN-спам 'membersUnreachable has no existing object' каждые 2 мин — state группы остается с пустым значением. Плюс H61A8 Outdoor Neon LED Strip 10m verified.",
+        "pt": "Corrige o WARN spam 'membersUnreachable has no existing object' a cada 2 min — state do grupo permanece com valor vazio. Plus H61A8 Outdoor Neon LED Strip 10m verificado.",
+        "nl": "Lost WARN-spam 'membersUnreachable has no existing object' elke 2 min op — group state blijft aanwezig met lege waarde. Plus H61A8 Outdoor Neon LED Strip 10m verified.",
+        "fr": "Corrige le spam WARN 'membersUnreachable has no existing object' toutes les 2 min — l'etat du groupe reste present avec valeur vide. Plus H61A8 Outdoor Neon LED Strip 10m verifie.",
+        "it": "Corregge lo spam WARN 'membersUnreachable has no existing object' ogni 2 min — lo state del gruppo resta presente con valore vuoto. Plus H61A8 Outdoor Neon LED Strip 10m verificato.",
+        "es": "Corrige el spam WARN 'membersUnreachable has no existing object' cada 2 min — el state del grupo permanece presente con valor vacio. Plus H61A8 Outdoor Neon LED Strip 10m verificado.",
+        "pl": "Usuwa WARN-spam 'membersUnreachable has no existing object' co 2 min — state grupy pozostaje obecny z pustą wartością. Plus H61A8 Outdoor Neon LED Strip 10m verified.",
+        "uk": "Усуває WARN-спам 'membersUnreachable has no existing object' кожні 2 хв — state групи залишається з порожнім значенням. Плюс H61A8 Outdoor Neon LED Strip 10m verified.",
+        "zh-cn": "修复每 2 分钟 'membersUnreachable has no existing object' WARN 刷屏 — 组 state 保持存在并写入空值。新增已验证设备：H61A8 Outdoor Neon LED Strip 10m。"
+      },
       "2.5.1": {
         "en": "Cloud rate-limit hint now reads 'rate-limited by Govee' on 429 instead of the generic cloud-error message. Plus 33 mock tests for cloud + MQTT login paths.",
         "de": "Cloud-Rate-Limit-Hinweis zeigt bei 429 jetzt 'rate-limited by Govee' statt der generischen Cloud-Fehlermeldung. Plus 33 Mock-Tests fuer Cloud + MQTT-Login.",

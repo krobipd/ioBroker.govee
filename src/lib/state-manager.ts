@@ -792,7 +792,16 @@ export class StateManager {
 
   /**
    * Update info.membersUnreachable for a group.
-   * Creates the state if unreachable members exist, deletes it when all are reachable.
+   *
+   * Pflegt den state IMMER (existing) und schreibt eine comma-separated
+   * Liste der unreachable members oder einen leeren String wenn alle
+   * online sind. Vorher haben wir bei „alle reachable" das Object
+   * gelöscht — das produzierte aber js-controller-WARN „State
+   * 'X.membersUnreachable' has no existing object" alle ~2 Minuten,
+   * weil parallele updateGroupReachability-Aufrufe (LAN+MQTT-Status-
+   * Updates feuern fast gleichzeitig) eine race condition zwischen
+   * setStateAsync (Object existiert) und safeDeleteState (Object weg)
+   * triggern können. State immer existent zu halten umgeht das komplett.
    *
    * @param group BaseGroup device
    * @param memberDevices Resolved member devices
@@ -808,18 +817,11 @@ export class StateManager {
         return sanitize(`${m.sku}_${shortId}`);
       });
 
-    if (unreachable.length === 0) {
-      // All members reachable — drop the state via safeDeleteState (no-op
-      // wenn nie ein unreachable-Member existierte, damit kein WARN-Spam
-      // alle 2 Minuten beim refresh).
-      await this.safeDeleteState(stateId);
-    } else {
-      await this.ensureState(stateId, "Unreachable Members", "string", "text", false);
-      await this.adapter.setStateAsync(stateId, {
-        val: unreachable.join(", "),
-        ack: true,
-      });
-    }
+    await this.ensureState(stateId, "Unreachable Members", "string", "text", false);
+    await this.adapter.setStateAsync(stateId, {
+      val: unreachable.join(", "),
+      ack: true,
+    });
   }
 
   /**
