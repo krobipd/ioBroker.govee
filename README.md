@@ -124,7 +124,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 2.5.4 (2026-05-04)
 
 - Test-Coverage erweitert für den MQTT-Login-Pfad: `mqtt.connect` ist jetzt als optionaler Constructor-Parameter injizierbar (analog `httpsRequest` in v2.5.1) und 7 neue Mock-Tests decken die getIotKey-Authentifizierung und den persistierten-Credentials-Reuse-Pfad ab.
 
@@ -145,10 +145,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ### 2.5.0 (2026-05-04)
 
 - F4 final: `onMessage`-Handler (sendTo aus dem Admin-UI) ist jetzt eine eigene Klasse mit Host-Interface. main.ts deutlich kleiner, Login-Test/2FA-Code-Anforderung isoliert testbar. Verhalten identisch.
-
-### 2.4.1 (2026-05-04)
-
-- Group-Fan-Out-Pfad (Mitglieder-Steuerung beim Schalten der Gruppe) ist jetzt eine eigene Klasse mit Host-Interface — `main.ts` nochmal kleiner. Verhalten identisch.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

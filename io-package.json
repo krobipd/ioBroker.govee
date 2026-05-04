@@ -1,9 +1,9 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.5.3",
+    "version": "2.5.4",
     "news": {
-      "NEXT": {
+      "2.5.4": {
         "en": "Test-coverage expansion: mqtt.connect is now an injectable constructor parameter (like httpsRequest in v2.5.1), and 7 new mock tests cover the getIotKey path and persisted-credentials reuse.",
         "de": "Test-Coverage erweitert: mqtt.connect ist jetzt als Konstruktor-Parameter injizierbar (wie httpsRequest in v2.5.1), 7 neue Mock-Tests decken getIotKey und Persisted-Credentials-Reuse ab.",
         "ru": "Расширено покрытие тестами: mqtt.connect теперь принимается как параметр конструктора (как httpsRequest в v2.5.1), 7 новых mock-тестов покрывают getIotKey и persisted-credentials reuse.",
@@ -93,19 +93,6 @@
         "pl": "Higiena kodu: lokalny snapshot-manager zyskal wlasna klase z host-interface. main.ts maleje; zachowanie bez zmian.",
         "uk": "Гігієна коду: локальний snapshot-менеджер тепер живе у власному класі з host-інтерфейсом. main.ts зменшується; поведінка без змін.",
         "zh-cn": "代码卫生：本地 snapshot 管理器现已拆分为独立类，使用 host 接口。main.ts 缩小；行为不变。"
-      },
-      "2.3.1": {
-        "en": "Test coverage: smoke tests for GoveeCloudClient + GoveeMqttClient. Initial-state and setter checks now in place; full mock-based test paths come in a later release.",
-        "de": "Test-Coverage: Smoke-Tests für GoveeCloudClient + GoveeMqttClient. Initial-State + Setter-Checks drin; volle Mock-basierte Test-Pfade kommen separat.",
-        "ru": "Покрытие тестами: smoke-тесты для GoveeCloudClient + GoveeMqttClient. Initial-state и setter-проверки добавлены; полные mock-пути позже.",
-        "pt": "Cobertura de testes: smoke tests para GoveeCloudClient + GoveeMqttClient. Initial-state e setter-checks adicionados; caminhos completos com mock serao em release separado.",
-        "nl": "Test-coverage: smoke tests voor GoveeCloudClient + GoveeMqttClient. Initial-state en setter-checks toegevoegd; volle mock-paths komen apart.",
-        "fr": "Couverture de tests : smoke tests pour GoveeCloudClient + GoveeMqttClient. Initial-state et setter-checks ajoutes; chemins complets avec mocks plus tard.",
-        "it": "Test coverage: smoke tests per GoveeCloudClient + GoveeMqttClient. Controlli initial-state e setter aggiunti; percorsi completi con mock separati.",
-        "es": "Cobertura de tests: smoke tests para GoveeCloudClient + GoveeMqttClient. Initial-state y setter-checks agregados; rutas completas con mocks por separado.",
-        "pl": "Pokrycie testami: smoke testy dla GoveeCloudClient + GoveeMqttClient. Initial-state i setter-checks dodane; pelne sciezki mock w osobnym release.",
-        "uk": "Покриття тестами: smoke-тести для GoveeCloudClient + GoveeMqttClient. Initial-state та setter-перевірки додані; повні mock-шляхи окремо.",
-        "zh-cn": "测试覆盖：GoveeCloudClient + GoveeMqttClient 的 smoke 测试。初始状态和 setter 检查已加入；完整 mock 路径将在后续发布。"
       }
     },
     "titleLang": {
