@@ -21,6 +21,7 @@ admin/i18n/flat.txt
 # Build & Test
 coverage/
 .nyc_output/
+*.tsbuildinfo
 
 # Packages
 *.tgz

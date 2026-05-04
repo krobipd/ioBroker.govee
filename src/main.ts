@@ -935,7 +935,10 @@ class GoveeAdapter extends utils.Adapter {
     // Mirror power-off to mode-dropdown reset. Covers MQTT/LAN-initiated
     // power changes (Govee app or physical remote) so the UI stays honest:
     // a device that's off can't be "playing Aurora-A" anymore.
-    if (state.power === false && this.stateManager) {
+    // L11 — defensive auch 0 als false akzeptieren (Govee schickt Power
+    // theoretisch als boolean, aber MQTT-Boundary könnte 0 durchschleusen).
+    const powerOff = state.power === false || (state.power as unknown) === 0;
+    if (powerOff && this.stateManager) {
       const prefix = this.stateManager.devicePrefix(device);
       this.resetModeDropdowns(prefix, "").catch(() => undefined);
     }

@@ -571,7 +571,7 @@ function sanitizeId(str) {
   return str.replace(/([a-z])([A-Z])/g, "$1_$2").replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
 }
 function humanize(str) {
-  return str.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+  return str.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").trim().replace(/^./, (c) => c.toUpperCase());
 }
 function mapCloudStateValue(cap) {
   var _a, _b, _c, _d;

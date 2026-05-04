@@ -1084,6 +1084,13 @@ export class DeviceManager {
       if (segData.length > 0) {
         const maxSeen = Math.max(...segData.map(s => s.index)) + 1;
         const current = device.segmentCount ?? 0;
+        // L6 — Plausibilitäts-Cap: SEGMENT_HARD_MAX (55) ist die Govee-
+        // Protokoll-Obergrenze. Werte darüber kommen nur aus broken oder
+        // spoofed Paketen — niemals persistieren.
+        if (maxSeen > SEGMENT_HARD_MAX) {
+          this.log.debug(`${device.name}: ignoring segmentCount=${maxSeen} (above protocol limit ${SEGMENT_HARD_MAX})`);
+          return;
+        }
         if (maxSeen > current) {
           this.log.info(
             `${device.name}: detected ${maxSeen} segments via MQTT (was ${current}) — rebuilding state tree`,

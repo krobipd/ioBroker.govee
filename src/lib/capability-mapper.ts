@@ -774,10 +774,15 @@ function sanitizeId(str: string): string {
  * @param str camelCase input string
  */
 function humanize(str: string): string {
+  // Reihenfolge: erst Underscore → Space, dann camelCase-split, dann
+  // trim + erstes Zeichen uppercase. Vorher: leading-underscore-IDs
+  // (z.B. `_segment_color`) wurden zu ` segment color` mit leading
+  // Space und ohne Capitalization (^\w matched space, nicht word-char).
   return str
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/_/g, " ")
-    .replace(/^\w/, c => c.toUpperCase());
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .trim()
+    .replace(/^./, c => c.toUpperCase());
 }
 
 /** Mapped Cloud state value: state ID + converted value */

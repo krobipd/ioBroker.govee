@@ -755,7 +755,8 @@ class GoveeAdapter extends utils.Adapter {
     if (state.online !== void 0) {
       this.updateGroupReachability();
     }
-    if (state.power === false && this.stateManager) {
+    const powerOff = state.power === false || state.power === 0;
+    if (powerOff && this.stateManager) {
       const prefix = this.stateManager.devicePrefix(device);
       this.resetModeDropdowns(prefix, "").catch(() => void 0);
     }

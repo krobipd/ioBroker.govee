@@ -870,6 +870,10 @@ class DeviceManager {
       if (segData.length > 0) {
         const maxSeen = Math.max(...segData.map((s) => s.index)) + 1;
         const current = (_c = device.segmentCount) != null ? _c : 0;
+        if (maxSeen > SEGMENT_HARD_MAX) {
+          this.log.debug(`${device.name}: ignoring segmentCount=${maxSeen} (above protocol limit ${SEGMENT_HARD_MAX})`);
+          return;
+        }
         if (maxSeen > current) {
           this.log.info(
             `${device.name}: detected ${maxSeen} segments via MQTT (was ${current}) \u2014 rebuilding state tree`

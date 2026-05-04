@@ -438,6 +438,13 @@ export class GoveeLanClient {
    * @param sourceIp Source IP address from UDP rinfo
    */
   private handleMessage(msg: Buffer, sourceIp: string): void {
+    // L9 — Size-Bound. Pathologische Pakete (mehrere reassembled UDP-Frames)
+    // könnten 64KB+ haben. JSON.parse von 64KB+ blockiert den Event-Loop
+    // für ms-Spannen — bei vielen Devices gleichzeitig spürbar.
+    if (msg.length > 8192) {
+      this.log.debug(`LAN message dropped from ${sourceIp}: oversize ${msg.length} bytes`);
+      return;
+    }
     try {
       const data = JSON.parse(msg.toString()) as {
         msg?: { cmd?: string; data?: Record<string, unknown> };

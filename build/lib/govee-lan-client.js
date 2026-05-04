@@ -408,6 +408,10 @@ class GoveeLanClient {
    */
   handleMessage(msg, sourceIp) {
     var _a, _b;
+    if (msg.length > 8192) {
+      this.log.debug(`LAN message dropped from ${sourceIp}: oversize ${msg.length} bytes`);
+      return;
+    }
     try {
       const data = JSON.parse(msg.toString());
       if (!((_a = data.msg) == null ? void 0 : _a.cmd)) {
