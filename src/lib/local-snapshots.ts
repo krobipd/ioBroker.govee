@@ -47,10 +47,21 @@ export class LocalSnapshotStore {
   constructor(dataDir: string, log: ioBroker.Logger) {
     this.dir = path.join(dataDir, "snapshots");
     this.log = log;
-    if (!fs.existsSync(this.dir)) {
-      fs.mkdirSync(this.dir, { recursive: true });
+    // mkdir try/catch — Permission/Read-only-FS soll Constructor nicht crashen.
+    // Bei Fehlschlag wird dataAvailable=false markiert; save/load skippen.
+    try {
+      if (!fs.existsSync(this.dir)) {
+        fs.mkdirSync(this.dir, { recursive: true });
+      }
+      this.dataAvailable = true;
+    } catch (e) {
+      this.dataAvailable = false;
+      this.log.warn(`Snapshot directory not writable (${this.dir}): ${e instanceof Error ? e.message : String(e)}`);
     }
   }
+
+  /** False wenn Snapshot-Dir nicht zugreifbar ist — save/load skipt dann. */
+  private dataAvailable = false;
 
   /**
    * Get all snapshots for a device.

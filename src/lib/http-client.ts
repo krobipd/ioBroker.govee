@@ -1,5 +1,12 @@
 import * as https from "node:https";
 
+/**
+ * Module-level keep-alive Agent — vermeidet TLS-Handshake (~200ms) pro
+ * Request. maxSockets begrenzt parallele Verbindungen pro Host damit wir
+ * nicht aus Versehen Govee mit 100 gleichzeitigen Calls treffen.
+ */
+const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: 4 });
+
 /** Options for an HTTPS request */
 export interface HttpRequestOptions {
   /** HTTP method */
@@ -12,6 +19,8 @@ export interface HttpRequestOptions {
   body?: unknown;
   /** Timeout in milliseconds (default 15000) */
   timeout?: number;
+  /** Optional AbortSignal — wird der Request abgebrochen sobald abort() */
+  signal?: AbortSignal;
 }
 
 /**
@@ -38,6 +47,7 @@ export function httpsRequest<T>(options: HttpRequestOptions): Promise<T> {
           : {}),
       },
       timeout: options.timeout ?? 15_000,
+      agent: keepAliveAgent,
     };
 
     const req = https.request(reqOptions, res => {
@@ -48,20 +58,40 @@ export function httpsRequest<T>(options: HttpRequestOptions): Promise<T> {
         const statusCode = res.statusCode ?? 0;
 
         if (statusCode < 200 || statusCode >= 400) {
-          reject(new HttpError(`HTTP ${statusCode}: ${raw.slice(0, 200)}`, statusCode, res.headers));
+          // M4 — Body-Snippet aus Error-Message rausnehmen damit
+          // Tokens/API-Keys nicht im warn-Log auftauchen wenn der
+          // Server sie reflektiert. responseBody bleibt für debug
+          // separat verfügbar.
+          reject(new HttpError(`HTTP ${statusCode}`, statusCode, res.headers, raw));
           return;
         }
 
         try {
           resolve(JSON.parse(raw) as T);
         } catch {
-          reject(new Error(`Invalid JSON: ${raw.slice(0, 200)}`));
+          reject(new Error(`Invalid JSON in HTTP ${statusCode} response`));
         }
       });
     });
 
     req.on("error", reject);
     req.on("timeout", () => req.destroy(new Error("Timeout")));
+
+    // M3 — AbortSignal-Support. Wer den Request macht kann ihn abbrechen
+    // (z.B. Adapter-onUnload via AbortController) damit der Stop nicht
+    // 15s auf das Timeout warten muss.
+    if (options.signal) {
+      if (options.signal.aborted) {
+        req.destroy(new Error("Aborted"));
+        reject(new Error("Aborted"));
+        return;
+      }
+      const onAbort = (): void => {
+        req.destroy(new Error("Aborted"));
+        reject(new Error("Aborted"));
+      };
+      options.signal.addEventListener("abort", onAbort, { once: true });
+    }
 
     if (postData) {
       req.write(postData);
@@ -70,22 +100,35 @@ export function httpsRequest<T>(options: HttpRequestOptions): Promise<T> {
   });
 }
 
-/** HTTP error with status code and response headers */
+/** HTTP error with status code, response headers, and response body (debug-only) */
 export class HttpError extends Error {
   /** HTTP status code */
   readonly statusCode: number;
   /** Response headers */
   readonly headers: Record<string, string | string[] | undefined>;
+  /**
+   * Raw response body — NICHT in `message` damit Tokens/API-Keys nicht
+   * via warn-Log geleakt werden. Nur für gezieltes debug-Logging beim
+   * Caller verfügbar.
+   */
+  readonly responseBody: string;
 
   /**
-   * @param message Error message
+   * @param message Error message (Body-frei)
    * @param statusCode HTTP status code
    * @param headers Response headers
+   * @param responseBody Raw response body (kann sensitive Echo-Daten enthalten)
    */
-  constructor(message: string, statusCode: number, headers: Record<string, string | string[] | undefined> = {}) {
+  constructor(
+    message: string,
+    statusCode: number,
+    headers: Record<string, string | string[] | undefined> = {},
+    responseBody: string = "",
+  ) {
     super(message);
     this.name = "HttpError";
     this.statusCode = statusCode;
     this.headers = headers;
+    this.responseBody = responseBody;
   }
 }

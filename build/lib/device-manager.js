@@ -46,6 +46,13 @@ function parseMqttSegmentData(commands) {
     if (bytes.length < 20 || bytes[0] !== 170 || bytes[1] !== 165) {
       continue;
     }
+    let xor = 0;
+    for (let i = 0; i < 19; i++) {
+      xor ^= bytes[i];
+    }
+    if (xor !== bytes[19]) {
+      continue;
+    }
     const packetNum = bytes[2];
     if (packetNum < 1 || packetNum > 5) {
       continue;
@@ -728,9 +735,11 @@ class DeviceManager {
         matched = dev;
         break;
       }
-      if (dev.sku === lanDevice.sku && !dev.lanIp) {
-        matched = dev;
-        break;
+    }
+    if (!matched) {
+      const skuMatches = Array.from(this.devices.values()).filter((dev) => dev.sku === lanDevice.sku && !dev.lanIp);
+      if (skuMatches.length === 1) {
+        matched = skuMatches[0];
       }
     }
     if (matched) {

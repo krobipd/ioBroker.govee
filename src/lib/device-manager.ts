@@ -71,6 +71,17 @@ export function parseMqttSegmentData(commands: string[]): MqttSegmentData[] {
       continue;
     }
 
+    // M2 — XOR-Checksum-Validation. Govee BLE-Pakete haben am letzten Byte
+    // (Index 19) einen XOR über Bytes 0-18. Spoofed/malformed Pakete
+    // schlüpfen sonst durch und persistieren falsche segmentCount.
+    let xor = 0;
+    for (let i = 0; i < 19; i++) {
+      xor ^= bytes[i];
+    }
+    if (xor !== bytes[19]) {
+      continue;
+    }
+
     const packetNum = bytes[2];
     if (packetNum < 1 || packetNum > 5) {
       continue;
@@ -906,17 +917,21 @@ export class DeviceManager {
    * @param lanDevice Discovered LAN device
    */
   handleLanDiscovery(lanDevice: LanDevice): void {
-    // Try to find by device ID (colon-separated in Cloud, varies in LAN)
+    // Primärer Match — exakte Geräte-ID (colon-separated in Cloud, varies in LAN)
     let matched: GoveeDevice | undefined;
     for (const dev of this.devices.values()) {
       if (normalizeDeviceId(dev.deviceId) === normalizeDeviceId(lanDevice.device)) {
         matched = dev;
         break;
       }
-      // Also match by SKU if device IDs don't match format
-      if (dev.sku === lanDevice.sku && !dev.lanIp) {
-        matched = dev;
-        break;
+    }
+    // SKU-Fallback nur wenn EXACTLY ONE matchender Eintrag existiert.
+    // Bei mehreren same-SKU-devices ohne lanIp könnte sonst das falsche
+    // Gerät gebunden werden (Memory `feedback_doppel_audit_pattern`).
+    if (!matched) {
+      const skuMatches = Array.from(this.devices.values()).filter(dev => dev.sku === lanDevice.sku && !dev.lanIp);
+      if (skuMatches.length === 1) {
+        matched = skuMatches[0];
       }
     }
 

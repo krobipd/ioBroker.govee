@@ -33,6 +33,7 @@ __export(http_client_exports, {
 });
 module.exports = __toCommonJS(http_client_exports);
 var https = __toESM(require("node:https"));
+const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: 4 });
 function httpsRequest(options) {
   return new Promise((resolve, reject) => {
     var _a;
@@ -49,7 +50,8 @@ function httpsRequest(options) {
           "Content-Length": Buffer.byteLength(postData)
         } : {}
       },
-      timeout: (_a = options.timeout) != null ? _a : 15e3
+      timeout: (_a = options.timeout) != null ? _a : 15e3,
+      agent: keepAliveAgent
     };
     const req = https.request(reqOptions, (res) => {
       const chunks = [];
@@ -59,18 +61,30 @@ function httpsRequest(options) {
         const raw = Buffer.concat(chunks).toString();
         const statusCode = (_a2 = res.statusCode) != null ? _a2 : 0;
         if (statusCode < 200 || statusCode >= 400) {
-          reject(new HttpError(`HTTP ${statusCode}: ${raw.slice(0, 200)}`, statusCode, res.headers));
+          reject(new HttpError(`HTTP ${statusCode}`, statusCode, res.headers, raw));
           return;
         }
         try {
           resolve(JSON.parse(raw));
         } catch {
-          reject(new Error(`Invalid JSON: ${raw.slice(0, 200)}`));
+          reject(new Error(`Invalid JSON in HTTP ${statusCode} response`));
         }
       });
     });
     req.on("error", reject);
     req.on("timeout", () => req.destroy(new Error("Timeout")));
+    if (options.signal) {
+      if (options.signal.aborted) {
+        req.destroy(new Error("Aborted"));
+        reject(new Error("Aborted"));
+        return;
+      }
+      const onAbort = () => {
+        req.destroy(new Error("Aborted"));
+        reject(new Error("Aborted"));
+      };
+      options.signal.addEventListener("abort", onAbort, { once: true });
+    }
     if (postData) {
       req.write(postData);
     }
@@ -83,15 +97,23 @@ class HttpError extends Error {
   /** Response headers */
   headers;
   /**
-   * @param message Error message
+   * Raw response body — NICHT in `message` damit Tokens/API-Keys nicht
+   * via warn-Log geleakt werden. Nur für gezieltes debug-Logging beim
+   * Caller verfügbar.
+   */
+  responseBody;
+  /**
+   * @param message Error message (Body-frei)
    * @param statusCode HTTP status code
    * @param headers Response headers
+   * @param responseBody Raw response body (kann sensitive Echo-Daten enthalten)
    */
-  constructor(message, statusCode, headers = {}) {
+  constructor(message, statusCode, headers = {}, responseBody = "") {
     super(message);
     this.name = "HttpError";
     this.statusCode = statusCode;
     this.headers = headers;
+    this.responseBody = responseBody;
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

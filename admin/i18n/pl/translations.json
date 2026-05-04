@@ -37,5 +37,6 @@
   "twoFaInfo": "Jeśli log adaptera pokazuje 'Verification required', kliknij 'Poproś o kod', wprowadź kod z maila Govee poniżej i zapisz.",
   "twoFaBtnRequest": "Poproś o kod",
   "twoFaCodeLabel": "Kod weryfikacyjny",
-  "twoFaCodeTooltip": "Jednorazowy kod z maila Govee. Czyszczony automatycznie po udanym logowaniu."
+  "twoFaCodeTooltip": "Jednorazowy kod z maila Govee. Czyszczony automatycznie po udanym logowaniu.",
+  "validatorEmailError": "Wpisz prawidłowy adres e-mail"
 }

@@ -46,7 +46,10 @@
           "md": 12,
           "lg": 12,
           "xl": 12,
-          "style": { "fontSize": 14, "marginBottom": 16 }
+          "style": {
+            "fontSize": 14,
+            "marginBottom": 16
+          }
         },
         "networkInterface": {
           "type": "ip",
@@ -61,7 +64,6 @@
           "lg": 6,
           "xl": 6
         },
-
         "_cloudHeader": {
           "newLine": true,
           "type": "header",
@@ -76,7 +78,10 @@
           "md": 12,
           "lg": 12,
           "xl": 12,
-          "style": { "fontSize": 14, "marginBottom": 8 }
+          "style": {
+            "fontSize": 14,
+            "marginBottom": 8
+          }
         },
         "apiKey": {
           "type": "password",
@@ -87,7 +92,6 @@
           "lg": 6,
           "xl": 6
         },
-
         "_mqttHeader": {
           "newLine": true,
           "type": "header",
@@ -102,7 +106,10 @@
           "md": 12,
           "lg": 12,
           "xl": 12,
-          "style": { "fontSize": 14, "marginBottom": 8 }
+          "style": {
+            "fontSize": 14,
+            "marginBottom": 8
+          }
         },
         "goveeEmail": {
           "type": "text",
@@ -111,7 +118,9 @@
           "sm": 6,
           "md": 4,
           "lg": 4,
-          "xl": 4
+          "xl": 4,
+          "validator": "data.goveeEmail.includes('@')",
+          "validatorErrorText": "validatorEmailError"
         },
         "goveePassword": {
           "type": "password",
@@ -135,7 +144,9 @@
           "md": 4,
           "lg": 3,
           "xl": 3,
-          "style": { "marginTop": 8 }
+          "style": {
+            "marginTop": 8
+          }
         },
         "_2faHeader": {
           "newLine": true,
@@ -151,7 +162,10 @@
           "md": 12,
           "lg": 12,
           "xl": 12,
-          "style": { "fontSize": 14, "marginBottom": 8 }
+          "style": {
+            "fontSize": 14,
+            "marginBottom": 8
+          }
         },
         "_2faRequest": {
           "type": "sendTo",
@@ -174,9 +188,9 @@
           "sm": 6,
           "md": 4,
           "lg": 3,
-          "xl": 3
+          "xl": 3,
+          "maxLength": 8
         },
-
         "_advancedHeader": {
           "newLine": true,
           "type": "header",
@@ -191,7 +205,10 @@
           "md": 12,
           "lg": 12,
           "xl": 12,
-          "style": { "fontSize": 14, "marginBottom": 8 }
+          "style": {
+            "fontSize": 14,
+            "marginBottom": 8
+          }
         },
         "experimentalQuirks": {
           "type": "checkbox",
@@ -203,7 +220,6 @@
           "lg": 6,
           "xl": 6
         },
-
         "_supportHeader": {
           "newLine": true,
           "type": "header",
@@ -218,7 +234,10 @@
           "md": 12,
           "lg": 12,
           "xl": 12,
-          "style": { "fontSize": 14, "marginBottom": 16 }
+          "style": {
+            "fontSize": 14,
+            "marginBottom": 16
+          }
         },
         "_kofiLink": {
           "type": "staticLink",
@@ -266,7 +285,10 @@
           "md": 12,
           "lg": 12,
           "xl": 12,
-          "style": { "fontSize": 14, "marginBottom": 16 }
+          "style": {
+            "fontSize": 14,
+            "marginBottom": 16
+          }
         },
         "_wizDevice": {
           "type": "selectSendTo",
@@ -372,7 +394,9 @@
           "md": 3,
           "lg": 2,
           "xl": 2,
-          "style": { "marginTop": 16 }
+          "style": {
+            "marginTop": 16
+          }
         },
         "_wizHelp": {
           "newLine": true,
@@ -383,7 +407,11 @@
           "md": 12,
           "lg": 12,
           "xl": 12,
-          "style": { "fontSize": 13, "marginTop": 24, "opacity": 0.8 }
+          "style": {
+            "fontSize": 13,
+            "marginTop": 24,
+            "opacity": 0.8
+          }
         }
       }
     }

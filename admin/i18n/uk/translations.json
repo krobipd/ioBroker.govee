@@ -37,5 +37,6 @@
   "twoFaInfo": "Якщо лог адаптера показує 'Verification required', натисніть 'Запитати код', введіть код з e-mail Govee нижче та збережіть.",
   "twoFaBtnRequest": "Запитати код",
   "twoFaCodeLabel": "Код підтвердження",
-  "twoFaCodeTooltip": "Одноразовий код з e-mail Govee. Очищується автоматично після успішного входу."
+  "twoFaCodeTooltip": "Одноразовий код з e-mail Govee. Очищується автоматично після успішного входу.",
+  "validatorEmailError": "Введіть коректну електронну адресу"
 }

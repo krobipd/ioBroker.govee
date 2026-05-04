@@ -278,8 +278,20 @@ export class SegmentWizard {
     );
   }
 
-  /** Clear any pending idle-timer. Called from onUnload. */
+  /**
+   * Clear any pending idle-timer. Called from onUnload.
+   *
+   * Wenn ein Wizard noch läuft beim Adapter-Stop: Strip bleibt im
+   * weiß-flash-Zustand. UX trade-off — onUnload muss synchron sein,
+   * restoreBaseline kann hier nicht awaiten. User-Hinweis schon im
+   * start-Log.
+   */
   public dispose(): void {
+    if (this.session) {
+      this.host.log.warn(
+        "Segment wizard active during adapter stop — strip stays in test pattern. Run wizard 'done' or 'abort' next time.",
+      );
+    }
     this.clearIdleTimer();
     this.session = null;
   }

@@ -88,10 +88,24 @@ export class SkuCache {
   constructor(dataDir: string, log: ioBroker.Logger) {
     this.cacheDir = path.join(dataDir, "cache");
     this.log = log;
-    if (!fs.existsSync(this.cacheDir)) {
-      fs.mkdirSync(this.cacheDir, { recursive: true });
+    // mkdir try/catch — Permission/Read-only-FS soll Constructor nicht crashen
+    // (würde sonst onReady throw → adapter restart-loop). Bei Fehlschlag wird
+    // dataAvailable=false markiert; save/load skippen dann silent.
+    try {
+      if (!fs.existsSync(this.cacheDir)) {
+        fs.mkdirSync(this.cacheDir, { recursive: true });
+      }
+      this.dataAvailable = true;
+    } catch (e) {
+      this.dataAvailable = false;
+      this.log.warn(
+        `SKU cache directory not writable (${this.cacheDir}): ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
   }
+
+  /** False wenn Cache-Dir nicht zugreifbar ist — save/load skipt dann. */
+  private dataAvailable = false;
 
   /**
    * Save device data to cache.

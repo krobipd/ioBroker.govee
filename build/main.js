@@ -65,8 +65,10 @@ class GoveeAdapter extends utils.Adapter {
   rateLimiter = null;
   /** Repeating timer for the App-API poll (sensor-state pull). */
   appApiPollTimer;
-  /** One-shot timer for the FIRST app-api poll (5s nach start) — Handle
-   *  damit onUnload das wegräumen kann bevor es ins Leere feuert. */
+  /**
+   * One-shot timer for the FIRST app-api poll (5s nach start) — Handle
+   *  damit onUnload das wegräumen kann bevor es ins Leere feuert.
+   */
   appApiInitialTimer;
   /** One-shot timer for cloud-init 60s safety timeout — gleiches Pattern. */
   cloudInitTimer;

@@ -27,6 +27,8 @@ export class CommandRouter {
    *  log-Spam wenn das gleiche Symptom mehrfach kommt.
    */
   private lastCloudFallbackError: ErrorCategory | null = null;
+  /** Dedup-Tracker für „kein Cloud-channel"-Warns (M20). */
+  private lastNoChannelCategory: ErrorCategory | null = null;
 
   /** Callback for batch segment state sync */
   onSegmentBatchUpdate?: (
@@ -720,21 +722,32 @@ export class CommandRouter {
    * @param value Command value
    */
   private async sendCloudCommand(device: GoveeDevice, command: string, value: unknown): Promise<void> {
-    if (!this.cloudClient) {
+    // M19 — Closure capture: lokale Variable nach Guard. Verhindert Race
+    // wenn `setCloudClient(null)` zwischen Guard-Check und executeRateLimited
+    // läuft (z.B. Adapter-Stop mid-await).
+    const cloudClient = this.cloudClient;
+    if (!cloudClient) {
       return;
     }
 
     // Find the matching capability
     const cap = this.findCapabilityForCommand(device, command);
     if (!cap) {
-      this.log.debug(`No Cloud capability for command '${command}' on ${device.sku}`);
+      // M20 — dedup-warn statt nur debug. User klickt einen State, kein
+      // Channel-Match → Fehlersuche braucht das Erstauftreten als warn.
+      this.lastNoChannelCategory = logDedup(
+        this.log,
+        this.lastNoChannelCategory,
+        `No channel for ${device.name}/${command}`,
+        new Error("no matching capability"),
+      );
       return;
     }
 
     const cloudValue = this.toCloudValue(device, command, value);
 
     const execute = async (): Promise<void> => {
-      await this.cloudClient!.controlDevice(device.sku, device.deviceId, cap.type, cap.instance, cloudValue);
+      await cloudClient.controlDevice(device.sku, device.deviceId, cap.type, cap.instance, cloudValue);
     };
 
     await this.executeRateLimited(execute);

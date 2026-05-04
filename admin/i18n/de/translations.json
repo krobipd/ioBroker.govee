@@ -37,5 +37,6 @@
   "twoFaInfo": "Wenn das Adapter-Log 'Verification required' zeigt, 'Code anfordern' klicken, den Code aus der Govee-E-Mail unten eintragen und Speichern.",
   "twoFaBtnRequest": "Code anfordern",
   "twoFaCodeLabel": "Bestätigungs-Code",
-  "twoFaCodeTooltip": "Einmal-Code aus der Govee-E-Mail. Wird nach erfolgreichem Login automatisch geleert."
+  "twoFaCodeTooltip": "Einmal-Code aus der Govee-E-Mail. Wird nach erfolgreichem Login automatisch geleert.",
+  "validatorEmailError": "Bitte eine gültige E-Mail-Adresse eingeben"
 }

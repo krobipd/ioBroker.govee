@@ -53,11 +53,16 @@ class GoveeApiClient {
   hasBearerToken() {
     return !!this.bearerToken;
   }
-  /** Auth headers for the bearer-token-protected sensor endpoints. */
+  /**
+   * Auth headers for the bearer-token-protected sensor endpoints.
+   * Caller-pflichten Guard: hasBearerToken() prüfen bevor Aufruf.
+   */
   authHeaders() {
-    var _a;
+    if (!this.bearerToken) {
+      throw new Error("Bearer token required \u2014 call hasBearerToken() first");
+    }
     return {
-      Authorization: `Bearer ${(_a = this.bearerToken) != null ? _a : ""}`,
+      Authorization: `Bearer ${this.bearerToken}`,
       appVersion: import_govee_constants.GOVEE_APP_VERSION,
       clientId: this.clientId,
       clientType: import_govee_constants.GOVEE_CLIENT_TYPE,

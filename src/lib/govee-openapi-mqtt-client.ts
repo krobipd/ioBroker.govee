@@ -219,7 +219,10 @@ export class GoveeOpenapiMqttClient {
     }
 
     this.reconnectAttempts++;
-    const delay = Math.min(5_000 * Math.pow(2, this.reconnectAttempts - 1), 300_000);
+    // M6 — Jitter gegen Thundering Herd (analog Account-MQTT-Client).
+    const base = Math.min(5_000 * Math.pow(2, this.reconnectAttempts - 1), 300_000);
+    const jitter = Math.random() * Math.min(base, 30_000);
+    const delay = Math.round(base + jitter);
     this.log.debug(`Cloud-events: reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts})`);
 
     this.reconnectTimer = this.timers.setTimeout(() => {

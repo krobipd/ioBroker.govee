@@ -202,7 +202,9 @@ class GoveeOpenapiMqttClient {
       return;
     }
     this.reconnectAttempts++;
-    const delay = Math.min(5e3 * Math.pow(2, this.reconnectAttempts - 1), 3e5);
+    const base = Math.min(5e3 * Math.pow(2, this.reconnectAttempts - 1), 3e5);
+    const jitter = Math.random() * Math.min(base, 3e4);
+    const delay = Math.round(base + jitter);
     this.log.debug(`Cloud-events: reconnecting in ${delay / 1e3}s (attempt ${this.reconnectAttempts})`);
     this.reconnectTimer = this.timers.setTimeout(() => {
       var _a;

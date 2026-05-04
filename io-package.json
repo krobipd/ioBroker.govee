@@ -143,7 +143,9 @@
       "led",
       "lan",
       "mqtt",
-      "ble"
+      "ble",
+      "sensor",
+      "thermometer"
     ],
     "type": "lighting",
     "compact": true,

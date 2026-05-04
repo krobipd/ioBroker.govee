@@ -35,6 +35,8 @@ class CommandRouter {
    *  log-Spam wenn das gleiche Symptom mehrfach kommt.
    */
   lastCloudFallbackError = null;
+  /** Dedup-Tracker für „kein Cloud-channel"-Warns (M20). */
+  lastNoChannelCategory = null;
   /** Callback for batch segment state sync */
   onSegmentBatchUpdate;
   /**
@@ -607,17 +609,23 @@ class CommandRouter {
    * @param value Command value
    */
   async sendCloudCommand(device, command, value) {
-    if (!this.cloudClient) {
+    const cloudClient = this.cloudClient;
+    if (!cloudClient) {
       return;
     }
     const cap = this.findCapabilityForCommand(device, command);
     if (!cap) {
-      this.log.debug(`No Cloud capability for command '${command}' on ${device.sku}`);
+      this.lastNoChannelCategory = (0, import_types.logDedup)(
+        this.log,
+        this.lastNoChannelCategory,
+        `No channel for ${device.name}/${command}`,
+        new Error("no matching capability")
+      );
       return;
     }
     const cloudValue = this.toCloudValue(device, command, value);
     const execute = async () => {
-      await this.cloudClient.controlDevice(device.sku, device.deviceId, cap.type, cap.instance, cloudValue);
+      await cloudClient.controlDevice(device.sku, device.deviceId, cap.type, cap.instance, cloudValue);
     };
     await this.executeRateLimited(execute);
   }

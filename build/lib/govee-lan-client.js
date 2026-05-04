@@ -47,12 +47,20 @@ const COMMAND_PORT = 4003;
 class GoveeLanClient {
   scanSocket = null;
   listenSocket = null;
+  /**
+   * Persistent send-socket — vorher wurde pro Command ein neuer dgram-
+   *  Socket angelegt, gesendet, geschlossen. Beim Adapter-Stop mid-send
+   *  konnte der Callback in einen halb-zerlegten Adapter feuern.
+   */
+  sendSocket = null;
   scanTimer = void 0;
   timers;
   log;
   onDiscovery = null;
   onStatus = null;
   seenDeviceIps = /* @__PURE__ */ new Set();
+  /** Multicast-Membership-Adresse — gemerkt für dropMembership in stop(). */
+  multicastBind;
   /**
    * @param log ioBroker logger
    * @param timers Timer adapter for setInterval/setTimeout
@@ -76,12 +84,22 @@ class GoveeLanClient {
     if (bindAddr) {
       this.log.info(`LAN binding to network interface ${bindAddr}`);
     }
+    this.multicastBind = bindAddr;
+    this.sendSocket = dgram.createSocket("udp4");
+    this.sendSocket.on("error", (err) => {
+      this.log.debug(`LAN send socket error: ${err.message}`);
+    });
     this.listenSocket = dgram.createSocket({ type: "udp4", reuseAddr: true });
     this.listenSocket.on("message", (msg, rinfo) => {
       this.handleMessage(msg, rinfo.address);
     });
     this.listenSocket.on("error", (err) => {
-      this.log.debug(`LAN listen socket error: ${err.message}`);
+      const code = err.code;
+      if (code === "EADDRINUSE") {
+        this.log.warn(`LAN listen port ${LISTEN_PORT} already in use \u2014 second instance? Status updates will be lost.`);
+      } else {
+        this.log.debug(`LAN listen socket error: ${err.message}`);
+      }
     });
     this.listenSocket.bind(LISTEN_PORT, bindAddr, () => {
       this.log.debug(`LAN listening on port ${LISTEN_PORT}`);
@@ -89,7 +107,7 @@ class GoveeLanClient {
       this.scanSocket.on("error", (err) => {
         this.log.debug(`LAN scan socket error: ${err.message}`);
       });
-      this.scanSocket.bind(() => {
+      this.scanSocket.bind(0, bindAddr, () => {
         var _a, _b;
         (_a = this.scanSocket) == null ? void 0 : _a.setBroadcast(true);
         try {
@@ -112,6 +130,12 @@ class GoveeLanClient {
     }
     if (this.scanSocket) {
       try {
+        if (this.multicastBind) {
+          this.scanSocket.dropMembership(MULTICAST_ADDR, this.multicastBind);
+        }
+      } catch {
+      }
+      try {
         this.scanSocket.close();
       } catch {
       }
@@ -124,6 +148,15 @@ class GoveeLanClient {
       }
       this.listenSocket = null;
     }
+    if (this.sendSocket) {
+      try {
+        this.sendSocket.close();
+      } catch {
+      }
+      this.sendSocket = null;
+    }
+    this.seenDeviceIps.clear();
+    this.multicastBind = void 0;
   }
   /**
    * Send a control command to a device via LAN.
@@ -133,16 +166,21 @@ class GoveeLanClient {
    * @param data Command data
    */
   sendCommand(ip, cmd, data) {
+    if (!this.sendSocket) {
+      this.log.debug(`LAN send dropped (socket not ready): ${cmd} \u2192 ${ip}`);
+      return;
+    }
     const message = {
       msg: { cmd, data }
     };
     const buf = Buffer.from(JSON.stringify(message));
-    const socket = dgram.createSocket("udp4");
-    socket.send(buf, 0, buf.length, COMMAND_PORT, ip, (err) => {
+    if (buf.length > 1400) {
+      this.log.debug(`LAN payload large (${buf.length} bytes) \u2014 may be PMTU-fragmented for ${ip}`);
+    }
+    this.sendSocket.send(buf, 0, buf.length, COMMAND_PORT, ip, (err) => {
       if (err) {
         this.log.debug(`LAN send error to ${ip}: ${err.message}`);
       }
-      socket.close();
     });
   }
   /**
@@ -213,16 +251,21 @@ class GoveeLanClient {
    * @param base64Packets Array of Base64-encoded 20-byte BLE packets
    */
   sendPtReal(ip, base64Packets) {
+    if (!this.sendSocket) {
+      this.log.debug(`LAN ptReal dropped (socket not ready): ${ip}`);
+      return;
+    }
     const message = {
       msg: { cmd: "ptReal", data: { command: base64Packets } }
     };
     const buf = Buffer.from(JSON.stringify(message));
-    const socket = dgram.createSocket("udp4");
-    socket.send(buf, 0, buf.length, COMMAND_PORT, ip, (err) => {
+    if (buf.length > 1400) {
+      this.log.debug(`ptReal payload large (${buf.length} bytes) \u2014 may be PMTU-fragmented for ${ip}`);
+    }
+    this.sendSocket.send(buf, 0, buf.length, COMMAND_PORT, ip, (err) => {
       if (err) {
         this.log.debug(`LAN ptReal error to ${ip}: ${err.message}`);
       }
-      socket.close();
     });
   }
   /**

@@ -37,5 +37,6 @@
   "twoFaInfo": "Si le log de l'adaptateur affiche 'Verification required', cliquez sur 'Demander un code', saisissez le code de l'e-mail Govee ci-dessous et enregistrez.",
   "twoFaBtnRequest": "Demander un code",
   "twoFaCodeLabel": "Code de vérification",
-  "twoFaCodeTooltip": "Code à usage unique de l'e-mail Govee. Effacé automatiquement après une connexion réussie."
+  "twoFaCodeTooltip": "Code à usage unique de l'e-mail Govee. Effacé automatiquement après une connexion réussie.",
+  "validatorEmailError": "Veuillez entrer une adresse e-mail valide"
 }

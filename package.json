@@ -19,7 +19,9 @@
     "govee",
     "smart home",
     "led",
-    "light"
+    "light",
+    "sensor",
+    "thermometer"
   ],
   "repository": {
     "type": "git",

@@ -19,12 +19,20 @@ export type LanStatusCallback = (sourceIp: string, status: LanStatus) => void;
 export class GoveeLanClient {
   private scanSocket: dgram.Socket | null = null;
   private listenSocket: dgram.Socket | null = null;
+  /**
+   * Persistent send-socket — vorher wurde pro Command ein neuer dgram-
+   *  Socket angelegt, gesendet, geschlossen. Beim Adapter-Stop mid-send
+   *  konnte der Callback in einen halb-zerlegten Adapter feuern.
+   */
+  private sendSocket: dgram.Socket | null = null;
   private scanTimer: ioBroker.Interval | undefined = undefined;
   private readonly timers: TimerAdapter;
   private readonly log: ioBroker.Logger;
   private onDiscovery: LanDiscoveryCallback | null = null;
   private onStatus: LanStatusCallback | null = null;
   private readonly seenDeviceIps = new Set<string>();
+  /** Multicast-Membership-Adresse — gemerkt für dropMembership in stop(). */
+  private multicastBind: string | undefined;
 
   /**
    * @param log ioBroker logger
@@ -57,13 +65,29 @@ export class GoveeLanClient {
       this.log.info(`LAN binding to network interface ${bindAddr}`);
     }
 
+    this.multicastBind = bindAddr;
+
+    // Persistent Send-Socket für Commands — einmal anlegen, in stop() schliessen.
+    this.sendSocket = dgram.createSocket("udp4");
+    this.sendSocket.on("error", err => {
+      this.log.debug(`LAN send socket error: ${err.message}`);
+    });
+
     // Listen socket for responses (port 4002) — must be ready before first scan
     this.listenSocket = dgram.createSocket({ type: "udp4", reuseAddr: true });
     this.listenSocket.on("message", (msg, rinfo) => {
       this.handleMessage(msg, rinfo.address);
     });
     this.listenSocket.on("error", err => {
-      this.log.debug(`LAN listen socket error: ${err.message}`);
+      // EADDRINUSE = Port 4002 schon belegt (zweite Adapter-Instanz?). User
+      // muss das wissen — Adapter wäre sonst halb-tot (Discovery via scan
+      // geht, Status-Antworten verloren).
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "EADDRINUSE") {
+        this.log.warn(`LAN listen port ${LISTEN_PORT} already in use — second instance? Status updates will be lost.`);
+      } else {
+        this.log.debug(`LAN listen socket error: ${err.message}`);
+      }
     });
     this.listenSocket.bind(LISTEN_PORT, bindAddr, () => {
       this.log.debug(`LAN listening on port ${LISTEN_PORT}`);
@@ -73,7 +97,10 @@ export class GoveeLanClient {
       this.scanSocket.on("error", err => {
         this.log.debug(`LAN scan socket error: ${err.message}`);
       });
-      this.scanSocket.bind(() => {
+      // bind(0, bindAddr) — ephemeraler Port, aber an gewähltes Interface
+      // gebunden. Vorher: bind() ohne Adresse → ANY → asymmetrisch zum
+      // Listen-Socket der das bindAddr nutzt.
+      this.scanSocket.bind(0, bindAddr, () => {
         this.scanSocket?.setBroadcast(true);
         try {
           this.scanSocket?.addMembership(MULTICAST_ADDR, bindAddr);
@@ -97,6 +124,15 @@ export class GoveeLanClient {
       this.scanTimer = undefined;
     }
     if (this.scanSocket) {
+      // dropMembership symmetrisch zu addMembership — auf macOS/Windows kann
+      // der Multicast-Filter sonst auf der NIC bis Process-Exit hängenbleiben.
+      try {
+        if (this.multicastBind) {
+          this.scanSocket.dropMembership(MULTICAST_ADDR, this.multicastBind);
+        }
+      } catch {
+        /* ignore — best-effort */
+      }
       try {
         this.scanSocket.close();
       } catch {
@@ -112,6 +148,19 @@ export class GoveeLanClient {
       }
       this.listenSocket = null;
     }
+    if (this.sendSocket) {
+      try {
+        this.sendSocket.close();
+      } catch {
+        /* ignore */
+      }
+      this.sendSocket = null;
+    }
+    // L4 — seenDeviceIps clear, sonst überleben Einträge zwischen
+    // start/stop-Zyklen im selben Process (korrektheit nicht beeinflusst,
+    // aber discovery-log-info bei IP-Wechsel würde verloren gehen).
+    this.seenDeviceIps.clear();
+    this.multicastBind = undefined;
   }
 
   /**
@@ -122,16 +171,24 @@ export class GoveeLanClient {
    * @param data Command data
    */
   private sendCommand(ip: string, cmd: string, data: Record<string, unknown>): void {
+    if (!this.sendSocket) {
+      this.log.debug(`LAN send dropped (socket not ready): ${cmd} → ${ip}`);
+      return;
+    }
     const message: LanMessage = {
       msg: { cmd, data },
     };
     const buf = Buffer.from(JSON.stringify(message));
-    const socket = dgram.createSocket("udp4");
-    socket.send(buf, 0, buf.length, COMMAND_PORT, ip, err => {
+    // L5 — Govee-Spec ist UDP-PMTU-bound. Bei sehr grossen ptReal-Payloads
+    // (viele BLE-Pakete in JSON) warnen damit der User weiß warum etwas
+    // verloren geht.
+    if (buf.length > 1400) {
+      this.log.debug(`LAN payload large (${buf.length} bytes) — may be PMTU-fragmented for ${ip}`);
+    }
+    this.sendSocket.send(buf, 0, buf.length, COMMAND_PORT, ip, err => {
       if (err) {
         this.log.debug(`LAN send error to ${ip}: ${err.message}`);
       }
-      socket.close();
     });
   }
 
@@ -208,16 +265,21 @@ export class GoveeLanClient {
    * @param base64Packets Array of Base64-encoded 20-byte BLE packets
    */
   sendPtReal(ip: string, base64Packets: string[]): void {
+    if (!this.sendSocket) {
+      this.log.debug(`LAN ptReal dropped (socket not ready): ${ip}`);
+      return;
+    }
     const message = {
       msg: { cmd: "ptReal", data: { command: base64Packets } },
     };
     const buf = Buffer.from(JSON.stringify(message));
-    const socket = dgram.createSocket("udp4");
-    socket.send(buf, 0, buf.length, COMMAND_PORT, ip, err => {
+    if (buf.length > 1400) {
+      this.log.debug(`ptReal payload large (${buf.length} bytes) — may be PMTU-fragmented for ${ip}`);
+    }
+    this.sendSocket.send(buf, 0, buf.length, COMMAND_PORT, ip, err => {
       if (err) {
         this.log.debug(`LAN ptReal error to ${ip}: ${err.message}`);
       }
-      socket.close();
     });
   }
 

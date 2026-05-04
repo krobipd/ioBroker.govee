@@ -37,5 +37,6 @@
   "twoFaInfo": "Als de adapterlog 'Verification required' toont, klik 'Code aanvragen', voer de code uit de Govee-mail hieronder in en sla op.",
   "twoFaBtnRequest": "Code aanvragen",
   "twoFaCodeLabel": "Verificatiecode",
-  "twoFaCodeTooltip": "Eenmalige code uit de Govee-mail. Wordt automatisch gewist na succesvolle login."
+  "twoFaCodeTooltip": "Eenmalige code uit de Govee-mail. Wordt automatisch gewist na succesvolle login.",
+  "validatorEmailError": "Voer een geldig e-mailadres in"
 }

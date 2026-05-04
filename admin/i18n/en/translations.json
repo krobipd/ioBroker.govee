@@ -37,5 +37,6 @@
   "twoFaInfo": "If the adapter log shows 'Verification required', click 'Request code', enter the code from the Govee email below, and save.",
   "twoFaBtnRequest": "Request code",
   "twoFaCodeLabel": "Verification code",
-  "twoFaCodeTooltip": "One-time code from the Govee email. Cleared automatically after a successful login."
+  "twoFaCodeTooltip": "One-time code from the Govee email. Cleared automatically after a successful login.",
+  "validatorEmailError": "Please enter a valid email address"
 }
