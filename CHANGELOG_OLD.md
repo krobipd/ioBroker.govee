@@ -1,4 +1,8 @@
 # Older Changes
+## 2.4.0 (2026-05-04)
+
+- Lokaler Snapshot-Manager (Save/Restore/Delete) ist jetzt eine eigene Klasse mit Host-Interface — `main.ts` ist kleiner und der Snapshot-Pfad ist isoliert testbar. Verhalten identisch.
+
 ## 2.3.1 (2026-05-04)
 
 - Smoke-Tests für GoveeCloudClient + GoveeMqttClient — Initial-State-Checks für getFailureReason, token, connected, plus Setter-Smoke-Tests (637 → 637+9 Tests). Volle Pfade über https/mqtt-Mocks kommen separat.

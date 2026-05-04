@@ -124,7 +124,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 2.5.3 (2026-05-04)
 
 - Segment-Erkennungs-Wizard: kein „has no existing object"-Spam mehr für Indizes oberhalb der echten Strip-Länge — Echo-Pakete werden defensiv gegen `segmentCount` gefiltert (Issue #8).
 - Adapter-Init nach Restart: Befehle gegen ein noch-nicht-geladenes Cloud-Backend werden still verworfen statt mit „No channel available" zu warnen — der Befehl ist eh hin, der WARN war irreführend.
@@ -145,10 +145,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ### 2.4.1 (2026-05-04)
 
 - Group-Fan-Out-Pfad (Mitglieder-Steuerung beim Schalten der Gruppe) ist jetzt eine eigene Klasse mit Host-Interface — `main.ts` nochmal kleiner. Verhalten identisch.
-
-### 2.4.0 (2026-05-04)
-
-- Lokaler Snapshot-Manager (Save/Restore/Delete) ist jetzt eine eigene Klasse mit Host-Interface — `main.ts` ist kleiner und der Snapshot-Pfad ist isoliert testbar. Verhalten identisch.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

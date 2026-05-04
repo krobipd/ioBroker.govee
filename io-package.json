@@ -1,9 +1,9 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.5.2",
+    "version": "2.5.3",
     "news": {
-      "NEXT": {
+      "2.5.3": {
         "en": "Segment-detection wizard no longer spams 'has no existing object' WARN for indices above the real strip length. Plus: command before cloud-init is silent now (not 'No channel available').",
         "de": "Segment-Erkennungs-Wizard spammt nicht mehr 'has no existing object' fuer Indizes oberhalb der echten Strip-Laenge. Plus: Befehl vor Cloud-Init ist still (nicht 'No channel available').",
         "ru": "Wizard сегментов больше не спамит 'has no existing object' для индексов выше реальной длины ленты. Плюс: команда до cloud-init теперь без WARN.",
@@ -93,19 +93,6 @@
         "pl": "Pokrycie testami: smoke testy dla GoveeCloudClient + GoveeMqttClient. Initial-state i setter-checks dodane; pelne sciezki mock w osobnym release.",
         "uk": "Покриття тестами: smoke-тести для GoveeCloudClient + GoveeMqttClient. Initial-state та setter-перевірки додані; повні mock-шляхи окремо.",
         "zh-cn": "测试覆盖：GoveeCloudClient + GoveeMqttClient 的 smoke 测试。初始状态和 setter 检查已加入；完整 mock 路径将在后续发布。"
-      },
-      "2.3.0": {
-        "en": "App-version drift monitor: daily iTunes lookup warns when local Govee-App-Version constant gets too stale. Plus code-hygiene: onStateChange handlers split out, timing-constants module.",
-        "de": "App-Version-Drift-Monitor: täglicher iTunes-Lookup warnt wenn lokale Govee-App-Version zu alt ist. Plus Code-Hygiene: onStateChange-Handler aufgeteilt, timing-constants-Modul.",
-        "ru": "Монитор дрифта App-версии: ежедневная проверка через iTunes warnt при устаревании локальной Govee-App-Version. Плюс гигиена кода: onStateChange-handlers выделены.",
-        "pt": "Monitor de drift da App-version: lookup diario no iTunes alerta quando a Govee-App-Version local fica obsoleta. Plus higiene de codigo: onStateChange handlers separados.",
-        "nl": "App-version drift monitor: dagelijkse iTunes-lookup waarschuwt als lokale Govee-App-Version verouderd is. Plus code-hygiene: onStateChange handlers uitgesplitst.",
-        "fr": "Moniteur de drift App-version : lookup iTunes quotidien alerte quand la Govee-App-Version locale devient obsolete. Plus hygiene de code : onStateChange handlers separes.",
-        "it": "Monitor drift App-version: lookup iTunes giornaliero avvisa quando la Govee-App-Version locale diventa obsoleta. Plus igiene del codice: onStateChange handlers separati.",
-        "es": "Monitor drift App-version: lookup diario en iTunes avisa cuando la Govee-App-Version local se queda obsoleta. Plus higiene de codigo: onStateChange handlers separados.",
-        "pl": "Monitor driftu App-version: codzienny lookup iTunes ostrzega gdy lokalna Govee-App-Version jest przestarzala. Plus higiena kodu: onStateChange handlers wydzielone.",
-        "uk": "Монітор дрейфу App-версії: щоденний iTunes-лукап попереджає коли локальна Govee-App-Version застаріла. Плюс гігієна коду: onStateChange handlers виділені.",
-        "zh-cn": "App 版本漂移监控：每日 iTunes 查询，本地 Govee 应用版本过旧时发出警告。代码卫生：onStateChange handlers 拆分。"
       }
     },
     "titleLang": {

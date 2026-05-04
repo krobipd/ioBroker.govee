@@ -183,6 +183,10 @@ class CommandRouter {
       await this.sendCloudCommand(device, command, value);
       return;
     }
+    if (device.channels.cloud && !this.cloudClient) {
+      this.log.debug(`Command for ${device.name} dropped: Cloud client not ready yet`);
+      return;
+    }
     this.log.warn(`No channel available for ${device.name} (${device.sku})`);
   }
   /**
