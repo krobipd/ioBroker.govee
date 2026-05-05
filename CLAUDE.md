@@ -5,46 +5,42 @@
 
 ## Projekt
 
-**ioBroker Govee Smart Adapter** — Steuert Govee Smart Lights (LED-Strips, Lampen, Panels). LAN first, MQTT für Echtzeit-Status, Cloud nur wo nötig. Nur Lichter, keine Haushaltsgeräte.
+**ioBroker Govee Smart Adapter** — Steuert Govee WiFi-Geräte: Lights (LED-Strips, Lampen, Panels), Sensoren (Thermometer/Hygrometer), Appliances (Heater, Humidifier, Kettle, Ice Maker, Fan, Purifier). LAN first für Lights, App-API + OpenAPI-MQTT für Sensoren/Appliances, Cloud REST v2 für Capabilities + Steuer-Fallback.
 
-- **Version:** 2.0.3 (2026-04-26 — Hotfix: js-controller/admin Min-Versionen auf Repochecker-recommended zurückgesetzt)
+- **Version:** 2.5.4 (released 2026-05-05, npm latest)
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** https://www.npmjs.com/package/iobroker.govee-smart
-- **Runtime-Deps:** `@iobroker/adapter-core`, `@iobroker/types`, `mqtt`, `node-forge`
+- **Runtime-Deps:** `@iobroker/adapter-core`, `mqtt`, `node-forge`
+- **Tests:** 677 custom (src/lib/*.test.ts) + 57 package + integration, lint clean
+- **Wiki:** komplett auditiert + bilingual EN/DE (https://github.com/krobipd/ioBroker.govee-smart/wiki)
 
-## KRITISCH: LAN-first ist unantastbar!
+## KRITISCH: LAN-first für Lights ist unantastbar!
 
-- **LAN-States (power, brightness, colorRgb, colorTemperature) dürfen NIE von Cloud überschrieben werden**
+- **LAN-States für Lights (power, brightness, colorRgb, colorTemperature) dürfen NIE von Cloud überschrieben werden**
 - State-Definitionen: LAN-fähige Geräte → immer `getDefaultLanStates()` als Basis
-- State-Werte: `loadCloudStates()` filtert LAN-State-IDs für LAN-fähige Geräte
-- Cloud ist NUR für: Szenen, Snapshots, Toggles, Segmente, Sensoren
+- State-Werte: `loadCloudStates()` (main.ts:1340) filtert LAN-State-IDs für LAN-fähige Geräte (`if (device.lanIp && lanStateIds.has(...)) continue;`)
+- `applyOnlineCap` (device-manager.ts:1490) macht Multi-Source-Online-Merge mit `lastSeenOnNetwork`-Tracking — robust gegen LAN/MQTT/Cloud-Widersprüche
+- Cloud ist NUR für: Capabilities, Szenen, Snapshots, Toggles, Segmente, Sensor-Capabilities
 
-## Kanal-Priorität: LAN → Cloud
+## Kanal-Priorität pro Gerätetyp
 
-Jeder Kanal hat genau eine Rolle. Kein Overlap.
-
-| Feature                            | LAN UDP (1.)            | MQTT (Status)      | Cloud REST (2.)    |
-| ---------------------------------- | ----------------------- | ------------------ | ------------------ |
-| Steuern (Power, Brightness, Color) | **primär**              | —                  | Fallback           |
-| Status anfragen                    | **primär**              | —                  | Fallback           |
-| Status Push (echtzeit)             | —                       | **einzige Quelle** | —                  |
-| Geräteliste + Capabilities         | —                       | —                  | **einzige Quelle** |
-| Szenen + Snapshots                 | **ptReal** (BLE-Pakete) | —                  | Fallback           |
-| Segmente                           | **ptReal** (`33 05 15`) | —                  | Fallback           |
+| Feature                            | LAN UDP                    | AWS IoT MQTT (Status) | OpenAPI-MQTT (Events) | Cloud REST v2      | App-API           |
+| ---------------------------------- | -------------------------- | --------------------- | --------------------- | ------------------ | ----------------- |
+| Lights: Steuern                    | **primär**                 | —                     | —                     | Fallback           | —                 |
+| Lights: Status anfragen            | **primär**                 | —                     | —                     | Fallback           | —                 |
+| Lights: Status-Push                | —                          | **einzige Quelle**    | —                     | —                  | —                 |
+| Lights: Szenen + Snapshots         | **ptReal** (BLE-Pakete)    | —                     | —                     | Fallback           | —                 |
+| Lights: Segmente                   | **ptReal** (`33 05 15`)    | AA-A5 Status-Echo     | —                     | Fallback           | —                 |
+| Geräteliste + Capabilities         | —                          | —                     | —                     | **einzige Quelle** | —                 |
+| Sensor-Werte (Temp, Humidity)      | —                          | —                     | —                     | —                  | **einzige Quelle**|
+| Appliance-Events (lackWater etc.)  | —                          | —                     | **einzige Quelle**    | —                  | —                 |
 
 > **MQTT ist nur Status-Push.** Commands werden über LAN oder Cloud gesendet, nie über MQTT.
+> **Sensoren/Appliances haben kein LAN-Protokoll** — Werte über App-API (alle 2 min) + OpenAPI-MQTT-Events.
 
-**Nur Lights!** Keine Appliances, Sensoren, Plugs — dafür govee-appliances Adapter.
+## govee-appliances ist DEPRECATED
 
-## Koexistenz mit govee-appliances!
-
-Gleicher API Key → gleiches 10.000/Tag Budget. **Dynamische Erkennung** via `system.adapter.govee-appliances.0.alive`:
-
-- **Allein:** 8/min, 9000/day (volle Limits)
-- **Beide aktiv:** 4/min, 4500/day je Adapter (automatisch per subscribeForeignStatesAsync)
-- MQTT nutzt unique Client-IDs → parallele Verbindungen funktionieren
-- **APPLIANCE_TYPES** in device-manager.ts filtert Appliance-Geräte raus (Heater, Fan, etc.)
-- **Device Type Format:** Immer `"devices.types.light"` (mit Prefix), nie `"light"` allein
+Seit v2.0.0 (2026-04-25) gemerged in govee-smart. Repo `iobroker.govee-appliances` archiviert. Falls Code-Pfade noch von „Koexistenz" reden — das ist Legacy. APPLIANCE_TYPES filter, MQTT-ClientID-Trennung, Rate-Budget-Sharing waren v1.x. Aktuell: ein Adapter macht alles. Memory: `project_govee_appliances_deprecated`.
 
 ## Credential-Stufen (graceful degradation)
 
@@ -235,7 +231,18 @@ Single Page, drei Sektionen:
 - **info:** Nur Start, Verbindungen, Ready-Summary, Snapshot-Ops
 - **MQTT:** Erstverbindung = info, Reconnect-Versuche = debug, Restored = info
 
-## Tests (507 custom + 57 package + integration)
+## Patterns aus v2.x Bug-Fix-Welle (für künftige Releases beherzigen)
+
+46. **Race-Condition State-Delete (v2.5.2)** — Bei States die abhängig vom dynamischen Zustand „existieren oder nicht" sein sollen (z.B. `groups.*.info.membersUnreachable` nur wenn unreachable members) gibt's einen js-controller-WARN „has no existing object" wenn parallele async-Update-Pfade die Object-Lifecycle togglen. Lösung: state IMMER existent halten + bei „nichts zu zeigen" empty-string schreiben. Kein Object-Lifecycle-Toggle, keine Race. Detail: `state-manager.ts:800 updateGroupMembersUnreachable`.
+47. **Echo-Cap defensive (v2.5.3)** — Wenn ein BLE-Paket-Echo (z.B. Wizard `segmentBatch` mit 0..SEGMENT_HARD_MAX) Indices oberhalb des echten `device.segmentCount` enthält, schreibt das ohne Filter in nicht-existierende States → js-controller WARN-Spam. `onSegmentBatchUpdate` + `onMqttSegmentUpdate` filtern jetzt defensiv `if (cap === 0 || idx >= cap) continue;`. Detail: `main.ts:234`.
+48. **No-Channel Init-Race (v2.5.3)** — Cloud-only Geräte (z.B. H61A8 ohne LAN) auf user-Befehl direkt nach Restart: Cloud-Client noch null → CommandRouter warnt „No channel available". False alarm. Fix: wenn `channels.cloud === true && cloudClient === null` → debug + still verworfen. WARN nur wenn permanent kein Channel. Detail: `command-router.ts:204`.
+49. **429 RATE_LIMIT Bug (v2.5.1)** — `classifyError` prüft err.message für Patterns; HttpError(429, "Too many requests") matcht „Rate limited" nicht → UNKNOWN. Cloud-Client hat jetzt expliziten Branch `if (err instanceof HttpError && err.statusCode === 429) lastErrorCategory = RATE_LIMIT`. Sonst zeigt der Ready-Hint die generische „Cloud request failed"-Meldung statt „rate-limited by Govee". Detail: `govee-cloud-client.ts:240`.
+50. **httpsRequest + mqtt.connect-DI (v2.5.1, v2.5.4)** — GoveeCloudClient + GoveeMqttClient haben optionale Konstruktor-Parameter `httpsRequestImpl: HttpsRequestFn = httpsRequest` und `mqttConnectImpl: MqttConnectFn = mqtt.connect`. main.ts unverändert (default = real). Tests injizieren Fakes für unit-tests ohne Network. Pattern für andere I/O-Module übernehmbar.
+51. **Button-State = Write-true-Pattern** — `role: "button"`-States im ioBroker werden NICHT durch Klick-auf-Knopf-Eintrag im Object-Browser ausgelöst — User muss `true` auf den State schreiben. In Wiki und User-Doku entsprechend formulieren („setze X auf true", nie „klicke auf X"). Memory: `feedback_iobroker_button_role_write`.
+52. **Wiki-User-Doku-Sicht** — Wiki ist USER-doku, nicht DEV-doku. Knapp formulieren, ioBroker-Grundkenntnisse voraussetzen. Keine „in ioBroker-Objekte → Bearbeiten → Wert auf true → Speichern"-Megaschritte. Memory: `feedback_iobroker_button_role_write`.
+53. **Mocha ESM-Loader-Falle bei test-helpers** — In dieser test-suite tripped der ESM-Loader wenn der alphabetisch ERSTE test-file einen non-`.test.ts` sibling importiert. Folge-Imports ohne explicit Extension werfen `ERR_MODULE_NOT_FOUND`. test-helpers.ts funktioniert in govee-cloud/govee-mqtt-tests (alphabetisch nach device-manager). Workaround: Helpers in device-manager.test.ts INLINE lassen, JSDoc-Kommentar im File. Memory: `feedback_mocha_esm_loader_bug`.
+
+## Tests (677 custom + 57 package + integration)
 
 ```
 test/testCapabilityMapper.ts → Capability Mapping + Cloud State Value Mapping + Quirks + Groups + Drift (80)
@@ -315,16 +322,22 @@ test/testPackageFiles.ts     → @iobroker/testing (57)
 
 ## Versionshistorie (letzte 7)
 
-| Version | Highlights                                                                                                                                                                                                                                                                                                                              |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2.0.3   | Hotfix für versehentlich falsch gesetzte Min-Versionen aus 2.0.2: js-controller war auf `>=7.0.23` gesetzt (sollte `>=6.0.11` sein, Repochecker-recommended), admin auf `>=7.6.17` gefallen (sollte `>=7.6.20` bleiben). Beide korrigiert                                                                                               |
-| 2.0.2   | OpenAPI MQTT stable client ID across reconnects (war `Date.now`-basiert, Govees Broker behandelte jeden Reconnect als neue Connection). `manual-review` release-script-Plugin raus, redundante `@iobroker/types` runtime-dep raus. Audit-driven Konsistenz-Cleanup gegenüber den anderen krobi-Adaptern                                 |
-| 2.0.1   | Hotfixes aus realem v2.0.0-Install: Sensor-State-IDs route zu `sensor/`, Event-IDs zu `events/` (war beide `control/`), state-Objects lazy beim ersten Write. Snapshots/Scenes nur noch auf Lights gegated. Boot-time experimental-device-Log-Dump entfernt                                                                             |
-| 2.0.0   | Major: Govee Appliances + Sensoren in govee-smart gemerged (govee-appliances ist deprecated). Thermometer/Heizgeräte/Wasserkocher/Eismaschinen via App-API (sensor-States) + OpenAPI-MQTT (appliance-Events). `experimentalQuirks`-Toggle, devices.json mit 36 SKUs als single source of truth, neuer `info.openapiMqttConnected`-State |
-| 1.11.0  | Dropdown-Dual-Write: Scene/DIY/Snapshot/Music-Mode-States jetzt `type: "mixed"`, `onStateChange` löst Index als Number/String und Klartext-Name (case-insensitive) gleichermaßen auf. Disambiguation-Pass für Cloud-Duplikate ("Movie", "Movie (2)"). js-controller-Warning "expects type string but received number" weg               |
-| 1.10.1  | Refresh-Button-Fix: `info.refresh_cloud_data` re-fetcht nicht mehr die statischen SKU-Libraries (scene/music/DIY/features) — call count pro Klick fällt von ~7 auf 2 pro Light. Endpoints lieferten 403 für viele Accounts, produzierten nur Rate-Limiter-Backlog                                                                       |
-| 1.10.0  | Szenen mit `scenceParam` (multi-packet A3-BLE) auf Geräten ohne Segmente via Cloud-Fallback statt ptReal — Bulbs/Curtain Lights verwerfen A3 stumm. Plus: Power-off resettet alle Mode-Dropdowns auf "---"                                                                                                                              |
-| 1.9.1   | Hotfix — per-list Guard in `loadDeviceScenes`. Govee's `/device/scenes` liefert inkonsistent (z.B. 149 scenes + 0 snapshots obwohl Snapshot existiert). Alter kombinierter Guard löschte Snapshots in dem Fall                                                                                                                          |
+| Version | Highlights |
+| ------- | ---------- |
+| 2.5.4 | mqtt.connect-DI als optionaler Konstruktor-Parameter (analog httpsRequest in v2.5.1), 7 neue Mock-Tests für getIotKey-Pfad + persisted-credentials reuse (670→677 Tests) |
+| 2.5.3 | Issue #8 (tukey42) Fix: Segment-Wizard-WARN-Spam für indices oberhalb device.segmentCount weg (defensive Cap-Filter in onSegmentBatchUpdate + onMqttSegmentUpdate). Plus: „No channel available"-WARN bei Cloud-Init-Race (Cloud-only Gerät direkt nach Restart) ist jetzt debug — false alarm |
+| 2.5.2 | membersUnreachable-WARN-Spam alle 2 min weg: state IMMER existent halten + bei alle-reachable empty-string statt safeDeleteState (Race-condition zwischen parallelen Updates). Plus: H61A8 Outdoor Neon LED Strip 10m verified (Issue #11) |
+| 2.5.1 | 429 RATE_LIMIT Bug-Fix: HttpError-statusCode jetzt explizit als RATE_LIMIT klassifiziert (classifyError schaut nur in err.message und „Too many requests" matchte nichts). Plus: httpsRequest-DI in CloudClient + MqttClient, +33 Mock-Tests |
+| 2.5.0 | F4 final — MessageRouter-Extraktion: lib/message-router.ts mit Host-Interface. main.ts ~150 Zeilen kleiner, onMessage/handleMessage/runMqttAuthAction isoliert testbar |
+| 2.4.1 | F4 weiter — GroupFanoutHandler-Extraktion: lib/group-fanout.ts mit Host-Interface |
+| 2.4.0 | F4 partial — SnapshotHandler-Extraktion: lib/snapshot-handler.ts mit Host-Interface |
+
+(ältere in `CHANGELOG_OLD.md` des Repos)
+
+## Konkurrenz-Lage (Stand 2026-05)
+
+- Schwester-Adapter `iobroker.govee` ist veraltet (nur LAN, keine MQTT, keine Sensoren/Appliances) — diese Implementation ist die einzige Govee-Lösung im Latest-Repo mit voller Multi-Channel + ptReal + Wizard.
+- ioBroker.repositories PR #5824 für Latest-Aufnahme offen seit v2.0.0-Ära, wartet auf mcm1957-Review.
 
 ## Befehle
 
