@@ -23,6 +23,7 @@ __export(state_manager_exports, {
 module.exports = __toCommonJS(state_manager_exports);
 var import_device_icons = require("./device-icons");
 var import_device_manager = require("./device-manager");
+var import_i18n_states = require("./i18n-states");
 var import_types = require("./types");
 function sanitize(str) {
   return str.replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase();
@@ -82,42 +83,42 @@ const SYNTHETIC_STATE_META = {
     type: "number",
     role: "value.temperature",
     unit: "\xB0C",
-    name: "Temperature"
+    name: (0, import_i18n_states.tName)("temperature")
   },
   humidity: {
     type: "number",
     role: "value.humidity",
     unit: "%",
-    name: "Humidity"
+    name: (0, import_i18n_states.tName)("humidity")
   },
   battery: {
     type: "number",
     role: "value.battery",
     unit: "%",
-    name: "Battery"
+    name: (0, import_i18n_states.tName)("battery")
   },
-  co2: { type: "number", role: "value.co2", unit: "ppm", name: "CO\u2082" },
+  co2: { type: "number", role: "value.co2", unit: "ppm", name: (0, import_i18n_states.tName)("co2") },
   carbondioxide: {
     type: "number",
     role: "value.co2",
     unit: "ppm",
-    name: "CO\u2082"
+    name: (0, import_i18n_states.tName)("co2")
   },
-  online: { type: "boolean", role: "indicator.connected", name: "Online" },
+  online: { type: "boolean", role: "indicator.connected", name: (0, import_i18n_states.tName)("online") },
   lackwater: {
     type: "boolean",
     role: "indicator.alarm",
-    name: "Lack of Water"
+    name: (0, import_i18n_states.tName)("lackOfWater")
   },
   lackwaterevent: {
     type: "boolean",
     role: "indicator.alarm",
-    name: "Lack of Water"
+    name: (0, import_i18n_states.tName)("lackOfWater")
   },
-  icefull: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
-  icefullevent: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
-  bodyappeared: { type: "boolean", role: "indicator", name: "Body Detected" },
-  dirtdetected: { type: "boolean", role: "indicator", name: "Dirt Detected" },
+  icefull: { type: "boolean", role: "indicator", name: (0, import_i18n_states.tName)("iceBucketFull") },
+  icefullevent: { type: "boolean", role: "indicator", name: (0, import_i18n_states.tName)("iceBucketFull") },
+  bodyappeared: { type: "boolean", role: "indicator", name: (0, import_i18n_states.tName)("bodyDetected") },
+  dirtdetected: { type: "boolean", role: "indicator", name: (0, import_i18n_states.tName)("dirtDetected") },
   // sanitizeId(instance) Aliases — gleiche Meta wie raw-Form, decoupled
   // damit der Adapter beim ersten Sensor-State-Write den richtigen Channel
   // (sensor/ bzw. events/) anlegt.
@@ -125,34 +126,34 @@ const SYNTHETIC_STATE_META = {
     type: "number",
     role: "value.temperature",
     unit: "\xB0C",
-    name: "Temperature"
+    name: (0, import_i18n_states.tName)("temperature")
   },
   sensor_humidity: {
     type: "number",
     role: "value.humidity",
     unit: "%",
-    name: "Humidity"
+    name: (0, import_i18n_states.tName)("humidity")
   },
   sensor_battery: {
     type: "number",
     role: "value.battery",
     unit: "%",
-    name: "Battery"
+    name: (0, import_i18n_states.tName)("battery")
   },
   lack_water: {
     type: "boolean",
     role: "indicator.alarm",
-    name: "Lack of Water"
+    name: (0, import_i18n_states.tName)("lackOfWater")
   },
   lack_water_event: {
     type: "boolean",
     role: "indicator.alarm",
-    name: "Lack of Water"
+    name: (0, import_i18n_states.tName)("lackOfWater")
   },
-  ice_full: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
-  ice_full_event: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
-  body_appeared: { type: "boolean", role: "indicator", name: "Body Detected" },
-  dirt_detected: { type: "boolean", role: "indicator", name: "Dirt Detected" }
+  ice_full: { type: "boolean", role: "indicator", name: (0, import_i18n_states.tName)("iceBucketFull") },
+  ice_full_event: { type: "boolean", role: "indicator", name: (0, import_i18n_states.tName)("iceBucketFull") },
+  body_appeared: { type: "boolean", role: "indicator", name: (0, import_i18n_states.tName)("bodyDetected") },
+  dirt_detected: { type: "boolean", role: "indicator", name: (0, import_i18n_states.tName)("dirtDetected") }
 };
 class StateManager {
   adapter;
@@ -311,7 +312,7 @@ class StateManager {
     });
     await this.adapter.extendObjectAsync(`${prefix}.info`, {
       type: "channel",
-      common: { name: "Device Information" },
+      common: { name: (0, import_i18n_states.tName)("deviceInformation") },
       native: {}
     });
     await this.ensureState(`${prefix}.info.name`, "Name", "string", "text", false);
@@ -390,6 +391,8 @@ class StateManager {
       });
       for (const def of defs) {
         const common = {
+          // StateDefinition.name allows plain string OR translation object for
+          // legacy/dynamic names; ioBroker StringOrTranslated has the same shape.
           name: def.name,
           type: def.type,
           role: def.role,
@@ -456,7 +459,7 @@ class StateManager {
     const prefix = this.devicePrefix(device);
     await this.adapter.extendObjectAsync(`${prefix}.segments`, {
       type: "channel",
-      common: { name: "LED Segments" },
+      common: { name: (0, import_i18n_states.tName)("ledSegments") },
       native: {}
     });
     const resolved = (0, import_device_manager.resolveSegmentCount)(device);
@@ -473,26 +476,26 @@ class StateManager {
     await this.adapter.extendObjectAsync(`${prefix}.segments.manual_mode`, {
       type: "state",
       common: {
-        name: "Manual Segments Active",
+        name: (0, import_i18n_states.tName)("manualSegmentsActive"),
         type: "boolean",
         role: "switch",
         read: true,
         write: true,
         def: false,
-        desc: "Enable manual segment list (e.g. for cut LED strips with fewer physical segments than reported)"
+        desc: (0, import_i18n_states.tDesc)("manualSegmentsDesc")
       },
       native: {}
     });
     await this.adapter.extendObjectAsync(`${prefix}.segments.manual_list`, {
       type: "state",
       common: {
-        name: "Manual Segment List",
+        name: (0, import_i18n_states.tName)("manualSegmentList"),
         type: "string",
         role: "text",
         read: true,
         write: true,
         def: "",
-        desc: 'Comma-separated indices + ranges, e.g. "0-9" or "0-8,10-14" (only used when manual_mode=true)'
+        desc: (0, import_i18n_states.tDesc)("manualListDesc")
       },
       native: {}
     });
@@ -515,7 +518,7 @@ class StateManager {
       await this.adapter.extendObjectAsync(`${prefix}.segments.${i}.color`, {
         type: "state",
         common: {
-          name: "Color",
+          name: (0, import_i18n_states.tName)("color"),
           type: "string",
           role: "level.color.rgb",
           read: true,
@@ -526,7 +529,7 @@ class StateManager {
       await this.adapter.extendObjectAsync(`${prefix}.segments.${i}.brightness`, {
         type: "state",
         common: {
-          name: "Brightness",
+          name: (0, import_i18n_states.tName)("brightness"),
           type: "number",
           role: "level.brightness",
           read: true,
@@ -541,12 +544,12 @@ class StateManager {
     await this.adapter.extendObjectAsync(`${prefix}.segments.command`, {
       type: "state",
       common: {
-        name: "Batch Segment Command",
+        name: (0, import_i18n_states.tName)("batchSegmentCommand"),
         type: "string",
         role: "text",
         read: false,
         write: true,
-        desc: "Format: segments:color:brightness \u2014 e.g. 1-5:#ff0000:20, all:#00ff00, 0,3,7::50"
+        desc: (0, import_i18n_states.tDesc)("batchCommandDesc")
       },
       native: {}
     });
@@ -626,12 +629,12 @@ class StateManager {
   async createGroupsOnlineState(online) {
     await this.adapter.extendObjectAsync("groups", {
       type: "folder",
-      common: { name: "Groups" },
+      common: { name: (0, import_i18n_states.tName)("groups") },
       native: {}
     });
     await this.adapter.extendObjectAsync("groups.info", {
       type: "channel",
-      common: { name: "Groups Status" },
+      common: { name: (0, import_i18n_states.tName)("groupsStatus") },
       native: {}
     });
     await this.ensureState("groups.info.online", "Cloud Online", "boolean", "indicator.reachable", false);

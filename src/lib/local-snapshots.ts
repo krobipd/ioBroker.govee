@@ -1,4 +1,5 @@
 import { errMessage } from "./types";
+import { tLog } from "./i18n-logs";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -57,7 +58,7 @@ export class LocalSnapshotStore {
       this.dataAvailable = true;
     } catch (e) {
       this.dataAvailable = false;
-      this.log.warn(`Snapshot directory not writable (${this.dir}): ${errMessage(e)}`);
+      this.log.warn(tLog("snapshotDirNotWritable", { path: this.dir, error: errMessage(e) }));
     }
   }
 
@@ -147,7 +148,7 @@ export class LocalSnapshotStore {
         fs.closeSync(fd);
       }
     } catch (e) {
-      this.log.warn(`Snapshot write failed for ${sku}: ${errMessage(e)}`);
+      this.log.warn(tLog("snapshotWriteFailed", { sku, error: errMessage(e) }));
     }
   }
 

@@ -30,6 +30,7 @@ var import_capability_mapper = require("./capability-mapper");
 var import_command_router = require("./command-router");
 var import_device_registry = require("./device-registry");
 var import_diagnostics = require("./diagnostics");
+var import_i18n_logs = require("./i18n-logs");
 var import_types = require("./types");
 var import_http_client = require("./http-client");
 function parseMqttSegmentData(commands) {
@@ -297,7 +298,7 @@ class DeviceManager {
       }
     }
     if (changed) {
-      this.log.info(`Loaded ${cached.length} device(s) from cache`);
+      this.log.info((0, import_i18n_logs.tLog)("loadedFromCache", { count: cached.length }));
     }
     const hasLight = Array.from(this.devices.values()).some((d) => d.type === "devices.types.light");
     if (hasLight) {
@@ -812,17 +813,13 @@ class DeviceManager {
         return;
       case "seed":
         if ((0, import_device_registry.isSeedAndDormant)(upper)) {
-          this.log.warn(
-            `Device ${label} is in beta and needs the "Experimentelle Ger\xE4te-Unterst\xFCtzung aktivieren" toggle in adapter settings to apply known per-SKU corrections.`
-          );
+          this.log.warn((0, import_i18n_logs.tLog)("deviceBetaInactive", { label }));
         } else {
-          this.log.info(`Device ${label} is in beta \u2014 experimental quirks are active.`);
+          this.log.info((0, import_i18n_logs.tLog)("deviceBeta", { label }));
         }
         return;
       case "unknown":
-        this.log.warn(
-          `Device ${label} is not in the supported device list. Please trigger diag.export and post the resulting JSON in a GitHub issue so the SKU can be added.`
-        );
+        this.log.warn((0, import_i18n_logs.tLog)("deviceUnknown", { label }));
         return;
     }
   }
@@ -875,9 +872,7 @@ class DeviceManager {
           return;
         }
         if (maxSeen > current) {
-          this.log.info(
-            `${device.name}: detected ${maxSeen} segments via MQTT (was ${current}) \u2014 rebuilding state tree`
-          );
+          this.log.info((0, import_i18n_logs.tLog)("segmentsDetected", { name: device.name, count: maxSeen, previous: current }));
           device.segmentCount = maxSeen;
           if (this.skuCache) {
             this.skuCache.save(this.goveeDeviceToCached(device));

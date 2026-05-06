@@ -40,6 +40,7 @@ __export(govee_lan_client_exports, {
 });
 module.exports = __toCommonJS(govee_lan_client_exports);
 var dgram = __toESM(require("node:dgram"));
+var import_i18n_logs = require("./i18n-logs");
 const MULTICAST_ADDR = "239.255.255.250";
 const SCAN_PORT = 4001;
 const LISTEN_PORT = 4002;
@@ -82,7 +83,7 @@ class GoveeLanClient {
     this.onStatus = onStatus;
     const bindAddr = networkInterface && networkInterface !== "0.0.0.0" ? networkInterface : void 0;
     if (bindAddr) {
-      this.log.info(`LAN binding to network interface ${bindAddr}`);
+      this.log.info((0, import_i18n_logs.tLog)("lanBindingInterface", { bindAddr }));
     }
     this.multicastBind = bindAddr;
     this.sendSocket = dgram.createSocket("udp4");
@@ -96,7 +97,7 @@ class GoveeLanClient {
     this.listenSocket.on("error", (err) => {
       const code = err.code;
       if (code === "EADDRINUSE") {
-        this.log.warn(`LAN listen port ${LISTEN_PORT} already in use \u2014 second instance? Status updates will be lost.`);
+        this.log.warn((0, import_i18n_logs.tLog)("lanPortInUse", { port: LISTEN_PORT }));
       } else {
         this.log.debug(`LAN listen socket error: ${err.message}`);
       }

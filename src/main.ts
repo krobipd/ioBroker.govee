@@ -12,6 +12,7 @@ import { GoveeCloudClient } from "./lib/govee-cloud-client";
 import { GoveeLanClient } from "./lib/govee-lan-client";
 import { GoveeMqttClient } from "./lib/govee-mqtt-client";
 import { GoveeOpenapiMqttClient } from "./lib/govee-openapi-mqtt-client";
+import { setActiveLang, tLog } from "./lib/i18n-logs";
 import { LocalSnapshotStore } from "./lib/local-snapshots";
 import { SnapshotHandler, type SnapshotHandlerHost } from "./lib/snapshot-handler";
 import { GroupFanoutHandler, type GroupFanoutHost } from "./lib/group-fanout";
@@ -189,6 +190,11 @@ class GoveeAdapter extends utils.Adapter {
     } catch {
       // Keep default "en"
     }
+    // Register the language with the i18n-logs module so every helper class
+    // can call tLog(key, params) without having to receive `lang` through its
+    // constructor. info/warn/error end up in the user's language; debug stays
+    // English (maintainer diagnostics).
+    setActiveLang(this.adminLanguage);
     await this.setStateAsync("info.wizardStatus", {
       val: wizardIdleText(this.adminLanguage),
       ack: true,
@@ -298,7 +304,7 @@ class GoveeAdapter extends utils.Adapter {
     if (config.goveeEmail && config.goveePassword) {
       startChannels.push("MQTT");
     }
-    this.log.info(`Starting (${startChannels.join(", ")})`);
+    this.log.info(tLog("starting", { channels: startChannels.join(", ") }));
 
     // --- LAN (always active) ---
     this.lanClient = new GoveeLanClient(this.log, this);
@@ -473,7 +479,7 @@ class GoveeAdapter extends utils.Adapter {
           this.handleCloudFailure(result);
         }
       } else {
-        this.log.info("Using cached device data — no Cloud calls needed");
+        this.log.info(tLog("usingCachedData"));
         this.cloudWasConnected = true;
         this.ensureCloudRetry().setConnected(true);
         this.setStateAsync("info.cloudConnected", {
@@ -607,10 +613,10 @@ class GoveeAdapter extends utils.Adapter {
    */
   private async handleManualCloudRefresh(): Promise<void> {
     if (!this.deviceManager || !this.cloudClient) {
-      this.log.info("Refresh cloud data: no Cloud client configured (API key missing) — nothing to do");
+      this.log.info(tLog("refreshNoCloudClient"));
       return;
     }
-    this.log.info("Refresh cloud data: re-fetching scenes and snapshots for all devices");
+    this.log.info(tLog("refreshStart"));
     try {
       const changed = await this.deviceManager.refreshSceneData();
       if (changed) {
@@ -620,7 +626,7 @@ class GoveeAdapter extends utils.Adapter {
       // Ergebnis am Adapter-Verhalten. „done" auf info-level wäre bei
       // Erfolg redundant (Fehler-Pfad direkt darunter ist warn).
     } catch (e) {
-      this.log.warn(`Refresh cloud data failed: ${errMessage(e)}`);
+      this.log.warn(tLog("refreshFailed", { error: errMessage(e) }));
     }
   }
 
@@ -728,7 +734,7 @@ class GoveeAdapter extends utils.Adapter {
     // passed through unchanged.
     const resolved = await this.resolveDropdownInput(id, state.val);
     if (!resolved.ok) {
-      this.log.warn(`Unknown dropdown value for ${id}: ${String(state.val)} — ignoring`);
+      this.log.warn(tLog("unknownDropdownValue", { id, value: String(state.val) }));
       return;
     }
     const val = resolved.val;
@@ -831,7 +837,7 @@ class GoveeAdapter extends utils.Adapter {
         await this.resetRelatedDropdowns(prefix, command);
       }
     } catch (err) {
-      this.log.warn(`Command failed for ${device.name}: ${errMessage(err)}`);
+      this.log.warn(tLog("commandFailed", { name: device.name, error: errMessage(err) }));
     }
   }
 
@@ -1313,17 +1319,17 @@ class GoveeAdapter extends utils.Adapter {
       parts.push(`${groups.length} group${groups.length > 1 ? "s" : ""}`);
     }
     const summary = parts.length > 0 ? parts.join(", ") : "no devices found";
-    this.log.info(`Govee adapter ready — ${summary} — channels: ${channels.join("+")}`);
+    this.log.info(tLog("ready", { summary, channels: channels.join("+") }));
 
     // Surface configured-but-not-connected channels with a concrete reason.
     // Truthful — never claim "still pending" when the channel actually failed.
     if (this.cloudClient && !this.cloudWasConnected) {
       const reason = this.cloudClient.getFailureReason();
-      this.log.warn(reason ? `Cloud not connected: ${reason}` : "Cloud not connected — see earlier errors");
+      this.log.warn(reason ? tLog("cloudNotConnected", { reason }) : tLog("cloudNotConnectedNoReason"));
     }
     if (this.mqttClient && !this.mqttClient.connected) {
       const reason = this.mqttClient.getFailureReason();
-      this.log.warn(reason ? `MQTT not connected: ${reason}` : "MQTT not connected — see earlier errors");
+      this.log.warn(reason ? tLog("mqttNotConnected", { reason }) : tLog("mqttNotConnectedNoReason"));
     }
   }
 
@@ -1504,7 +1510,7 @@ class GoveeAdapter extends utils.Adapter {
           : "";
 
     if (!modeVal) {
-      this.log.info(`${device.name}: manual segments disabled — strip treated as contiguous`);
+      this.log.info(tLog("manualSegmentsDisabled", { name: device.name }));
       await this.applyManualSegments(device, false);
       return;
     }
@@ -1516,7 +1522,7 @@ class GoveeAdapter extends utils.Adapter {
       typeof device.segmentCount === "number" && device.segmentCount > 0 ? device.segmentCount - 1 : SEGMENT_HARD_MAX;
     const parsed = parseSegmentList(listVal, maxIndex);
     if (parsed.error) {
-      this.log.warn(`${device.name}: manual_list invalid (${parsed.error}) — disabling manual mode`);
+      this.log.warn(tLog("manualListInvalid", { name: device.name, reason: parsed.error }));
       await this.applyManualSegments(device, false);
       return;
     }
@@ -1699,7 +1705,7 @@ class GoveeAdapter extends utils.Adapter {
         await this.setStateAsync("info.legacyMqttCleaned", { val: true, ack: true }).catch(() => undefined);
         return;
       }
-      this.log.info("Removing legacy plaintext MQTT credentials from native (one-time migration)");
+      this.log.info(tLog("migrateLegacyCredentials"));
       const wipe: Record<string, unknown> = {};
       for (const k of legacy) {
         wipe[k] = k === "mqttTokenExpiresAt" ? 0 : "";
@@ -1879,7 +1885,7 @@ class GoveeAdapter extends utils.Adapter {
       ack: true,
     });
     await this.setStateAsync(triggerStateId, { val: false, ack: true });
-    this.log.info(`Diagnostics exported for ${device.name} (${device.sku})`);
+    this.log.info(tLog("diagnosticsExported", { name: device.name, sku: device.sku }));
   }
 
   /**
@@ -1909,7 +1915,7 @@ class GoveeAdapter extends utils.Adapter {
         await this.deviceManager.sendCapabilityCommand(device, capType, capInstance, val);
         await this.setStateAsync(id, { val, ack: true });
       } catch (err) {
-        this.log.warn(`Command failed for ${device.name}: ${errMessage(err)}`);
+        this.log.warn(tLog("commandFailed", { name: device.name, error: errMessage(err) }));
       }
     } else {
       this.log.debug(`Unknown writable state: ${stateSuffix}`);

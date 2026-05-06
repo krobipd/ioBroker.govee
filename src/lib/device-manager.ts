@@ -3,6 +3,7 @@ import { CommandRouter } from "./command-router";
 import { getDeviceQuirks, getDeviceTier, isSeedAndDormant } from "./device-registry";
 import { DiagnosticsCollector } from "./diagnostics";
 import type { AppDeviceEntry, GoveeApiClient } from "./govee-api-client";
+import { tLog } from "./i18n-logs";
 import type { GoveeCloudClient } from "./govee-cloud-client";
 import type { GoveeLanClient } from "./govee-lan-client";
 import type { RateLimiter } from "./rate-limiter";
@@ -391,7 +392,7 @@ export class DeviceManager {
     }
 
     if (changed) {
-      this.log.info(`Loaded ${cached.length} device(s) from cache`);
+      this.log.info(tLog("loadedFromCache", { count: cached.length }));
     }
 
     // Always refetch cloud data on startup — scenesChecked is purely diagnostic
@@ -1013,17 +1014,13 @@ export class DeviceManager {
         return;
       case "seed":
         if (isSeedAndDormant(upper)) {
-          this.log.warn(
-            `Device ${label} is in beta and needs the "Experimentelle Geräte-Unterstützung aktivieren" toggle in adapter settings to apply known per-SKU corrections.`,
-          );
+          this.log.warn(tLog("deviceBetaInactive", { label }));
         } else {
-          this.log.info(`Device ${label} is in beta — experimental quirks are active.`);
+          this.log.info(tLog("deviceBeta", { label }));
         }
         return;
       case "unknown":
-        this.log.warn(
-          `Device ${label} is not in the supported device list. Please trigger diag.export and post the resulting JSON in a GitHub issue so the SKU can be added.`,
-        );
+        this.log.warn(tLog("deviceUnknown", { label }));
         return;
     }
   }
@@ -1093,9 +1090,7 @@ export class DeviceManager {
           return;
         }
         if (maxSeen > current) {
-          this.log.info(
-            `${device.name}: detected ${maxSeen} segments via MQTT (was ${current}) — rebuilding state tree`,
-          );
+          this.log.info(tLog("segmentsDetected", { name: device.name, count: maxSeen, previous: current }));
           device.segmentCount = maxSeen;
           // Persist now so a restart starts from the real value instead of
           // falling back to Cloud capabilities and deleting the extra slots.

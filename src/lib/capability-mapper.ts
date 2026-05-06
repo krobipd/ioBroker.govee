@@ -6,19 +6,26 @@ import {
   type GoveeDevice,
 } from "./types";
 import { applyColorTempQuirk } from "./device-registry";
+import { tDesc, tLabel, tName } from "./i18n-states";
 
 /** ioBroker state definition derived from a Govee capability */
 export interface StateDefinition {
   /** State ID suffix (e.g. "power", "brightness", "colorRgb") */
   id: string;
-  /** Display name */
-  name: string;
+  /**
+   * Display name. Plain string for capability-derived names (e.g. from
+   * `humanize(cap.instance)` of an unknown Govee capability — those aren't
+   * predictable). For known states, a translation object `{en, de, ru, ...}`
+   * built via `tName()` from `i18n-states.ts` — Admin/vis/Object-Browser
+   * pick the user's language automatically.
+   */
+  name: string | Record<string, string>;
   /**
    * Human-readable description shown in the object browser — used to clarify
    * ambiguous state names (e.g. cloud vs local snapshots) where the id alone
    * isn't enough for a user to know what the state does.
    */
-  desc?: string;
+  desc?: string | Record<string, string>;
   /** ioBroker value type */
   type: ioBroker.CommonType;
   /** ioBroker role */
@@ -31,8 +38,11 @@ export interface StateDefinition {
   min?: number;
   /** Max value for numbers */
   max?: number;
-  /** Predefined states for select (value → label) */
-  states?: Record<string, string>;
+  /**
+   * Predefined values for a select (value → label). Label can be a plain
+   * string or a `{en, de, ...}` translation object (ioBroker Admin v6+).
+   */
+  states?: Record<string, string | Record<string, string>>;
   /** Default value for new states */
   def?: ioBroker.StateValue;
   /** Original capability type */
@@ -153,7 +163,7 @@ export function getDefaultLanStates(): StateDefinition[] {
   return [
     {
       id: "power",
-      name: "Power",
+      name: tName("power"),
       type: "boolean",
       role: "switch",
       write: true,
@@ -163,7 +173,7 @@ export function getDefaultLanStates(): StateDefinition[] {
     },
     {
       id: "brightness",
-      name: "Brightness",
+      name: tName("brightness"),
       type: "number",
       role: "level.brightness",
       write: true,
@@ -176,7 +186,7 @@ export function getDefaultLanStates(): StateDefinition[] {
     },
     {
       id: "colorRgb",
-      name: "Color RGB",
+      name: tName("colorRgb"),
       type: "string",
       role: "level.color.rgb",
       write: true,
@@ -186,7 +196,7 @@ export function getDefaultLanStates(): StateDefinition[] {
     },
     {
       id: "colorTemperature",
-      name: "Color Temperature",
+      name: tName("colorTemperature"),
       type: "number",
       role: "level.color.temperature",
       write: true,
@@ -216,7 +226,7 @@ function mapSingleCapability(cap: CloudCapability): StateDefinition[] | null {
       return [
         {
           id: "power",
-          name: "Power",
+          name: tName("power"),
           type: "boolean",
           role: "switch",
           write: true,
@@ -343,7 +353,7 @@ function mapColorSetting(cap: CloudCapability): StateDefinition[] {
     return [
       {
         id: "colorRgb",
-        name: "Color RGB",
+        name: tName("colorRgb"),
         type: "string",
         role: "level.color.rgb",
         write: true,
@@ -359,7 +369,7 @@ function mapColorSetting(cap: CloudCapability): StateDefinition[] {
     return [
       {
         id: "colorTemperature",
-        name: "Color Temperature",
+        name: tName("colorTemperature"),
         type: "number",
         role: "level.color.temperature",
         write: true,
@@ -398,7 +408,7 @@ function mapMode(cap: CloudCapability): StateDefinition[] {
   return [
     {
       id: "scene",
-      name: "Scene",
+      name: tName("scene"),
       type: "mixed",
       role: "text",
       write: true,
@@ -468,7 +478,7 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
     return [
       {
         id: "work_mode",
-        name: "Work Mode",
+        name: tName("workMode"),
         type: "mixed",
         role: "level.mode",
         write: true,
@@ -490,7 +500,7 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
     }
     states.push({
       id: "work_mode",
-      name: "Work Mode",
+      name: tName("workMode"),
       type: "mixed",
       role: "level.mode",
       write: true,
@@ -512,7 +522,7 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
       }
       states.push({
         id: "mode_value",
-        name: "Mode Value",
+        name: tName("modeValue"),
         type: "mixed",
         role: "level",
         write: true,
@@ -524,7 +534,7 @@ function mapWorkMode(cap: CloudCapability): StateDefinition[] {
     } else if (valueField.range) {
       states.push({
         id: "mode_value",
-        name: "Mode Value",
+        name: tName("modeValue"),
         type: "number",
         role: "level",
         write: true,
@@ -564,7 +574,7 @@ function mapTemperatureSetting(cap: CloudCapability): StateDefinition[] {
       return [
         {
           id: "target_temperature",
-          name: "Target Temperature",
+          name: tName("targetTemperature"),
           type: "number",
           role: "level.temperature",
           write: true,
@@ -585,7 +595,7 @@ function mapTemperatureSetting(cap: CloudCapability): StateDefinition[] {
     return [
       {
         id: "target_temperature",
-        name: "Target Temperature",
+        name: tName("targetTemperature"),
         type: "number",
         role: "level.temperature",
         write: true,
@@ -605,7 +615,7 @@ function mapTemperatureSetting(cap: CloudCapability): StateDefinition[] {
   return [
     {
       id: "target_temperature",
-      name: "Target Temperature",
+      name: tName("targetTemperature"),
       type: "string",
       role: "json",
       write: true,
@@ -666,7 +676,7 @@ function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
     }
     states.push({
       id: "music_mode",
-      name: "Music Mode",
+      name: tName("musicMode"),
       type: "mixed",
       role: "text",
       write: true,
@@ -682,7 +692,7 @@ function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
   if (sensField?.range) {
     states.push({
       id: "music_sensitivity",
-      name: "Music Sensitivity",
+      name: tName("musicSensitivity"),
       type: "number",
       role: "level",
       write: true,
@@ -700,7 +710,7 @@ function mapMusicSetting(cap: CloudCapability): StateDefinition[] {
   if (autoColorField) {
     states.push({
       id: "music_auto_color",
-      name: "Music Auto Color",
+      name: tName("musicAutoColor"),
       type: "boolean",
       role: "switch",
       write: true,
@@ -1014,7 +1024,7 @@ export function buildDeviceStateDefs(
   if (isLight && hasDynamicSceneCapability(device.capabilities, "lightScene")) {
     stateDefs.push({
       id: "light_scene",
-      name: "Light Scene",
+      name: tName("lightScene"),
       // mixed lets users write the index ("1"), the index as number (1),
       // or the scene name ("Aurora") — the onStateChange handler resolves
       // all three forms via the common.states map.
@@ -1052,7 +1062,7 @@ export function buildDeviceStateDefs(
   if (isLight && maxSpeedLevel > 0) {
     stateDefs.push({
       id: "scene_speed",
-      name: "Scene Speed",
+      name: tName("sceneSpeed"),
       type: "number",
       role: "level",
       write: true,
@@ -1068,7 +1078,7 @@ export function buildDeviceStateDefs(
   if (isLight && hasDynamicSceneCapability(device.capabilities, "diyScene")) {
     stateDefs.push({
       id: "diy_scene",
-      name: "DIY Scene",
+      name: tName("diyScene"),
       type: "mixed",
       role: "text",
       write: true,
@@ -1083,8 +1093,8 @@ export function buildDeviceStateDefs(
   if (isLight && hasDynamicSceneCapability(device.capabilities, "snapshot")) {
     stateDefs.push({
       id: "snapshot_cloud",
-      name: "Cloud Snapshot",
-      desc: "Snapshots you saved in the Govee Home app. Selecting one replays that state on the device.",
+      name: tName("cloudSnapshot"),
+      desc: tDesc("cloudSnapshotDesc"),
       type: "mixed",
       role: "text",
       write: true,
@@ -1101,8 +1111,8 @@ export function buildDeviceStateDefs(
   if (isLight) {
     stateDefs.push({
       id: "snapshot_local",
-      name: "Local Snapshot",
-      desc: "Snapshots saved by this adapter on the ioBroker server. Independent of the Govee Home app.",
+      name: tName("localSnapshot"),
+      desc: tDesc("localSnapshotDesc"),
       type: "mixed",
       role: "text",
       write: true,
@@ -1114,8 +1124,8 @@ export function buildDeviceStateDefs(
     });
     stateDefs.push({
       id: "snapshot_save",
-      name: "Save Local Snapshot",
-      desc: "Write a name to save the current device state (power, brightness, colour, per-segment colours) as a new local snapshot.",
+      name: tName("saveLocalSnapshot"),
+      desc: tDesc("saveLocalSnapshotDesc"),
       type: "string",
       role: "text",
       write: true,
@@ -1126,8 +1136,8 @@ export function buildDeviceStateDefs(
     });
     stateDefs.push({
       id: "snapshot_delete",
-      name: "Delete Local Snapshot",
-      desc: "Write a local snapshot name to delete it. Does not affect Govee Home app snapshots.",
+      name: tName("deleteLocalSnapshot"),
+      desc: tDesc("deleteLocalSnapshotDesc"),
       type: "string",
       role: "text",
       write: true,
@@ -1143,7 +1153,7 @@ export function buildDeviceStateDefs(
   // immediately recognisable in the object tree.
   stateDefs.push({
     id: "export",
-    name: "Export Diagnostics",
+    name: tName("exportDiagnostics"),
     type: "boolean",
     role: "button",
     write: true,
@@ -1154,7 +1164,7 @@ export function buildDeviceStateDefs(
   });
   stateDefs.push({
     id: "result",
-    name: "Diagnostics JSON",
+    name: tName("diagnosticsJson"),
     type: "string",
     role: "json",
     write: false,
@@ -1169,16 +1179,16 @@ export function buildDeviceStateDefs(
   // in the catalogue yet.
   stateDefs.push({
     id: "tier",
-    name: "Device Tier",
+    name: tName("deviceTier"),
     type: "string",
     role: "text",
     write: false,
     def: "unknown",
     states: {
-      verified: "Verified — confirmed by a tester",
-      reported: "Reported — community-reported, treated as verified",
-      seed: "Seed — beta, needs experimental toggle in adapter settings",
-      unknown: "Unknown SKU — please run diag.export and post in a GitHub issue",
+      verified: tLabel("deviceTierVerified"),
+      reported: tLabel("deviceTierReported"),
+      seed: tLabel("deviceTierSeed"),
+      unknown: tLabel("deviceTierUnknown"),
     },
     capabilityType: "local",
     capabilityInstance: "diagnosticsTier",
@@ -1264,7 +1274,7 @@ function buildGroupStateDefs(members: GoveeDevice[]): StateDefinition[] {
     if (commonNames.length > 0) {
       stateDefs.push({
         id: "light_scene",
-        name: "Light Scene",
+        name: tName("lightScene"),
         type: "mixed",
         role: "text",
         write: true,
@@ -1284,7 +1294,7 @@ function buildGroupStateDefs(members: GoveeDevice[]): StateDefinition[] {
     if (commonNames.length > 0) {
       stateDefs.push({
         id: "music_mode",
-        name: "Music Mode",
+        name: tName("musicMode"),
         type: "mixed",
         role: "text",
         write: true,

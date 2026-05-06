@@ -124,6 +124,10 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
+### **WORK IN PROGRESS**
+
+- **Mehrsprachig**: info/warn/error-Logs und Datenpunkt-Namen/-Beschreibungen jetzt in der ioBroker-Systemsprache (11 Sprachen). Debug-Logs und Stack-Traces bleiben englisch.
+
 ### 2.5.4 (2026-05-04)
 
 - Test-Coverage erweitert für den MQTT-Login-Pfad: `mqtt.connect` ist jetzt als optionaler Constructor-Parameter injizierbar (analog `httpsRequest` in v2.5.1) und 7 neue Mock-Tests decken die getIotKey-Authentifizierung und den persistierten-Credentials-Reuse-Pfad ab.

@@ -188,7 +188,11 @@ export function dmLightCapabilities(): CloudCapability[] {
   ];
 }
 
-/** Test-Device mit Werten die device-manager.test.ts erwartet. */
+/**
+ * Test-Device mit Werten die device-manager.test.ts erwartet.
+ *
+ * @param overrides Felder die im resulting Device überschrieben werden sollen.
+ */
 export function dmCreateTestDevice(overrides: Partial<GoveeDevice> = {}): GoveeDevice {
   return {
     sku: "H6160",

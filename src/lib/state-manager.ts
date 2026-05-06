@@ -2,6 +2,7 @@ import type * as utils from "@iobroker/adapter-core";
 import type { StateDefinition } from "./capability-mapper";
 import { GROUP_ICON, iconForGoveeType, shortenGoveeType } from "./device-icons";
 import { resolveSegmentCount } from "./device-manager";
+import { tDesc, tName } from "./i18n-states";
 import { normalizeDeviceId, type DeviceState, type GoveeDevice } from "./types";
 
 /**
@@ -118,49 +119,50 @@ interface SyntheticStateMeta {
   type: "boolean" | "number";
   role: string;
   unit?: string;
-  name: string;
+  /** Plain string or translation object (`{en, de, ...}`) — ioBroker accepts both. */
+  name: string | Record<string, string>;
 }
 const SYNTHETIC_STATE_META: Record<string, SyntheticStateMeta> = {
   temperature: {
     type: "number",
     role: "value.temperature",
     unit: "°C",
-    name: "Temperature",
+    name: tName("temperature"),
   },
   humidity: {
     type: "number",
     role: "value.humidity",
     unit: "%",
-    name: "Humidity",
+    name: tName("humidity"),
   },
   battery: {
     type: "number",
     role: "value.battery",
     unit: "%",
-    name: "Battery",
+    name: tName("battery"),
   },
-  co2: { type: "number", role: "value.co2", unit: "ppm", name: "CO₂" },
+  co2: { type: "number", role: "value.co2", unit: "ppm", name: tName("co2") },
   carbondioxide: {
     type: "number",
     role: "value.co2",
     unit: "ppm",
-    name: "CO₂",
+    name: tName("co2"),
   },
-  online: { type: "boolean", role: "indicator.connected", name: "Online" },
+  online: { type: "boolean", role: "indicator.connected", name: tName("online") },
   lackwater: {
     type: "boolean",
     role: "indicator.alarm",
-    name: "Lack of Water",
+    name: tName("lackOfWater"),
   },
   lackwaterevent: {
     type: "boolean",
     role: "indicator.alarm",
-    name: "Lack of Water",
+    name: tName("lackOfWater"),
   },
-  icefull: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
-  icefullevent: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
-  bodyappeared: { type: "boolean", role: "indicator", name: "Body Detected" },
-  dirtdetected: { type: "boolean", role: "indicator", name: "Dirt Detected" },
+  icefull: { type: "boolean", role: "indicator", name: tName("iceBucketFull") },
+  icefullevent: { type: "boolean", role: "indicator", name: tName("iceBucketFull") },
+  bodyappeared: { type: "boolean", role: "indicator", name: tName("bodyDetected") },
+  dirtdetected: { type: "boolean", role: "indicator", name: tName("dirtDetected") },
   // sanitizeId(instance) Aliases — gleiche Meta wie raw-Form, decoupled
   // damit der Adapter beim ersten Sensor-State-Write den richtigen Channel
   // (sensor/ bzw. events/) anlegt.
@@ -168,34 +170,34 @@ const SYNTHETIC_STATE_META: Record<string, SyntheticStateMeta> = {
     type: "number",
     role: "value.temperature",
     unit: "°C",
-    name: "Temperature",
+    name: tName("temperature"),
   },
   sensor_humidity: {
     type: "number",
     role: "value.humidity",
     unit: "%",
-    name: "Humidity",
+    name: tName("humidity"),
   },
   sensor_battery: {
     type: "number",
     role: "value.battery",
     unit: "%",
-    name: "Battery",
+    name: tName("battery"),
   },
   lack_water: {
     type: "boolean",
     role: "indicator.alarm",
-    name: "Lack of Water",
+    name: tName("lackOfWater"),
   },
   lack_water_event: {
     type: "boolean",
     role: "indicator.alarm",
-    name: "Lack of Water",
+    name: tName("lackOfWater"),
   },
-  ice_full: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
-  ice_full_event: { type: "boolean", role: "indicator", name: "Ice Bucket Full" },
-  body_appeared: { type: "boolean", role: "indicator", name: "Body Detected" },
-  dirt_detected: { type: "boolean", role: "indicator", name: "Dirt Detected" },
+  ice_full: { type: "boolean", role: "indicator", name: tName("iceBucketFull") },
+  ice_full_event: { type: "boolean", role: "indicator", name: tName("iceBucketFull") },
+  body_appeared: { type: "boolean", role: "indicator", name: tName("bodyDetected") },
+  dirt_detected: { type: "boolean", role: "indicator", name: tName("dirtDetected") },
 };
 
 /** Manages ioBroker state creation and updates for Govee devices */
@@ -318,7 +320,7 @@ export class StateManager {
       .extendObjectAsync(`${prefix}.${channel}.${stateId}`, {
         type: "state",
         common: {
-          name: meta.name,
+          name: meta.name as ioBroker.StringOrTranslated,
           type: meta.type,
           role: meta.role,
           read: true,
@@ -383,7 +385,7 @@ export class StateManager {
     // Info channel — groups only get name (no individual online)
     await this.adapter.extendObjectAsync(`${prefix}.info`, {
       type: "channel",
-      common: { name: "Device Information" },
+      common: { name: tName("deviceInformation") },
       native: {},
     });
 
@@ -480,7 +482,9 @@ export class StateManager {
 
       for (const def of defs) {
         const common: Partial<ioBroker.StateCommon> = {
-          name: def.name,
+          // StateDefinition.name allows plain string OR translation object for
+          // legacy/dynamic names; ioBroker StringOrTranslated has the same shape.
+          name: def.name as ioBroker.StringOrTranslated,
           type: def.type,
           role: def.role,
           read: true,
@@ -497,13 +501,17 @@ export class StateManager {
           common.max = def.max;
         }
         if (def.states) {
-          common.states = def.states;
+          // Cast: StateDefinition.states allows translation objects per value
+          // (ioBroker Admin v6+). The runtime ioBroker.StateCommon type only
+          // exposes string values yet — same pattern as `name: ... as
+          // ioBroker.StringOrTranslated`.
+          common.states = def.states as Record<string, string>;
         }
         if (def.def !== undefined) {
           common.def = def.def;
         }
         if (def.desc) {
-          common.desc = def.desc;
+          common.desc = def.desc as ioBroker.StringOrTranslated;
         }
 
         await this.adapter.extendObjectAsync(`${prefix}.${channel}.${def.id}`, {
@@ -558,7 +566,7 @@ export class StateManager {
 
     await this.adapter.extendObjectAsync(`${prefix}.segments`, {
       type: "channel",
-      common: { name: "LED Segments" },
+      common: { name: tName("ledSegments") },
       native: {},
     });
 
@@ -591,26 +599,26 @@ export class StateManager {
     await this.adapter.extendObjectAsync(`${prefix}.segments.manual_mode`, {
       type: "state",
       common: {
-        name: "Manual Segments Active",
+        name: tName("manualSegmentsActive"),
         type: "boolean",
         role: "switch",
         read: true,
         write: true,
         def: false,
-        desc: "Enable manual segment list (e.g. for cut LED strips with fewer physical segments than reported)",
+        desc: tDesc("manualSegmentsDesc"),
       } as ioBroker.StateCommon,
       native: {},
     });
     await this.adapter.extendObjectAsync(`${prefix}.segments.manual_list`, {
       type: "state",
       common: {
-        name: "Manual Segment List",
+        name: tName("manualSegmentList"),
         type: "string",
         role: "text",
         read: true,
         write: true,
         def: "",
-        desc: 'Comma-separated indices + ranges, e.g. "0-9" or "0-8,10-14" (only used when manual_mode=true)',
+        desc: tDesc("manualListDesc"),
       } as ioBroker.StateCommon,
       native: {},
     });
@@ -642,7 +650,7 @@ export class StateManager {
       await this.adapter.extendObjectAsync(`${prefix}.segments.${i}.color`, {
         type: "state",
         common: {
-          name: "Color",
+          name: tName("color"),
           type: "string",
           role: "level.color.rgb",
           read: true,
@@ -654,7 +662,7 @@ export class StateManager {
       await this.adapter.extendObjectAsync(`${prefix}.segments.${i}.brightness`, {
         type: "state",
         common: {
-          name: "Brightness",
+          name: tName("brightness"),
           type: "number",
           role: "level.brightness",
           read: true,
@@ -671,12 +679,12 @@ export class StateManager {
     await this.adapter.extendObjectAsync(`${prefix}.segments.command`, {
       type: "state",
       common: {
-        name: "Batch Segment Command",
+        name: tName("batchSegmentCommand"),
         type: "string",
         role: "text",
         read: false,
         write: true,
-        desc: "Format: segments:color:brightness — e.g. 1-5:#ff0000:20, all:#00ff00, 0,3,7::50",
+        desc: tDesc("batchCommandDesc"),
       } as ioBroker.StateCommon,
       native: {},
     });
@@ -766,12 +774,12 @@ export class StateManager {
   async createGroupsOnlineState(online: boolean): Promise<void> {
     await this.adapter.extendObjectAsync("groups", {
       type: "folder",
-      common: { name: "Groups" },
+      common: { name: tName("groups") },
       native: {},
     });
     await this.adapter.extendObjectAsync("groups.info", {
       type: "channel",
-      common: { name: "Groups Status" },
+      common: { name: tName("groupsStatus") },
       native: {},
     });
     await this.ensureState("groups.info.online", "Cloud Online", "boolean", "indicator.reachable", false);

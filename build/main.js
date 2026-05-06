@@ -30,6 +30,7 @@ var import_govee_cloud_client = require("./lib/govee-cloud-client");
 var import_govee_lan_client = require("./lib/govee-lan-client");
 var import_govee_mqtt_client = require("./lib/govee-mqtt-client");
 var import_govee_openapi_mqtt_client = require("./lib/govee-openapi-mqtt-client");
+var import_i18n_logs = require("./lib/i18n-logs");
 var import_local_snapshots = require("./lib/local-snapshots");
 var import_snapshot_handler = require("./lib/snapshot-handler");
 var import_group_fanout = require("./lib/group-fanout");
@@ -177,6 +178,7 @@ class GoveeAdapter extends utils.Adapter {
       }
     } catch {
     }
+    (0, import_i18n_logs.setActiveLang)(this.adminLanguage);
     await this.setStateAsync("info.wizardStatus", {
       val: (0, import_segment_wizard.wizardIdleText)(this.adminLanguage),
       ack: true
@@ -265,7 +267,7 @@ class GoveeAdapter extends utils.Adapter {
     if (config.goveeEmail && config.goveePassword) {
       startChannels.push("MQTT");
     }
-    this.log.info(`Starting (${startChannels.join(", ")})`);
+    this.log.info((0, import_i18n_logs.tLog)("starting", { channels: startChannels.join(", ") }));
     this.lanClient = new import_govee_lan_client.GoveeLanClient(this.log, this);
     this.deviceManager.setLanClient(this.lanClient);
     this.lanClient.start(
@@ -390,7 +392,7 @@ class GoveeAdapter extends utils.Adapter {
           this.handleCloudFailure(result);
         }
       } else {
-        this.log.info("Using cached device data \u2014 no Cloud calls needed");
+        this.log.info((0, import_i18n_logs.tLog)("usingCachedData"));
         this.cloudWasConnected = true;
         this.ensureCloudRetry().setConnected(true);
         this.setStateAsync("info.cloudConnected", {
@@ -500,17 +502,17 @@ class GoveeAdapter extends utils.Adapter {
    */
   async handleManualCloudRefresh() {
     if (!this.deviceManager || !this.cloudClient) {
-      this.log.info("Refresh cloud data: no Cloud client configured (API key missing) \u2014 nothing to do");
+      this.log.info((0, import_i18n_logs.tLog)("refreshNoCloudClient"));
       return;
     }
-    this.log.info("Refresh cloud data: re-fetching scenes and snapshots for all devices");
+    this.log.info((0, import_i18n_logs.tLog)("refreshStart"));
     try {
       const changed = await this.deviceManager.refreshSceneData();
       if (changed) {
         await this.loadCloudStates();
       }
     } catch (e) {
-      this.log.warn(`Refresh cloud data failed: ${(0, import_types.errMessage)(e)}`);
+      this.log.warn((0, import_i18n_logs.tLog)("refreshFailed", { error: (0, import_types.errMessage)(e) }));
     }
   }
   /**
@@ -603,7 +605,7 @@ class GoveeAdapter extends utils.Adapter {
     const stateSuffix = localId.slice(prefix.length + 1);
     const resolved = await this.resolveDropdownInput(id, state.val);
     if (!resolved.ok) {
-      this.log.warn(`Unknown dropdown value for ${id}: ${String(state.val)} \u2014 ignoring`);
+      this.log.warn((0, import_i18n_logs.tLog)("unknownDropdownValue", { id, value: String(state.val) }));
       return;
     }
     const val = resolved.val;
@@ -680,7 +682,7 @@ class GoveeAdapter extends utils.Adapter {
         await this.resetRelatedDropdowns(prefix, command);
       }
     } catch (err) {
-      this.log.warn(`Command failed for ${device.name}: ${(0, import_types.errMessage)(err)}`);
+      this.log.warn((0, import_i18n_logs.tLog)("commandFailed", { name: device.name, error: (0, import_types.errMessage)(err) }));
     }
   }
   /**
@@ -1082,14 +1084,14 @@ class GoveeAdapter extends utils.Adapter {
       parts.push(`${groups.length} group${groups.length > 1 ? "s" : ""}`);
     }
     const summary = parts.length > 0 ? parts.join(", ") : "no devices found";
-    this.log.info(`Govee adapter ready \u2014 ${summary} \u2014 channels: ${channels.join("+")}`);
+    this.log.info((0, import_i18n_logs.tLog)("ready", { summary, channels: channels.join("+") }));
     if (this.cloudClient && !this.cloudWasConnected) {
       const reason = this.cloudClient.getFailureReason();
-      this.log.warn(reason ? `Cloud not connected: ${reason}` : "Cloud not connected \u2014 see earlier errors");
+      this.log.warn(reason ? (0, import_i18n_logs.tLog)("cloudNotConnected", { reason }) : (0, import_i18n_logs.tLog)("cloudNotConnectedNoReason"));
     }
     if (this.mqttClient && !this.mqttClient.connected) {
       const reason = this.mqttClient.getFailureReason();
-      this.log.warn(reason ? `MQTT not connected: ${reason}` : "MQTT not connected \u2014 see earlier errors");
+      this.log.warn(reason ? (0, import_i18n_logs.tLog)("mqttNotConnected", { reason }) : (0, import_i18n_logs.tLog)("mqttNotConnectedNoReason"));
     }
   }
   /**
@@ -1239,14 +1241,14 @@ class GoveeAdapter extends utils.Adapter {
     const modeVal = suffix === "segments.manual_mode" ? Boolean(newValue) : device.manualMode === true;
     const listVal = suffix === "segments.manual_list" ? typeof newValue === "string" ? newValue : "" : Array.isArray(device.manualSegments) ? device.manualSegments.join(",") : "";
     if (!modeVal) {
-      this.log.info(`${device.name}: manual segments disabled \u2014 strip treated as contiguous`);
+      this.log.info((0, import_i18n_logs.tLog)("manualSegmentsDisabled", { name: device.name }));
       await this.applyManualSegments(device, false);
       return;
     }
     const maxIndex = typeof device.segmentCount === "number" && device.segmentCount > 0 ? device.segmentCount - 1 : import_device_manager.SEGMENT_HARD_MAX;
     const parsed = (0, import_types.parseSegmentList)(listVal, maxIndex);
     if (parsed.error) {
-      this.log.warn(`${device.name}: manual_list invalid (${parsed.error}) \u2014 disabling manual mode`);
+      this.log.warn((0, import_i18n_logs.tLog)("manualListInvalid", { name: device.name, reason: parsed.error }));
       await this.applyManualSegments(device, false);
       return;
     }
@@ -1409,7 +1411,7 @@ class GoveeAdapter extends utils.Adapter {
         await this.setStateAsync("info.legacyMqttCleaned", { val: true, ack: true }).catch(() => void 0);
         return;
       }
-      this.log.info("Removing legacy plaintext MQTT credentials from native (one-time migration)");
+      this.log.info((0, import_i18n_logs.tLog)("migrateLegacyCredentials"));
       const wipe = {};
       for (const k of legacy) {
         wipe[k] = k === "mqttTokenExpiresAt" ? 0 : "";
@@ -1584,7 +1586,7 @@ class GoveeAdapter extends utils.Adapter {
       ack: true
     });
     await this.setStateAsync(triggerStateId, { val: false, ack: true });
-    this.log.info(`Diagnostics exported for ${device.name} (${device.sku})`);
+    this.log.info((0, import_i18n_logs.tLog)("diagnosticsExported", { name: device.name, sku: device.sku }));
   }
   /**
    * Generischer Capability-Routing-Pfad für States die nicht im STATE_TO_COMMAND
@@ -1609,7 +1611,7 @@ class GoveeAdapter extends utils.Adapter {
         await this.deviceManager.sendCapabilityCommand(device, capType, capInstance, val);
         await this.setStateAsync(id, { val, ack: true });
       } catch (err) {
-        this.log.warn(`Command failed for ${device.name}: ${(0, import_types.errMessage)(err)}`);
+        this.log.warn((0, import_i18n_logs.tLog)("commandFailed", { name: device.name, error: (0, import_types.errMessage)(err) }));
       }
     } else {
       this.log.debug(`Unknown writable state: ${stateSuffix}`);

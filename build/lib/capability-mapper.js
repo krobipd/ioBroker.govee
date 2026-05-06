@@ -29,6 +29,7 @@ __export(capability_mapper_exports, {
 module.exports = __toCommonJS(capability_mapper_exports);
 var import_types = require("./types");
 var import_device_registry = require("./device-registry");
+var import_i18n_states = require("./i18n-states");
 function coerceBool(v) {
   return v === true || v === 1 || v === "1" || v === "true";
 }
@@ -84,7 +85,7 @@ function getDefaultLanStates() {
   return [
     {
       id: "power",
-      name: "Power",
+      name: (0, import_i18n_states.tName)("power"),
       type: "boolean",
       role: "switch",
       write: true,
@@ -94,7 +95,7 @@ function getDefaultLanStates() {
     },
     {
       id: "brightness",
-      name: "Brightness",
+      name: (0, import_i18n_states.tName)("brightness"),
       type: "number",
       role: "level.brightness",
       write: true,
@@ -107,7 +108,7 @@ function getDefaultLanStates() {
     },
     {
       id: "colorRgb",
-      name: "Color RGB",
+      name: (0, import_i18n_states.tName)("colorRgb"),
       type: "string",
       role: "level.color.rgb",
       write: true,
@@ -117,7 +118,7 @@ function getDefaultLanStates() {
     },
     {
       id: "colorTemperature",
-      name: "Color Temperature",
+      name: (0, import_i18n_states.tName)("colorTemperature"),
       type: "number",
       role: "level.color.temperature",
       write: true,
@@ -140,7 +141,7 @@ function mapSingleCapability(cap) {
       return [
         {
           id: "power",
-          name: "Power",
+          name: (0, import_i18n_states.tName)("power"),
           type: "boolean",
           role: "switch",
           write: true,
@@ -238,7 +239,7 @@ function mapColorSetting(cap) {
     return [
       {
         id: "colorRgb",
-        name: "Color RGB",
+        name: (0, import_i18n_states.tName)("colorRgb"),
         type: "string",
         role: "level.color.rgb",
         write: true,
@@ -253,7 +254,7 @@ function mapColorSetting(cap) {
     return [
       {
         id: "colorTemperature",
-        name: "Color Temperature",
+        name: (0, import_i18n_states.tName)("colorTemperature"),
         type: "number",
         role: "level.color.temperature",
         write: true,
@@ -284,7 +285,7 @@ function mapMode(cap) {
   return [
     {
       id: "scene",
-      name: "Scene",
+      name: (0, import_i18n_states.tName)("scene"),
       type: "mixed",
       role: "text",
       write: true,
@@ -334,7 +335,7 @@ function mapWorkMode(cap) {
     return [
       {
         id: "work_mode",
-        name: "Work Mode",
+        name: (0, import_i18n_states.tName)("workMode"),
         type: "mixed",
         role: "level.mode",
         write: true,
@@ -355,7 +356,7 @@ function mapWorkMode(cap) {
     }
     states.push({
       id: "work_mode",
-      name: "Work Mode",
+      name: (0, import_i18n_states.tName)("workMode"),
       type: "mixed",
       role: "level.mode",
       write: true,
@@ -376,7 +377,7 @@ function mapWorkMode(cap) {
       }
       states.push({
         id: "mode_value",
-        name: "Mode Value",
+        name: (0, import_i18n_states.tName)("modeValue"),
         type: "mixed",
         role: "level",
         write: true,
@@ -388,7 +389,7 @@ function mapWorkMode(cap) {
     } else if (valueField.range) {
       states.push({
         id: "mode_value",
-        name: "Mode Value",
+        name: (0, import_i18n_states.tName)("modeValue"),
         type: "number",
         role: "level",
         write: true,
@@ -420,7 +421,7 @@ function mapTemperatureSetting(cap) {
       return [
         {
           id: "target_temperature",
-          name: "Target Temperature",
+          name: (0, import_i18n_states.tName)("targetTemperature"),
           type: "number",
           role: "level.temperature",
           write: true,
@@ -440,7 +441,7 @@ function mapTemperatureSetting(cap) {
     return [
       {
         id: "target_temperature",
-        name: "Target Temperature",
+        name: (0, import_i18n_states.tName)("targetTemperature"),
         type: "number",
         role: "level.temperature",
         write: true,
@@ -456,7 +457,7 @@ function mapTemperatureSetting(cap) {
   return [
     {
       id: "target_temperature",
-      name: "Target Temperature",
+      name: (0, import_i18n_states.tName)("targetTemperature"),
       type: "string",
       role: "json",
       write: true,
@@ -499,7 +500,7 @@ function mapMusicSetting(cap) {
     }
     states.push({
       id: "music_mode",
-      name: "Music Mode",
+      name: (0, import_i18n_states.tName)("musicMode"),
       type: "mixed",
       role: "text",
       write: true,
@@ -513,7 +514,7 @@ function mapMusicSetting(cap) {
   if (sensField == null ? void 0 : sensField.range) {
     states.push({
       id: "music_sensitivity",
-      name: "Music Sensitivity",
+      name: (0, import_i18n_states.tName)("musicSensitivity"),
       type: "number",
       role: "level",
       write: true,
@@ -529,7 +530,7 @@ function mapMusicSetting(cap) {
   if (autoColorField) {
     states.push({
       id: "music_auto_color",
-      name: "Music Auto Color",
+      name: (0, import_i18n_states.tName)("musicAutoColor"),
       type: "boolean",
       role: "switch",
       write: true,
@@ -720,7 +721,7 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
   if (isLight && hasDynamicSceneCapability(device.capabilities, "lightScene")) {
     stateDefs.push({
       id: "light_scene",
-      name: "Light Scene",
+      name: (0, import_i18n_states.tName)("lightScene"),
       // mixed lets users write the index ("1"), the index as number (1),
       // or the scene name ("Aurora") — the onStateChange handler resolves
       // all three forms via the common.states map.
@@ -755,7 +756,7 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
   if (isLight && maxSpeedLevel > 0) {
     stateDefs.push({
       id: "scene_speed",
-      name: "Scene Speed",
+      name: (0, import_i18n_states.tName)("sceneSpeed"),
       type: "number",
       role: "level",
       write: true,
@@ -770,7 +771,7 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
   if (isLight && hasDynamicSceneCapability(device.capabilities, "diyScene")) {
     stateDefs.push({
       id: "diy_scene",
-      name: "DIY Scene",
+      name: (0, import_i18n_states.tName)("diyScene"),
       type: "mixed",
       role: "text",
       write: true,
@@ -784,8 +785,8 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
   if (isLight && hasDynamicSceneCapability(device.capabilities, "snapshot")) {
     stateDefs.push({
       id: "snapshot_cloud",
-      name: "Cloud Snapshot",
-      desc: "Snapshots you saved in the Govee Home app. Selecting one replays that state on the device.",
+      name: (0, import_i18n_states.tName)("cloudSnapshot"),
+      desc: (0, import_i18n_states.tDesc)("cloudSnapshotDesc"),
       type: "mixed",
       role: "text",
       write: true,
@@ -799,8 +800,8 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
   if (isLight) {
     stateDefs.push({
       id: "snapshot_local",
-      name: "Local Snapshot",
-      desc: "Snapshots saved by this adapter on the ioBroker server. Independent of the Govee Home app.",
+      name: (0, import_i18n_states.tName)("localSnapshot"),
+      desc: (0, import_i18n_states.tDesc)("localSnapshotDesc"),
       type: "mixed",
       role: "text",
       write: true,
@@ -812,8 +813,8 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
     });
     stateDefs.push({
       id: "snapshot_save",
-      name: "Save Local Snapshot",
-      desc: "Write a name to save the current device state (power, brightness, colour, per-segment colours) as a new local snapshot.",
+      name: (0, import_i18n_states.tName)("saveLocalSnapshot"),
+      desc: (0, import_i18n_states.tDesc)("saveLocalSnapshotDesc"),
       type: "string",
       role: "text",
       write: true,
@@ -824,8 +825,8 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
     });
     stateDefs.push({
       id: "snapshot_delete",
-      name: "Delete Local Snapshot",
-      desc: "Write a local snapshot name to delete it. Does not affect Govee Home app snapshots.",
+      name: (0, import_i18n_states.tName)("deleteLocalSnapshot"),
+      desc: (0, import_i18n_states.tDesc)("deleteLocalSnapshotDesc"),
       type: "string",
       role: "text",
       write: true,
@@ -837,7 +838,7 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
   }
   stateDefs.push({
     id: "export",
-    name: "Export Diagnostics",
+    name: (0, import_i18n_states.tName)("exportDiagnostics"),
     type: "boolean",
     role: "button",
     write: true,
@@ -848,7 +849,7 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
   });
   stateDefs.push({
     id: "result",
-    name: "Diagnostics JSON",
+    name: (0, import_i18n_states.tName)("diagnosticsJson"),
     type: "string",
     role: "json",
     write: false,
@@ -859,16 +860,16 @@ function buildDeviceStateDefs(device, localSnapshots, memberDevices) {
   });
   stateDefs.push({
     id: "tier",
-    name: "Device Tier",
+    name: (0, import_i18n_states.tName)("deviceTier"),
     type: "string",
     role: "text",
     write: false,
     def: "unknown",
     states: {
-      verified: "Verified \u2014 confirmed by a tester",
-      reported: "Reported \u2014 community-reported, treated as verified",
-      seed: "Seed \u2014 beta, needs experimental toggle in adapter settings",
-      unknown: "Unknown SKU \u2014 please run diag.export and post in a GitHub issue"
+      verified: (0, import_i18n_states.tLabel)("deviceTierVerified"),
+      reported: (0, import_i18n_states.tLabel)("deviceTierReported"),
+      seed: (0, import_i18n_states.tLabel)("deviceTierSeed"),
+      unknown: (0, import_i18n_states.tLabel)("deviceTierUnknown")
     },
     capabilityType: "local",
     capabilityInstance: "diagnosticsTier",
@@ -917,7 +918,7 @@ function buildGroupStateDefs(members) {
     if (commonNames.length > 0) {
       stateDefs.push({
         id: "light_scene",
-        name: "Light Scene",
+        name: (0, import_i18n_states.tName)("lightScene"),
         type: "mixed",
         role: "text",
         write: true,
@@ -935,7 +936,7 @@ function buildGroupStateDefs(members) {
     if (commonNames.length > 0) {
       stateDefs.push({
         id: "music_mode",
-        name: "Music Mode",
+        name: (0, import_i18n_states.tName)("musicMode"),
         type: "mixed",
         role: "text",
         write: true,

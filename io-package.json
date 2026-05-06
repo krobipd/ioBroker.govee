@@ -3,6 +3,19 @@
     "name": "govee-smart",
     "version": "2.5.4",
     "news": {
+      "NEXT": {
+        "en": "Multi-language: info/warn/error logs and state names/descriptions are now in your ioBroker system language (11 languages). Debug logs and stack traces stay English.",
+        "de": "Mehrsprachig: info/warn/error-Logs sowie Datenpunkt-Namen und -Beschreibungen sind jetzt in der ioBroker-Systemsprache (11 Sprachen). Debug-Logs und Stack-Traces bleiben englisch.",
+        "ru": "Многоязычность: info/warn/error-логи и имена/описания состояний теперь на языке системы ioBroker (11 языков). Debug и stack-trace остаются английскими.",
+        "pt": "Multilíngua: logs info/warn/error e nomes/descrições de estados agora no idioma do sistema ioBroker (11 idiomas). Debug e stack-traces ficam em inglês.",
+        "nl": "Meertalig: info/warn/error-logs en statusnamen/-beschrijvingen nu in de ioBroker-systeemtaal (11 talen). Debug en stacktraces blijven Engels.",
+        "fr": "Multilingue : logs info/warn/error et noms/descriptions d'états désormais dans la langue système ioBroker (11 langues). Debug et stack-traces restent en anglais.",
+        "it": "Multilingua: log info/warn/error e nomi/descrizioni degli stati ora nella lingua di sistema ioBroker (11 lingue). Debug e stack-trace restano in inglese.",
+        "es": "Multilenguaje: logs info/warn/error y nombres/descripciones de estados ahora en el idioma del sistema ioBroker (11 idiomas). Debug y stack-traces permanecen en inglés.",
+        "pl": "Wielojęzyczność: logi info/warn/error oraz nazwy/opisy stanów teraz w języku systemu ioBroker (11 języków). Debug i stack-trace pozostają po angielsku.",
+        "uk": "Багатомовність: info/warn/error-логи та імена/описи станів тепер мовою системи ioBroker (11 мов). Debug та stack-traces лишаються англійськими.",
+        "zh-cn": "多语言：info/warn/error 日志以及状态名称/描述现在使用 ioBroker 系统语言（11 种）。Debug 日志与堆栈跟踪保持英文。"
+      },
       "2.5.4": {
         "en": "Test-coverage expansion: mqtt.connect is now an injectable constructor parameter (like httpsRequest in v2.5.1), and 7 new mock tests cover the getIotKey path and persisted-credentials reuse.",
         "de": "Test-Coverage erweitert: mqtt.connect ist jetzt als Konstruktor-Parameter injizierbar (wie httpsRequest in v2.5.1), 7 neue Mock-Tests decken getIotKey und Persisted-Credentials-Reuse ab.",
