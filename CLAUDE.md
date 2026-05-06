@@ -7,7 +7,7 @@
 
 **ioBroker Govee Smart Adapter** — Steuert Govee WiFi-Geräte: Lights (LED-Strips, Lampen, Panels), Sensoren (Thermometer/Hygrometer), Appliances (Heater, Humidifier, Kettle, Ice Maker, Fan, Purifier). LAN first für Lights, App-API + OpenAPI-MQTT für Sensoren/Appliances, Cloud REST v2 für Capabilities + Steuer-Fallback.
 
-- **Version:** 2.5.4 (released 2026-05-05, npm latest)
+- **Version:** 2.6.0 (released 2026-05-06, npm latest). Multi-Language-Welle: info/warn/error-Logs (`lib/i18n-logs.ts` 42 Keys × 11 Sprachen, Module-State `setActiveLang` aus `system.config.language`) + State-Namen / -Beschreibungen / Dropdown-Werte (`lib/i18n-states.ts` mit `STATE_NAMES`/`STATE_DESCS`/`STATE_LABELS`, ioBroker liest Translation-Object aus `common.name`/`.desc`/`.states`). Debug-Logs + Stack-Traces bleiben EN.
 - **GitHub:** https://github.com/krobipd/ioBroker.govee-smart
 - **npm:** https://www.npmjs.com/package/iobroker.govee-smart
 - **Runtime-Deps:** `@iobroker/adapter-core`, `mqtt`, `node-forge`
@@ -324,6 +324,7 @@ test/testPackageFiles.ts     → @iobroker/testing (57)
 
 | Version | Highlights |
 | ------- | ---------- |
+| 2.6.0 | Multi-Language i18n-Welle: `lib/i18n-logs.ts` (42 Keys × 11 Sprachen, `setActiveLang` Module-State, `tLog(key, params)` Helper) + `lib/i18n-states.ts` (38 Names + 7 Descs + 4 Labels × 11 Sprachen, `tName/tDesc/tLabel` für ioBroker-Translation-Objects in `common.name/.desc/.states`). 8 Library-Klassen + capability-mapper + state-manager umgestellt. Debug-Logs + Stack-Traces bleiben EN. Vollständigkeits-Check fand 2 Lücken (`loadedFromCache`, `deviceBeta` waren als Keys da, im Code noch hardcoded) + 3 fehlende Keys (`deviceBetaInactive`, `deviceUnknown`, `segmentsDetected`) — nachgezogen. |
 | 2.5.4 | mqtt.connect-DI als optionaler Konstruktor-Parameter (analog httpsRequest in v2.5.1), 7 neue Mock-Tests für getIotKey-Pfad + persisted-credentials reuse (670→677 Tests) |
 | 2.5.3 | Issue #8 (tukey42) Fix: Segment-Wizard-WARN-Spam für indices oberhalb device.segmentCount weg (defensive Cap-Filter in onSegmentBatchUpdate + onMqttSegmentUpdate). Plus: „No channel available"-WARN bei Cloud-Init-Race (Cloud-only Gerät direkt nach Restart) ist jetzt debug — false alarm |
 | 2.5.2 | membersUnreachable-WARN-Spam alle 2 min weg: state IMMER existent halten + bei alle-reachable empty-string statt safeDeleteState (Race-condition zwischen parallelen Updates). Plus: H61A8 Outdoor Neon LED Strip 10m verified (Issue #11) |

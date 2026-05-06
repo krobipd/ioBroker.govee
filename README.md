@@ -126,25 +126,25 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ## Changelog
 ### 2.6.0 (2026-05-06)
 
-- **Mehrsprachig**: info/warn/error-Logs und Datenpunkt-Namen/-Beschreibungen jetzt in der ioBroker-Systemsprache (11 Sprachen). Debug-Logs und Stack-Traces bleiben englisch.
+- Multi-language: info/warn/error logs and state names/descriptions are now in your ioBroker system language (11 languages). Debug logs and stack traces stay English.
 
 ### 2.5.4 (2026-05-04)
 
-- Test-Coverage erweitert für den MQTT-Login-Pfad: `mqtt.connect` ist jetzt als optionaler Constructor-Parameter injizierbar (analog `httpsRequest` in v2.5.1) und 7 neue Mock-Tests decken die getIotKey-Authentifizierung und den persistierten-Credentials-Reuse-Pfad ab.
+- Test-coverage expansion: `mqtt.connect` is now an injectable constructor parameter (like `httpsRequest` in v2.5.1), and 7 new mock tests cover the getIotKey path and persisted-credentials reuse.
 
 ### 2.5.3 (2026-05-04)
 
-- Segment-Erkennungs-Wizard: kein „has no existing object"-Spam mehr für Indizes oberhalb der echten Strip-Länge — Echo-Pakete werden defensiv gegen `segmentCount` gefiltert (Issue #8).
-- Adapter-Init nach Restart: Befehle gegen ein noch-nicht-geladenes Cloud-Backend werden still verworfen statt mit „No channel available" zu warnen — der Befehl ist eh hin, der WARN war irreführend.
+- Segment-detection wizard no longer spams "has no existing object" WARN for indices above the real strip length — echo packets are filtered against `segmentCount` (Issue #8).
+- Command before cloud-init (e.g. cloud-only device right after restart) is silent now instead of warning "No channel available".
 
 ### 2.5.2 (2026-05-04)
 
-- WARN-Spam alle 2 Min behoben: `groups.*.info.membersUnreachable` bleibt bei vollständig erreichbaren Gruppen mit leerem Wert vorhanden statt gelöscht zu werden.
-- Neu verifiziert: H61A8 Outdoor Neon LED Strip 10m (gemeldet von tukey42 in Issue #11).
+- Stops the `groups.*.info.membersUnreachable` WARN spam every 2 min — the group state stays present with an empty value when all members are reachable instead of being deleted/recreated.
+- Verified H61A8 Outdoor Neon LED Strip 10m (reported by tukey42 in Issue #11).
 
 ### 2.5.1 (2026-05-04)
 
-- Cloud-Rate-Limit-Hinweis zeigt bei 429 jetzt „rate-limited by Govee" statt der generischen Cloud-Fehlermeldung. Plus 33 Mock-Tests für Cloud + MQTT-Login.
+- Cloud rate-limit hint now reads "rate-limited by Govee" on 429 instead of the generic cloud-error message. Plus 33 mock tests for cloud + MQTT login paths.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
