@@ -124,7 +124,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 2.6.1 (2026-05-06)
 
 - Documentation: changelog entries (v2.5.x–v2.6.0) restored to English — a few bullets had been left in German. No code changes.
 
@@ -146,13 +146,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 - Stops the `groups.*.info.membersUnreachable` WARN spam every 2 min — the group state stays present with an empty value when all members are reachable instead of being deleted/recreated.
 - Verified H61A8 Outdoor Neon LED Strip 10m (reported by tukey42 in Issue #11).
 
-### 2.5.1 (2026-05-04)
-
-- Cloud rate-limit hint now reads "rate-limited by Govee" on 429 instead of the generic cloud-error message. Plus 33 mock tests for cloud + MQTT login paths.
-
-Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
-
-## Support
+Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).## Support
 
 - [Wiki](https://github.com/krobipd/ioBroker.govee-smart/wiki) — user documentation (EN / DE)
 - [GitHub Issues](https://github.com/krobipd/ioBroker.govee-smart/issues) — bug reports, feature requests

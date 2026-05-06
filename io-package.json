@@ -1,9 +1,9 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.6.0",
+    "version": "2.6.1",
     "news": {
-      "NEXT": {
+      "2.6.1": {
         "en": "Documentation: changelog entries (v2.5.x–v2.6.0) restored to English — a few bullets had been left in German. No code changes.",
         "de": "Dokumentation: Changelog-Einträge (v2.5.x–v2.6.0) auf Englisch korrigiert — einige Bullets waren auf Deutsch geblieben. Keine Code-Änderungen.",
         "ru": "Документация: записи в журнале изменений (v2.5.x–v2.6.0) восстановлены на английском — некоторые пункты оставались на немецком. Изменений в коде нет.",
@@ -93,19 +93,6 @@
         "pl": "Higiena kodu: onMessage handler zyskal wlasna klase z host-interface. main.ts maleje; zachowanie bez zmian.",
         "uk": "Гігієна коду: onMessage handler тепер у власному класі з host-інтерфейсом. main.ts зменшується; поведінка без змін.",
         "zh-cn": "代码卫生：onMessage 处理器现已拆为独立类，使用 host 接口。main.ts 缩小；行为不变。"
-      },
-      "2.4.1": {
-        "en": "Code-hygiene: group fan-out (member dispatch when switching the group) is now its own class with host interface. main.ts shrinks again; behaviour unchanged.",
-        "de": "Code-Hygiene: Group-Fan-Out (Mitglieder-Steuerung beim Schalten der Gruppe) ist jetzt eigene Klasse mit Host-Interface. main.ts wird nochmal kleiner; Verhalten identisch.",
-        "ru": "Гигиена кода: group fan-out (диспетчеризация участников при переключении группы) теперь в отдельном классе с host-интерфейсом. main.ts снова уменьшается; поведение неизменно.",
-        "pt": "Higiene de codigo: group fan-out agora vive em classe propria com host-interface. main.ts encolhe mais; comportamento inalterado.",
-        "nl": "Code-hygiene: group fan-out heeft nu een eigen klasse met host-interface. main.ts wordt opnieuw kleiner; gedrag ongewijzigd.",
-        "fr": "Hygiene de code : group fan-out vit maintenant dans sa propre classe avec host-interface. main.ts retrecit encore; comportement inchange.",
-        "it": "Igiene del codice: group fan-out ora vive nella propria classe con host-interface. main.ts si riduce ancora; comportamento invariato.",
-        "es": "Higiene de codigo: group fan-out vive ahora en su propia clase con host-interface. main.ts se reduce de nuevo; comportamiento sin cambios.",
-        "pl": "Higiena kodu: group fan-out zyskal wlasna klase z host-interface. main.ts znowu maleje; zachowanie bez zmian.",
-        "uk": "Гігієна коду: group fan-out тепер у власному класі з host-інтерфейсом. main.ts знову зменшується; поведінка без змін.",
-        "zh-cn": "代码卫生：group fan-out 现已拆为独立类，使用 host 接口。main.ts 再次缩小；行为不变。"
       }
     },
     "titleLang": {
