@@ -3,6 +3,19 @@
     "name": "govee-smart",
     "version": "2.6.0",
     "news": {
+      "NEXT": {
+        "en": "Documentation: changelog entries (v2.5.x–v2.6.0) restored to English — a few bullets had been left in German. No code changes.",
+        "de": "Dokumentation: Changelog-Einträge (v2.5.x–v2.6.0) auf Englisch korrigiert — einige Bullets waren auf Deutsch geblieben. Keine Code-Änderungen.",
+        "ru": "Документация: записи в журнале изменений (v2.5.x–v2.6.0) восстановлены на английском — некоторые пункты оставались на немецком. Изменений в коде нет.",
+        "pt": "Documentação: entradas do changelog (v2.5.x–v2.6.0) restauradas para inglês — alguns itens haviam ficado em alemão. Sem alterações no código.",
+        "nl": "Documentatie: changelog-vermeldingen (v2.5.x–v2.6.0) hersteld naar Engels — enkele punten waren in het Duits gebleven. Geen codewijzigingen.",
+        "fr": "Documentation : entrées du changelog (v2.5.x–v2.6.0) remises en anglais — quelques points étaient restés en allemand. Aucune modification de code.",
+        "it": "Documentazione: voci del changelog (v2.5.x–v2.6.0) ripristinate in inglese — alcuni punti erano rimasti in tedesco. Nessuna modifica al codice.",
+        "es": "Documentación: entradas del changelog (v2.5.x–v2.6.0) restauradas al inglés — algunos puntos quedaron en alemán. Sin cambios en el código.",
+        "pl": "Dokumentacja: wpisy changelog (v2.5.x–v2.6.0) przywrócone na angielski — kilka punktów pozostało po niemiecku. Bez zmian w kodzie.",
+        "uk": "Документація: записи changelog (v2.5.x–v2.6.0) відновлено англійською — деякі пункти лишалися німецькою. Без змін у коді.",
+        "zh-cn": "文档：将 v2.5.x–v2.6.0 的 changelog 条目恢复为英文 — 之前部分条目残留为德文。无代码更改。"
+      },
       "2.6.0": {
         "en": "Multi-language: info/warn/error logs and state names/descriptions are now in your ioBroker system language (11 languages). Debug logs and stack traces stay English.",
         "de": "Mehrsprachig: info/warn/error-Logs sowie Datenpunkt-Namen und -Beschreibungen sind jetzt in der ioBroker-Systemsprache (11 Sprachen). Debug-Logs und Stack-Traces bleiben englisch.",
