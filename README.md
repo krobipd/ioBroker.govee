@@ -65,7 +65,7 @@ Full user documentation lives in the **[Wiki](https://github.com/krobipd/ioBroke
 
 - Node.js >= 22
 - ioBroker js-controller >= 7.0.7
-- ioBroker Admin >= 7.7.22
+- ioBroker Admin >= 7.8.23
 - A Govee account and at least one Govee WiFi device. LAN control needs a light with LAN mode enabled in the Govee Home app — see Govee's [LAN-supported device list](https://app-h5.govee.com/user-manual/wlan-guide).
 
 ---
@@ -124,7 +124,7 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ---
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 2.6.0 (2026-05-06)
 
 - **Mehrsprachig**: info/warn/error-Logs und Datenpunkt-Namen/-Beschreibungen jetzt in der ioBroker-Systemsprache (11 Sprachen). Debug-Logs und Stack-Traces bleiben englisch.
 
@@ -145,10 +145,6 @@ This adapter's MQTT authentication and BLE-over-LAN (ptReal) protocol implementa
 ### 2.5.1 (2026-05-04)
 
 - Cloud-Rate-Limit-Hinweis zeigt bei 429 jetzt „rate-limited by Govee" statt der generischen Cloud-Fehlermeldung. Plus 33 Mock-Tests für Cloud + MQTT-Login.
-
-### 2.5.0 (2026-05-04)
-
-- F4 final: `onMessage`-Handler (sendTo aus dem Admin-UI) ist jetzt eine eigene Klasse mit Host-Interface. main.ts deutlich kleiner, Login-Test/2FA-Code-Anforderung isoliert testbar. Verhalten identisch.
 
 Older entries are in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

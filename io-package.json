@@ -1,9 +1,9 @@
 {
   "common": {
     "name": "govee-smart",
-    "version": "2.5.4",
+    "version": "2.6.0",
     "news": {
-      "NEXT": {
+      "2.6.0": {
         "en": "Multi-language: info/warn/error logs and state names/descriptions are now in your ioBroker system language (11 languages). Debug logs and stack traces stay English.",
         "de": "Mehrsprachig: info/warn/error-Logs sowie Datenpunkt-Namen und -Beschreibungen sind jetzt in der ioBroker-Systemsprache (11 Sprachen). Debug-Logs und Stack-Traces bleiben englisch.",
         "ru": "Многоязычность: info/warn/error-логи и имена/описания состояний теперь на языке системы ioBroker (11 языков). Debug и stack-trace остаются английскими.",
@@ -93,19 +93,6 @@
         "pl": "Higiena kodu: group fan-out zyskal wlasna klase z host-interface. main.ts znowu maleje; zachowanie bez zmian.",
         "uk": "Гігієна коду: group fan-out тепер у власному класі з host-інтерфейсом. main.ts знову зменшується; поведінка без змін.",
         "zh-cn": "代码卫生：group fan-out 现已拆为独立类，使用 host 接口。main.ts 再次缩小；行为不变。"
-      },
-      "2.4.0": {
-        "en": "Code-hygiene: local snapshot manager (save/restore/delete) now lives in its own class with a host interface. main.ts shrinks; behaviour unchanged.",
-        "de": "Code-Hygiene: lokaler Snapshot-Manager (save/restore/delete) hat jetzt eine eigene Klasse mit Host-Interface. main.ts wird kleiner; Verhalten identisch.",
-        "ru": "Гигиена кода: локальный snapshot-менеджер вынесен в отдельный класс с host-интерфейсом. main.ts уменьшается; поведение неизменно.",
-        "pt": "Higiene de codigo: o gerenciador local de snapshots agora vive em sua propria classe com host-interface. main.ts encolhe; comportamento inalterado.",
-        "nl": "Code-hygiene: lokale snapshot-manager (save/restore/delete) heeft nu een eigen klasse met host-interface. main.ts wordt kleiner; gedrag ongewijzigd.",
-        "fr": "Hygiene de code : le gestionnaire de snapshot local vit maintenant dans sa propre classe avec une host-interface. main.ts retrecit; comportement inchange.",
-        "it": "Igiene del codice: il gestore snapshot locale vive ora nella propria classe con un host-interface. main.ts si riduce; comportamento invariato.",
-        "es": "Higiene de codigo: el gestor de snapshots locales vive ahora en su propia clase con host-interface. main.ts se reduce; comportamiento sin cambios.",
-        "pl": "Higiena kodu: lokalny snapshot-manager zyskal wlasna klase z host-interface. main.ts maleje; zachowanie bez zmian.",
-        "uk": "Гігієна коду: локальний snapshot-менеджер тепер живе у власному класі з host-інтерфейсом. main.ts зменшується; поведінка без змін.",
-        "zh-cn": "代码卫生：本地 snapshot 管理器现已拆分为独立类，使用 host 接口。main.ts 缩小；行为不变。"
       }
     },
     "titleLang": {
@@ -177,7 +164,7 @@
     ],
     "globalDependencies": [
       {
-        "admin": ">=7.7.22"
+        "admin": ">=7.8.23"
       }
     ]
   },

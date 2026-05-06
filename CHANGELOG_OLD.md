@@ -1,4 +1,8 @@
 # Older Changes
+## 2.5.0 (2026-05-04)
+
+- F4 final: `onMessage`-Handler (sendTo aus dem Admin-UI) ist jetzt eine eigene Klasse mit Host-Interface. main.ts deutlich kleiner, Login-Test/2FA-Code-Anforderung isoliert testbar. Verhalten identisch.
+
 ## 2.4.1 (2026-05-04)
 
 - Group-Fan-Out-Pfad (Mitglieder-Steuerung beim Schalten der Gruppe) ist jetzt eine eigene Klasse mit Host-Interface — `main.ts` nochmal kleiner. Verhalten identisch.
